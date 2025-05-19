@@ -13,7 +13,6 @@
 // limitations under the License.
 
 #include <autoware_planning_rviz_plugin/pose_with_uuid_stamped/display.hpp>
-
 #include <rviz_common/properties/float_property.hpp>
 #include <rviz_common/properties/tf_frame_property.hpp>
 #include <rviz_common/validate_floats.hpp>
