@@ -1,0 +1,19 @@
+name: build-and-test-daily
+
+on:
+  schedule:
+    - cron: 0 0 * * * # every day at midnight UTC
+  workflow_dispatch:
+
+jobs:
+  build-and-test-daily:
+    uses: ./.github/workflows/build-and-test-reusable.yaml
+    with:
+      runner: "['self-hosted', 'Linux', 'X64']"
+      container: ghcr.io/autowarefoundation/autoware:core-devel
+      container-suffix: ""
+      pull-ccache: true
+      concurrency-group: build-and-test-daily-${{ github.ref }}-${{ github.run_id }}
+      codecov-flag: daily
+    secrets:
+      codecov-token: ${{ secrets.CODECOV_TOKEN }}
