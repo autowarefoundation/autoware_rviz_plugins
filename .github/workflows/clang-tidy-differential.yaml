@@ -74,6 +74,7 @@ jobs:
           clang-tidy-config-url: https://raw.githubusercontent.com/autowarefoundation/autoware/main/.clang-tidy-ci
           clang-tidy-ignore-path: .clang-tidy-ignore
           cache-key-element: ${{ env.BUILD_TYPE_CUDA_STATE }}
+          underlay-workspace: /opt/autoware
 
       - name: Show disk space after the tasks
         run: df -h
