@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef TIER4_PLANNING_RVIZ_PLUGIN__UTILS_HPP_
-#define TIER4_PLANNING_RVIZ_PLUGIN__UTILS_HPP_
+#ifndef AUTOWARE_PLANNING_RVIZ_PLUGIN__UTILS_HPP_
+#define AUTOWARE_PLANNING_RVIZ_PLUGIN__UTILS_HPP_
 
 #include <autoware_utils/geometry/geometry.hpp>
 #include <autoware_utils/math/normalization.hpp>
@@ -59,4 +59,4 @@ bool isDrivingForward(const T points_with_twist, size_t target_idx)
 }
 }  // namespace rviz_plugins
 
-#endif  // TIER4_PLANNING_RVIZ_PLUGIN__UTILS_HPP_
+#endif  // AUTOWARE_PLANNING_RVIZ_PLUGIN__UTILS_HPP_

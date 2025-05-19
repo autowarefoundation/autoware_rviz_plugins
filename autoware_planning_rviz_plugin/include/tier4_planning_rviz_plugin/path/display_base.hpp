@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef TIER4_PLANNING_RVIZ_PLUGIN__PATH__DISPLAY_BASE_HPP_
-#define TIER4_PLANNING_RVIZ_PLUGIN__PATH__DISPLAY_BASE_HPP_
+#ifndef AUTOWARE_PLANNING_RVIZ_PLUGIN__PATH__DISPLAY_BASE_HPP_
+#define AUTOWARE_PLANNING_RVIZ_PLUGIN__PATH__DISPLAY_BASE_HPP_
 
 #include <autoware_vehicle_info_utils/vehicle_info_utils.hpp>
 #include <rclcpp/rclcpp.hpp>
@@ -41,7 +41,7 @@
 #include <vector>
 
 #define EIGEN_MPL2_ONLY
-#include "tier4_planning_rviz_plugin/utils.hpp"
+#include "autoware_planning_rviz_plugin/utils.hpp"
 
 #include <Eigen/Core>
 #include <Eigen/Geometry>
@@ -704,4 +704,4 @@ private:
 };
 }  // namespace rviz_plugins
 
-#endif  // TIER4_PLANNING_RVIZ_PLUGIN__PATH__DISPLAY_BASE_HPP_
+#endif  // AUTOWARE_PLANNING_RVIZ_PLUGIN__PATH__DISPLAY_BASE_HPP_

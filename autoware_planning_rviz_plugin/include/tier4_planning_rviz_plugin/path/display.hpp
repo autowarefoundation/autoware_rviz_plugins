@@ -12,10 +12,10 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef TIER4_PLANNING_RVIZ_PLUGIN__PATH__DISPLAY_HPP_
-#define TIER4_PLANNING_RVIZ_PLUGIN__PATH__DISPLAY_HPP_
+#ifndef AUTOWARE_PLANNING_RVIZ_PLUGIN__PATH__DISPLAY_HPP_
+#define AUTOWARE_PLANNING_RVIZ_PLUGIN__PATH__DISPLAY_HPP_
 
-#include "tier4_planning_rviz_plugin/path/display_base.hpp"
+#include "autoware_planning_rviz_plugin/path/display_base.hpp"
 
 #include <autoware_internal_planning_msgs/msg/path_with_lane_id.hpp>
 #include <autoware_planning_msgs/msg/detail/trajectory__struct.hpp>
@@ -319,4 +319,4 @@ private:
 };
 }  // namespace rviz_plugins
 
-#endif  // TIER4_PLANNING_RVIZ_PLUGIN__PATH__DISPLAY_HPP_
+#endif  // AUTOWARE_PLANNING_RVIZ_PLUGIN__PATH__DISPLAY_HPP_

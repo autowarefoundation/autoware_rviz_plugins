@@ -12,8 +12,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef TIER4_PLANNING_RVIZ_PLUGIN__POSE_WITH_UUID_STAMPED__DISPLAY_HPP_
-#define TIER4_PLANNING_RVIZ_PLUGIN__POSE_WITH_UUID_STAMPED__DISPLAY_HPP_
+#ifndef AUTOWARE_PLANNING_RVIZ_PLUGIN__POSE_WITH_UUID_STAMPED__DISPLAY_HPP_
+#define AUTOWARE_PLANNING_RVIZ_PLUGIN__POSE_WITH_UUID_STAMPED__DISPLAY_HPP_
 
 #include <rviz_common/message_filter_display.hpp>
 
@@ -81,4 +81,4 @@ private:
 
 }  // namespace rviz_plugins
 
-#endif  // TIER4_PLANNING_RVIZ_PLUGIN__POSE_WITH_UUID_STAMPED__DISPLAY_HPP_
+#endif  // AUTOWARE_PLANNING_RVIZ_PLUGIN__POSE_WITH_UUID_STAMPED__DISPLAY_HPP_

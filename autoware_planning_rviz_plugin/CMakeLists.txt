@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.14)
-project(tier4_planning_rviz_plugin)
+project(autoware_planning_rviz_plugin)
 
 find_package(autoware_cmake REQUIRED)
 autoware_package()
@@ -16,21 +16,21 @@ include_directories(
     ${EIGEN3_INCLUDE_DIR}
 )
 
-ament_auto_add_library(tier4_planning_rviz_plugin SHARED
+ament_auto_add_library(autoware_planning_rviz_plugin SHARED
   # path point
-  include/tier4_planning_rviz_plugin/path/display_base.hpp
-  include/tier4_planning_rviz_plugin/path/display.hpp
+  include/autoware_planning_rviz_plugin/path/display_base.hpp
+  include/autoware_planning_rviz_plugin/path/display.hpp
   src/path/display.cpp
   # footprint
-  include/tier4_planning_rviz_plugin/pose_with_uuid_stamped/display.hpp
+  include/autoware_planning_rviz_plugin/pose_with_uuid_stamped/display.hpp
   src/pose_with_uuid_stamped/display.cpp
-  include/tier4_planning_rviz_plugin/mission_checkpoint/mission_checkpoint.hpp
+  include/autoware_planning_rviz_plugin/mission_checkpoint/mission_checkpoint.hpp
   src/mission_checkpoint/mission_checkpoint.cpp
   src/tools/jsk_overlay_utils.cpp
   src/tools/max_velocity.cpp
 )
 
-target_link_libraries(tier4_planning_rviz_plugin
+target_link_libraries(autoware_planning_rviz_plugin
   ${QT_LIBRARIES}
 )
 
