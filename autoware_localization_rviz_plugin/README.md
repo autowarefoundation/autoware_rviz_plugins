@@ -1,4 +1,4 @@
-# tier4_localization_rviz_plugin
+# autoware_localization_rviz_plugin
 
 ## Purpose
 
@@ -63,7 +63,7 @@ TBD.
 
 1. Start rviz and select Add under the Displays panel.
    ![select_add](./images/select_add.png)
-2. Select tier4_localization_rviz_plugin/PoseHistory or PoseWithCovarianceHistory. Next, press OK.
+2. Select autoware_localization_rviz_plugin/PoseHistory or PoseWithCovarianceHistory. Next, press OK.
    ![select_localization_plugin](./images/select_localization_plugin.png)
 3. Enter the name of the topic where you want to view the trajectory and the covariance.
    ![select_topic_name](./images/select_topic_name.png)

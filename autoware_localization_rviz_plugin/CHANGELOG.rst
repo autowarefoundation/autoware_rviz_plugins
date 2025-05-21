@@ -1,11 +1,11 @@
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-Changelog for package tier4_localization_rviz_plugin
+Changelog for package autoware_localization_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 0.44.0 (2025-04-18)
 -------------------
 * Merge remote-tracking branch 'origin/main' into humble
-* feat(tier4_localization_rviz_plugin): add colored_pose_with_covariance_history (`#10271 <https://github.com/autowarefoundation/autoware_universe/issues/10271>`_)
+* feat(autoware_localization_rviz_plugin): add colored_pose_with_covariance_history (`#10271 <https://github.com/autowarefoundation/autoware_universe/issues/10271>`_)
   * feat: add colored pose with covariance history
   * fix: CMakeLists library name
   * fix: transplant mistake
@@ -65,22 +65,22 @@ Changelog for package tier4_localization_rviz_plugin
 0.38.0 (2024-11-08)
 -------------------
 * unify package.xml version to 0.37.0
-* fix(tier4_localization_rviz_plugin): fix unmatchedSuppression (`#8919 <https://github.com/autowarefoundation/autoware_universe/issues/8919>`_)
+* fix(autoware_localization_rviz_plugin): fix unmatchedSuppression (`#8919 <https://github.com/autowarefoundation/autoware_universe/issues/8919>`_)
   fix:unmatchedSuppression
-* fix(tier4_localization_rviz_plugin): fix unusedFunction (`#8848 <https://github.com/autowarefoundation/autoware_universe/issues/8848>`_)
+* fix(autoware_localization_rviz_plugin): fix unusedFunction (`#8848 <https://github.com/autowarefoundation/autoware_universe/issues/8848>`_)
   fix:unusedFunction
-* fix(tier4_localization_rviz_plugin): fix constVariableReference (`#8838 <https://github.com/autowarefoundation/autoware_universe/issues/8838>`_)
+* fix(autoware_localization_rviz_plugin): fix constVariableReference (`#8838 <https://github.com/autowarefoundation/autoware_universe/issues/8838>`_)
   fix:constVariableReference
-* fix(tier4_localization_rviz_plugin): fix knownConditionTrueFalse (`#8824 <https://github.com/autowarefoundation/autoware_universe/issues/8824>`_)
+* fix(autoware_localization_rviz_plugin): fix knownConditionTrueFalse (`#8824 <https://github.com/autowarefoundation/autoware_universe/issues/8824>`_)
   * fix:knownConditionTrueFalse
   * fix:merge
   ---------
-* refactor(tier4_localization_rviz_plugin): apply static analysis (`#8683 <https://github.com/autowarefoundation/autoware_universe/issues/8683>`_)
+* refactor(autoware_localization_rviz_plugin): apply static analysis (`#8683 <https://github.com/autowarefoundation/autoware_universe/issues/8683>`_)
   * refactor based on linter
   * add comment on no lint
   * mod comment for clarification
   ---------
-* feat(tier4_localization_rviz_plugin): add visualization of pose with covariance history (`#8191 <https://github.com/autowarefoundation/autoware_universe/issues/8191>`_)
+* feat(autoware_localization_rviz_plugin): add visualization of pose with covariance history (`#8191 <https://github.com/autowarefoundation/autoware_universe/issues/8191>`_)
   * display PoseWithCovariance History
   * Correct spelling errors and year
   * Add arrows clear()
@@ -90,9 +90,9 @@ Changelog for package tier4_localization_rviz_plugin
   ---------
   Co-authored-by: Yamato Ando <yamato.ando@gmail.com>
   Co-authored-by: pre-commit-ci[bot] <66853113+pre-commit-ci[bot]@users.noreply.github.com>
-* fix(tier4_localization_rviz_plugin): fix unusedFunction (`#8637 <https://github.com/autowarefoundation/autoware_universe/issues/8637>`_)
+* fix(autoware_localization_rviz_plugin): fix unusedFunction (`#8637 <https://github.com/autowarefoundation/autoware_universe/issues/8637>`_)
   fix:unusedFunction
-* chore(tier4_localization_rviz_plugin): add maintainer and author (`#8184 <https://github.com/autowarefoundation/autoware_universe/issues/8184>`_)
+* chore(autoware_localization_rviz_plugin): add maintainer and author (`#8184 <https://github.com/autowarefoundation/autoware_universe/issues/8184>`_)
   add maintainer and author
 * refactor(vehicle_info_utils)!: prefix package and namespace with autoware (`#7353 <https://github.com/autowarefoundation/autoware_universe/issues/7353>`_)
   * chore(autoware_vehicle_info_utils): rename header
@@ -156,8 +156,8 @@ Changelog for package tier4_localization_rviz_plugin
   ---------
   Co-authored-by: kenji-miyake <kenji-miyake@users.noreply.github.com>
   Co-authored-by: pre-commit-ci[bot] <66853113+pre-commit-ci[bot]@users.noreply.github.com>
-* feat(tier4_localization_rviz_plugin): add pose history footprint (`#2387 <https://github.com/autowarefoundation/autoware_universe/issues/2387>`_)
-  * feat(tier4_localization_rviz_plugin): add pose history footprint
+* feat(autoware_localization_rviz_plugin): add pose history footprint (`#2387 <https://github.com/autowarefoundation/autoware_universe/issues/2387>`_)
+  * feat(autoware_localization_rviz_plugin): add pose history footprint
   * remove unused variables
   * add maintainer
 * chore: add api maintainers (`#2361 <https://github.com/autowarefoundation/autoware_universe/issues/2361>`_)
@@ -166,8 +166,8 @@ Changelog for package tier4_localization_rviz_plugin
   This reverts commit 9278e714bdbd29ca344976e9a2b26fdb93b41370.
   * Revert "fix: build error"
   This reverts commit 5e855993250a94494d9a8d05e03097162d4e6e0e.
-* refactor(tier4_localization_rviz_plugin): apply clang-tidy (`#1608 <https://github.com/autowarefoundation/autoware_universe/issues/1608>`_)
-  * refactor(tier4_localization_rviz_plugin): apply clang-tidy
+* refactor(autoware_localization_rviz_plugin): apply clang-tidy (`#1608 <https://github.com/autowarefoundation/autoware_universe/issues/1608>`_)
+  * refactor(autoware_localization_rviz_plugin): apply clang-tidy
   * ci(pre-commit): autofix
   * refactor: add NOLINT
   * refactor: fix readability-identifier-naming
