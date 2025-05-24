@@ -1,3 +1,9 @@
 ### Automatically generated from package.xml ###
+autoware_localization_rviz_plugin/** isamu.takagi@tier4.jp takamasa.horibe@tier4.jp yamato.ando@tier4.jp @autowarefoundation/autoware-core-global-codeowners
+autoware_overlay_rviz_plugin/autoware_mission_details_overlay_rviz_plugin/** ahmed.ebrahim@leodrive.ai @autowarefoundation/autoware-core-global-codeowners
+autoware_overlay_rviz_plugin/autoware_overlay_rviz_plugin/** khalil@leodrive.ai @autowarefoundation/autoware-core-global-codeowners
+autoware_overlay_rviz_plugin/autoware_string_stamped_overlay_rviz_plugin/** satoshi.ota@tier4.jp takayuki.murooka@tier4.jp @autowarefoundation/autoware-core-global-codeowners
+autoware_perception_rviz_plugin/** opensource@apex.ai taiki.tanaka@tier4.jp takeshi.miura@tier4.jp yoshi.ri@tier4.jp @autowarefoundation/autoware-core-global-codeowners
+autoware_planning_rviz_plugin/** takayuki.murooka@tier4.jp yukihiro.saito@tier4.jp @autowarefoundation/autoware-core-global-codeowners
 
 ### Copied from .github/CODEOWNERS-manual ###
