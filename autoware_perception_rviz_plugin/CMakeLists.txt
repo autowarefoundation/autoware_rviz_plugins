@@ -10,6 +10,7 @@ set(OD_PLUGIN_LIB_SRC
   src/object_detection/detected_objects_display.cpp
   src/object_detection/tracked_objects_display.cpp
   src/object_detection/predicted_objects_display.cpp
+  src/traffic_light/traffic_light_display.cpp
 )
 
 set(OD_PLUGIN_LIB_HEADERS
@@ -19,6 +20,7 @@ set(OD_PLUGIN_LIB_HEADERS_TO_WRAP
   include/autoware_perception_rviz_plugin/object_detection/detected_objects_display.hpp
   include/autoware_perception_rviz_plugin/object_detection/tracked_objects_display.hpp
   include/autoware_perception_rviz_plugin/object_detection/predicted_objects_display.hpp
+  include/autoware_perception_rviz_plugin/traffic_light/traffic_light_display.hpp
 )
 
 set(COMMON_HEADERS
@@ -52,6 +54,12 @@ target_include_directories(${PROJECT_NAME} PRIVATE include)
 # Settings to improve the build as suggested on https://github.com/ros2/rviz/blob/ros2/docs/plugin_development.md
 target_compile_definitions(${PROJECT_NAME} PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
 target_compile_definitions(${PROJECT_NAME} PRIVATE "OBJECT_DETECTION_PLUGINS_BUILDING_LIBRARY")
+
+if(TARGET rviz_ogre_vendor::OgreMain)
+  get_target_property(OGRE_INCLUDE_DIRS rviz_ogre_vendor::OgreMain INTERFACE_INCLUDE_DIRECTORIES)
+  target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${OGRE_INCLUDE_DIRS})
+endif()
+
 
 # Export the plugin to be imported by rviz2
 pluginlib_export_plugin_description_file(rviz_common plugins_description.xml)

@@ -23,4 +23,10 @@
     <message_type>autoware_perception_msgs/msg/DetectedObjects</message_type>
   </class>
 
+  <class name="autoware_perception_rviz_plugin/TrafficLight"
+         type="autoware_perception_rviz_plugin::traffic_light::TrafficLightDisplay"
+         base_class_type="rviz_common::Display">
+    <description>Traffic light display plugin for Autoware</description>
+  </class>
+
 </library>
