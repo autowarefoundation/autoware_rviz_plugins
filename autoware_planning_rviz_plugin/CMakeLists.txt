@@ -21,6 +21,16 @@ ament_auto_add_library(autoware_planning_rviz_plugin SHARED
   include/autoware_planning_rviz_plugin/path/display_base.hpp
   include/autoware_planning_rviz_plugin/path/display.hpp
   src/path/display.cpp
+  # candidate trajectories
+  include/autoware_planning_rviz_plugin/candidate_trajectories/display_base.hpp
+  src/candidate_trajectories/display_base.cpp
+  include/autoware_planning_rviz_plugin/candidate_trajectories/display.hpp
+  src/candidate_trajectories/display.cpp
+  include/autoware_planning_rviz_plugin/candidate_trajectories/candidate_trajectories_display.hpp
+  src/candidate_trajectories/candidate_trajectories_display.cpp
+  # common utilities
+  include/autoware_planning_rviz_plugin/common/color_utils.hpp
+  src/common/color_utils.cpp
   # footprint
   include/autoware_planning_rviz_plugin/pose_with_uuid_stamped/display.hpp
   src/pose_with_uuid_stamped/display.cpp

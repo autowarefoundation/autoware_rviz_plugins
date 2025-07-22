@@ -19,6 +19,16 @@
     base_class_type="rviz_common::Display">
     <description>Display trajectory points of autoware_planning_msg::Trajectory</description>
   </class>
+  <class name="rviz_plugins/ScoredCandidateTrajectories"
+    type="rviz_plugins::AutowareScoredCandidateTrajectoriesDisplay"
+    base_class_type="rviz_common::Display">
+    <description>Display scored candidate trajectories with color-coded scores</description>
+  </class>
+  <class name="rviz_plugins/CandidateTrajectories"
+    type="rviz_plugins::AutowareCandidateTrajectoriesDisplay"
+    base_class_type="rviz_common::Display">
+    <description>Display candidate trajectories with generator-based or index-based coloring</description>
+  </class>
   <class name="rviz_plugins/MaxVelocity"
     type="rviz_plugins::MaxVelocityDisplay"
     base_class_type="rviz_common::Display">
