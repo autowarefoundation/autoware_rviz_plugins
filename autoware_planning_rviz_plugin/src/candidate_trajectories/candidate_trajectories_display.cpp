@@ -48,6 +48,9 @@ AutowareCandidateTrajectoriesDisplay::AutowareCandidateTrajectoriesDisplay()
   connect(&property_index_color_3_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&property_index_color_4_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&this->property_coloring_mode_, SIGNAL(changed()), this, SLOT(updateColoringModeVisibility()));
+  
+  // Connect topic change signal for auto-subscription
+  connect(&this->property_topic_, SIGNAL(changed()), this, SLOT(onTopicChanged()));
 
   setupColoringModes();
 }
@@ -81,6 +84,15 @@ void AutowareCandidateTrajectoriesDisplay::updateColoringModeVisibility()
   // Update color mapping and trigger visualization
   updateIndexColors();
   updateVisualization();
+}
+
+void AutowareCandidateTrajectoriesDisplay::onTopicChanged()
+{
+  // Automatically subscribe when topic changes
+  // This matches standard RViz behavior where topic selection enables visualization
+  if (this->isEnabled()) {
+    this->subscribe();
+  }
 }
 
 void AutowareCandidateTrajectoriesDisplay::updateModeSpecificVisibility(int /* mode */)

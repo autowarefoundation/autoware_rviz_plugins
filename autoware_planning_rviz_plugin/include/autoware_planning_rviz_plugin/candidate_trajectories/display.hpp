@@ -37,6 +37,7 @@ public:
 protected Q_SLOTS:
   void updateVisualization();
   void updateColoringModeVisibility();
+  void onTopicChanged();
 
 protected:
   // Override base class virtual methods

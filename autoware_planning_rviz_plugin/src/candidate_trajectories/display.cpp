@@ -58,6 +58,9 @@ AutowareScoredCandidateTrajectoriesDisplay::AutowareScoredCandidateTrajectoriesD
   connect(&property_score_text_view_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&property_score_text_scale_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&this->property_coloring_mode_, SIGNAL(changed()), this, SLOT(updateColoringModeVisibility()));
+  
+  // Connect topic change signal for auto-subscription
+  connect(&this->property_topic_, SIGNAL(changed()), this, SLOT(onTopicChanged()));
 
   setupColoringModes();
 }
@@ -109,6 +112,15 @@ void AutowareScoredCandidateTrajectoriesDisplay::updateColoringModeVisibility()
 {
   // Update visualization when coloring mode changes
   updateVisualization();
+}
+
+void AutowareScoredCandidateTrajectoriesDisplay::onTopicChanged()
+{
+  // Automatically subscribe when topic changes
+  // This matches standard RViz behavior where topic selection enables visualization
+  if (this->isEnabled()) {
+    this->subscribe();
+  }
 }
 
 void AutowareScoredCandidateTrajectoriesDisplay::updateModeSpecificVisibility(int /* mode */)

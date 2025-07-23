@@ -192,6 +192,9 @@ void CandidateTrajectoriesDisplayBase<MessageType>::unsubscribe()
 template<typename MessageType>
 void CandidateTrajectoriesDisplayBase<MessageType>::connectBaseSignals()
 {
+  // Note: Topic property signal connection must be handled by derived classes
+  // due to Qt MOC template limitations
+  
   // Connect common property signals - coloring mode signal must be connected in derived classes
   connect(&property_path_view_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&property_path_width_view_, SIGNAL(changed()), this, SLOT(updateVisualization()));
