@@ -26,6 +26,7 @@
 
 #include <algorithm>
 #include <cmath>
+#include <memory>
 
 #define EIGEN_MPL2_ONLY
 #include <Eigen/Core>

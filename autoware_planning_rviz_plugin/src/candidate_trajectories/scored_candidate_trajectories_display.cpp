@@ -26,6 +26,7 @@
 #include <OgreSceneManager.h>
 #include <OgreSceneNode.h>
 
+#include <algorithm>
 #include <cmath>
 #include <iomanip>
 #include <memory>
@@ -149,7 +150,7 @@ void AutowareScoredCandidateTrajectoriesDisplay::onTopicChanged()
   }
 }
 
-void AutowareScoredCandidateTrajectoriesDisplay::updateModeSpecificVisibility(int /* mode */)
+void AutowareScoredCandidateTrajectoriesDisplay::updateModeSpecificVisibility(int mode)
 {
   // Interface compatibility - implementation not needed for current design
 }

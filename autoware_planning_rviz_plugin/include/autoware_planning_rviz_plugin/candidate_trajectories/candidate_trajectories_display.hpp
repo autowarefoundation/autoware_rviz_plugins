@@ -23,6 +23,7 @@
 #include <autoware_internal_planning_msgs/msg/candidate_trajectories.hpp>
 
 #include <memory>
+#include <vector>
 
 namespace rviz_plugins
 {

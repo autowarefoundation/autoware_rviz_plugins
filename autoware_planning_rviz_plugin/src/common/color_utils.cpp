@@ -15,6 +15,7 @@
 #include "autoware_planning_rviz_plugin/common/color_utils.hpp"
 
 #include <algorithm>
+#include <memory>
 
 namespace rviz_plugins
 {
