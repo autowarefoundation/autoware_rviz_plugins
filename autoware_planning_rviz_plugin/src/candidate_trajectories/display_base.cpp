@@ -58,9 +58,8 @@ CandidateTrajectoriesDisplayBase<MessageType>::CandidateTrajectoriesDisplayBase(
   property_generator_text_view_{"View Generator Names", true, "", this},
   property_generator_text_scale_{"Generator Text Scale", 0.5, "", &property_generator_text_view_}
 {
-  // Initialize property constraints and connect base signals
+  // Initialize property constraints only - signal connections must be done in derived classes
   initializePropertyConstraints();
-  connectBaseSignals();
 }
 
 template <typename MessageType>
@@ -195,30 +194,6 @@ void CandidateTrajectoriesDisplayBase<MessageType>::unsubscribe()
 }
 
 // Helper method implementations
-template <typename MessageType>
-void CandidateTrajectoriesDisplayBase<MessageType>::connectBaseSignals()
-{
-  // Note: Topic property signal connection must be handled by derived classes
-  // due to Qt MOC template limitations
-
-  // Connect common property signals - coloring mode signal must be connected in derived classes
-  connect(&property_path_view_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&property_path_width_view_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&property_path_width_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&property_path_alpha_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&property_fade_out_distance_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&property_velocity_color_min_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&property_velocity_color_mid_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&property_velocity_color_max_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&property_vel_max_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&property_velocity_view_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&property_velocity_alpha_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&property_velocity_scale_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&property_velocity_color_view_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&property_velocity_color_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&property_generator_text_view_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&property_generator_text_scale_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-}
 
 template <typename MessageType>
 void CandidateTrajectoriesDisplayBase<MessageType>::initializePropertyConstraints()

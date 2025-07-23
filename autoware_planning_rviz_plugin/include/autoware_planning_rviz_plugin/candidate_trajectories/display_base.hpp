@@ -66,7 +66,6 @@ protected:
     const QColor & color_min, const QColor & color_max, const double ratio);
 
   // Common initialization methods
-  void connectBaseSignals();
   void initializePropertyConstraints();
 
   // Common visualization methods
