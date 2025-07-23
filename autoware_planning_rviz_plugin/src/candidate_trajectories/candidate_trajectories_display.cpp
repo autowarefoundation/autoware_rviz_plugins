@@ -49,26 +49,33 @@ AutowareCandidateTrajectoriesDisplay::AutowareCandidateTrajectoriesDisplay()
   connect(&this->property_path_width_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&this->property_path_alpha_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&this->property_fade_out_distance_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&this->property_velocity_color_min_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&this->property_velocity_color_mid_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&this->property_velocity_color_max_, SIGNAL(changed()), this, SLOT(updateVisualization()));
+  connect(
+    &this->property_velocity_color_min_, SIGNAL(changed()), this, SLOT(updateVisualization()));
+  connect(
+    &this->property_velocity_color_mid_, SIGNAL(changed()), this, SLOT(updateVisualization()));
+  connect(
+    &this->property_velocity_color_max_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&this->property_vel_max_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&this->property_velocity_view_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&this->property_velocity_alpha_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&this->property_velocity_scale_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&this->property_velocity_color_view_, SIGNAL(changed()), this, SLOT(updateVisualization()));
+  connect(
+    &this->property_velocity_color_view_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&this->property_velocity_color_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&this->property_generator_text_view_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&this->property_generator_text_scale_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  
+  connect(
+    &this->property_generator_text_view_, SIGNAL(changed()), this, SLOT(updateVisualization()));
+  connect(
+    &this->property_generator_text_scale_, SIGNAL(changed()), this, SLOT(updateVisualization()));
+
   // Derived class properties
   connect(&property_index_color_1_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&property_index_color_2_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&property_index_color_3_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&property_index_color_4_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  
+
   // Special handlers
-  connect(&this->property_coloring_mode_, SIGNAL(changed()), this, SLOT(updateColoringModeVisibility()));
+  connect(
+    &this->property_coloring_mode_, SIGNAL(changed()), this, SLOT(updateColoringModeVisibility()));
   connect(&this->property_topic_, SIGNAL(changed()), this, SLOT(onTopicChanged()));
 
   setupColoringModes();
