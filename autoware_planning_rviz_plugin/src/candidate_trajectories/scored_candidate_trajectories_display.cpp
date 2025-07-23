@@ -14,20 +14,20 @@
 
 #include "autoware_planning_rviz_plugin/candidate_trajectories/scored_candidate_trajectories_display.hpp"
 
-#include <pluginlib/class_list_macros.hpp>
-#include <rclcpp/rclcpp.hpp>
 #include <autoware_utils/geometry/geometry.hpp>
 #include <autoware_vehicle_info_utils/vehicle_info_utils.hpp>
-#include <rviz_common/validate_floats.hpp>
+#include <pluginlib/class_list_macros.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <rviz_common/display_context.hpp>
+#include <rviz_common/validate_floats.hpp>
 
-#include <OgreSceneManager.h>
-#include <OgreSceneNode.h>
 #include <OgreManualObject.h>
 #include <OgreMaterialManager.h>
+#include <OgreSceneManager.h>
+#include <OgreSceneNode.h>
 
-#include <iomanip>
 #include <cmath>
+#include <iomanip>
 #include <memory>
 #include <sstream>
 #include <string>
@@ -42,7 +42,8 @@ namespace rviz_plugins
 AutowareScoredCandidateTrajectoriesDisplay::AutowareScoredCandidateTrajectoriesDisplay()
 {
   // Setup topic description
-  this->property_topic_.setMessageType("autoware_internal_planning_msgs/msg/ScoredCandidateTrajectories");
+  this->property_topic_.setMessageType(
+    "autoware_internal_planning_msgs/msg/ScoredCandidateTrajectories");
   this->property_topic_.setDescription("Topic for scored candidate trajectories");
 
   // Initialize score-specific properties
@@ -57,8 +58,9 @@ AutowareScoredCandidateTrajectoriesDisplay::AutowareScoredCandidateTrajectoriesD
   connect(&property_other_score_color_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&property_score_text_view_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&property_score_text_scale_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&this->property_coloring_mode_, SIGNAL(changed()), this, SLOT(updateColoringModeVisibility()));
-  
+  connect(
+    &this->property_coloring_mode_, SIGNAL(changed()), this, SLOT(updateColoringModeVisibility()));
+
   // Connect topic change signal for auto-subscription
   connect(&this->property_topic_, SIGNAL(changed()), this, SLOT(onTopicChanged()));
 
@@ -68,17 +70,17 @@ AutowareScoredCandidateTrajectoriesDisplay::AutowareScoredCandidateTrajectoriesD
 AutowareScoredCandidateTrajectoriesDisplay::~AutowareScoredCandidateTrajectoriesDisplay()
 {
   // Clean up score text objects
-  for (auto& text_vector : score_texts_) {
-    for (auto* text : text_vector) {
+  for (auto & text_vector : score_texts_) {
+    for (auto * text : text_vector) {
       if (text) {
         delete text;
       }
     }
   }
   score_texts_.clear();
-  
-  for (auto& node_vector : score_text_nodes_) {
-    for (auto* node : node_vector) {
+
+  for (auto & node_vector : score_text_nodes_) {
+    for (auto * node : node_vector) {
       if (node && this->scene_manager_) {
         node->removeAndDestroyAllChildren();
         node->detachAllObjects();
@@ -95,7 +97,7 @@ void AutowareScoredCandidateTrajectoriesDisplay::setupColoringModes()
   this->property_coloring_mode_.addOption("Velocity Based", SCORED_VELOCITY_BASED);
   this->property_coloring_mode_.addOption("Score Based", SCORE_BASED);
   this->property_coloring_mode_.addOption("Highest-Score Based", HIGHEST_SCORE_BASED);
-  
+
   // Set default to Velocity Based and trigger UI update
   this->property_coloring_mode_.setString("Velocity Based");
 }
@@ -106,7 +108,6 @@ void AutowareScoredCandidateTrajectoriesDisplay::updateVisualization()
     processMessage(this->last_msg_ptr_);
   }
 }
-
 
 void AutowareScoredCandidateTrajectoriesDisplay::updateColoringModeVisibility()
 {
@@ -128,26 +129,30 @@ void AutowareScoredCandidateTrajectoriesDisplay::updateModeSpecificVisibility(in
   // Interface compatibility - implementation not needed for current design
 }
 
-std::unique_ptr<Ogre::ColourValue> AutowareScoredCandidateTrajectoriesDisplay::setColorDependsOnScore(
-  const double score)
+std::unique_ptr<Ogre::ColourValue>
+AutowareScoredCandidateTrajectoriesDisplay::setColorDependsOnScore(const double score)
 {
   // Normalize score to [0, 1] range - scores are typically between 0.0 and 1.0, higher is better
   const double ratio = std::min(std::max(score, 0.0), 1.0);
-  
+
   if (ratio < 0.5) {
     // Lower half: interpolate between min (red) and mid (yellow) colors
-    return this->gradation(property_score_color_min_.getColor(), property_score_color_mid_.getColor(), ratio * 2.0);
+    return this->gradation(
+      property_score_color_min_.getColor(), property_score_color_mid_.getColor(), ratio * 2.0);
   } else {
     // Upper half: interpolate between mid (yellow) and max (green) colors
-    return this->gradation(property_score_color_mid_.getColor(), property_score_color_max_.getColor(), (ratio - 0.5) * 2.0);
+    return this->gradation(
+      property_score_color_mid_.getColor(), property_score_color_max_.getColor(),
+      (ratio - 0.5) * 2.0);
   }
 }
 
-std::unique_ptr<Ogre::ColourValue> AutowareScoredCandidateTrajectoriesDisplay::setColorDependsOnHighestScore(
+std::unique_ptr<Ogre::ColourValue>
+AutowareScoredCandidateTrajectoriesDisplay::setColorDependsOnHighestScore(
   const bool is_highest_score)
 {
   std::unique_ptr<Ogre::ColourValue> color_ptr(new Ogre::ColourValue);
-  
+
   if (is_highest_score) {
     // Use highest score color
     auto qcolor = property_highest_score_color_.getColor();
@@ -162,7 +167,7 @@ std::unique_ptr<Ogre::ColourValue> AutowareScoredCandidateTrajectoriesDisplay::s
     color_ptr->b = qcolor.blueF();
   }
   color_ptr->a = 1.0f;
-  
+
   return color_ptr;
 }
 
@@ -171,8 +176,9 @@ bool AutowareScoredCandidateTrajectoriesDisplay::validateFloats(
 {
   for (const auto & scored_traj : msg_ptr->scored_candidate_trajectories) {
     for (const auto & point : scored_traj.candidate_trajectory.points) {
-      if (!rviz_common::validateFloats(point.pose) || 
-          !rviz_common::validateFloats(point.longitudinal_velocity_mps)) {
+      if (
+        !rviz_common::validateFloats(point.pose) ||
+        !rviz_common::validateFloats(point.longitudinal_velocity_mps)) {
         return false;
       }
     }
@@ -198,7 +204,8 @@ void AutowareScoredCandidateTrajectoriesDisplay::processMessage(
     const auto & first_trajectory = msg_ptr->scored_candidate_trajectories[0].candidate_trajectory;
     Ogre::Vector3 position;
     Ogre::Quaternion orientation;
-    if (!context_->getFrameManager()->getTransform(first_trajectory.header, position, orientation)) {
+    if (!context_->getFrameManager()->getTransform(
+          first_trajectory.header, position, orientation)) {
       setStatus(
         rviz_common::properties::StatusProperty::Error, "Transform",
         QString("Error transforming from frame '%1' to frame '%2'")
@@ -211,7 +218,7 @@ void AutowareScoredCandidateTrajectoriesDisplay::processMessage(
   }
 
   const size_t num_trajectories = msg_ptr->scored_candidate_trajectories.size();
-  
+
   // Find the highest score for highest-score based coloring
   double highest_score = 0.0;
   if (property_coloring_mode_.getOptionInt() == HIGHEST_SCORE_BASED) {
@@ -221,7 +228,7 @@ void AutowareScoredCandidateTrajectoriesDisplay::processMessage(
       }
     }
   }
-  
+
   // Use base class methods for common operations
   this->clearManualObjects();
   this->resizeManualObjects(num_trajectories);
@@ -310,37 +317,36 @@ void AutowareScoredCandidateTrajectoriesDisplay::processMessage(
       // Path visualization
       if (this->property_path_view_.getBool()) {
         Ogre::ColourValue color;
-        
+
         // Select coloring based on mode
         switch (this->property_coloring_mode_.getOptionInt()) {
-          case SCORED_VELOCITY_BASED:
-          {
-            std::unique_ptr<Ogre::ColourValue> velocity_color = this->setColorDependsOnVelocity(point.longitudinal_velocity_mps);
+          case SCORED_VELOCITY_BASED: {
+            std::unique_ptr<Ogre::ColourValue> velocity_color =
+              this->setColorDependsOnVelocity(point.longitudinal_velocity_mps);
             color = *velocity_color;
             break;
           }
-          case SCORE_BASED:
-          {
+          case SCORE_BASED: {
             std::unique_ptr<Ogre::ColourValue> score_color = setColorDependsOnScore(score);
             color = *score_color;
             break;
           }
-          case HIGHEST_SCORE_BASED:
-          {
+          case HIGHEST_SCORE_BASED: {
             // Use epsilon comparison for floating-point equality
             bool is_highest_score = (std::abs(score - highest_score) < 1e-9);
-            std::unique_ptr<Ogre::ColourValue> highest_score_color = setColorDependsOnHighestScore(is_highest_score);
+            std::unique_ptr<Ogre::ColourValue> highest_score_color =
+              setColorDependsOnHighestScore(is_highest_score);
             color = *highest_score_color;
             break;
           }
-          default:
-          {
-            std::unique_ptr<Ogre::ColourValue> velocity_color = this->setColorDependsOnVelocity(point.longitudinal_velocity_mps);
+          default: {
+            std::unique_ptr<Ogre::ColourValue> velocity_color =
+              this->setColorDependsOnVelocity(point.longitudinal_velocity_mps);
             color = *velocity_color;
             break;
           }
         }
-        
+
         // Apply fade out distance alpha calculation
         float alpha = this->property_path_alpha_.getFloat();
         if (this->property_fade_out_distance_.getFloat() > 0.0) {
@@ -354,7 +360,7 @@ void AutowareScoredCandidateTrajectoriesDisplay::processMessage(
               std::pow(next_point.pose.position.y - current_point.pose.position.y, 2) +
               std::pow(next_point.pose.position.z - current_point.pose.position.z, 2));
           }
-          
+
           if (distance_from_end < this->property_fade_out_distance_.getFloat()) {
             float ratio = distance_from_end / this->property_fade_out_distance_.getFloat();
             alpha = this->property_path_alpha_.getFloat() * ratio;
@@ -369,13 +375,16 @@ void AutowareScoredCandidateTrajectoriesDisplay::processMessage(
         } else {
           // Use vehicle width (fallback to property if unavailable)
           try {
-            const auto vehicle_info = autoware::vehicle_info_utils::VehicleInfoUtils(*this->context_->getRosNodeAbstraction().lock()->get_raw_node()).getVehicleInfo();
+            const auto vehicle_info =
+              autoware::vehicle_info_utils::VehicleInfoUtils(
+                *this->context_->getRosNodeAbstraction().lock()->get_raw_node())
+                .getVehicleInfo();
             half_width = vehicle_info.vehicle_width_m / 2.0f;
           } catch (...) {
             half_width = this->property_path_width_.getFloat() / 2.0f;
           }
         }
-        
+
         Eigen::Vector3f vec_in, vec_out;
         Eigen::Quaternionf quat(
           static_cast<float>(point.pose.orientation.w),
@@ -387,8 +396,7 @@ void AutowareScoredCandidateTrajectoriesDisplay::processMessage(
         vec_in << 0, half_width, 0;
         vec_out = quat * vec_in;
         path_obj->position(
-          point.pose.position.x + vec_out.x(),
-          point.pose.position.y + vec_out.y(),
+          point.pose.position.x + vec_out.x(), point.pose.position.y + vec_out.y(),
           point.pose.position.z + vec_out.z());
         path_obj->colour(color);
 
@@ -396,8 +404,7 @@ void AutowareScoredCandidateTrajectoriesDisplay::processMessage(
         vec_in << 0, -half_width, 0;
         vec_out = quat * vec_in;
         path_obj->position(
-          point.pose.position.x + vec_out.x(),
-          point.pose.position.y + vec_out.y(),
+          point.pose.position.x + vec_out.x(), point.pose.position.y + vec_out.y(),
           point.pose.position.z + vec_out.z());
         path_obj->colour(color);
       }
@@ -412,14 +419,16 @@ void AutowareScoredCandidateTrajectoriesDisplay::processMessage(
           color.b = qcolor.blueF();
           color.a = 1.0f;
         } else {
-          std::unique_ptr<Ogre::ColourValue> velocity_color = this->setColorDependsOnVelocity(point.longitudinal_velocity_mps);
+          std::unique_ptr<Ogre::ColourValue> velocity_color =
+            this->setColorDependsOnVelocity(point.longitudinal_velocity_mps);
           color = *velocity_color;
         }
         color.a = this->property_velocity_alpha_.getFloat();
 
         vel_obj->position(
           point.pose.position.x, point.pose.position.y,
-          point.pose.position.z + point.longitudinal_velocity_mps * this->property_velocity_scale_.getFloat());
+          point.pose.position.z +
+            point.longitudinal_velocity_mps * this->property_velocity_scale_.getFloat());
         vel_obj->colour(color);
       }
 
@@ -429,7 +438,7 @@ void AutowareScoredCandidateTrajectoriesDisplay::processMessage(
         position.x = point.pose.position.x;
         position.y = point.pose.position.y;
         position.z = point.pose.position.z + 5.0;  // Offset text above trajectory endpoint
-        
+
         auto * node = score_text_nodes_[traj_idx][0];
         node->setPosition(position);
 
@@ -440,8 +449,9 @@ void AutowareScoredCandidateTrajectoriesDisplay::processMessage(
         text->setCharacterHeight(std::max(1.0f, property_score_text_scale_.getFloat()));
         text->setColor(Ogre::ColourValue::White);
         text->setVisible(true);
-      } else if (!property_score_text_view_.getBool() && point_idx == trajectory.points.size() - 1 && 
-                 0 < score_texts_[traj_idx].size()) {
+      } else if (
+        !property_score_text_view_.getBool() && point_idx == trajectory.points.size() - 1 &&
+        0 < score_texts_[traj_idx].size()) {
         auto * text = score_texts_[traj_idx][0];
         text->setVisible(false);
       }
@@ -455,7 +465,7 @@ void AutowareScoredCandidateTrajectoriesDisplay::processMessage(
   if (this->property_generator_text_view_.getBool()) {
     for (size_t gen_idx = 0; gen_idx < msg_ptr->generator_info.size(); ++gen_idx) {
       const auto & gen_info = msg_ptr->generator_info[gen_idx];
-      
+
       // Find trajectory with this generator ID
       bool found_trajectory = false;
       for (size_t traj_idx = 0; traj_idx < num_trajectories; ++traj_idx) {
@@ -463,27 +473,28 @@ void AutowareScoredCandidateTrajectoriesDisplay::processMessage(
         if (scored_traj.candidate_trajectory.generator_id == gen_info.generator_id) {
           if (!scored_traj.candidate_trajectory.points.empty()) {
             const auto & last_point = scored_traj.candidate_trajectory.points.back();
-            
+
             Ogre::Vector3 position;
             position.x = last_point.pose.position.x;
             position.y = last_point.pose.position.y;
             position.z = last_point.pose.position.z + 7.0;  // Higher offset for generator names
-            
+
             auto * node = this->generator_text_nodes_[gen_idx];
             node->setPosition(position);
-            
+
             auto * text = this->generator_texts_[gen_idx];
             text->setCaption(gen_info.generator_name.data.c_str());
-            text->setCharacterHeight(std::max(1.0f, this->property_generator_text_scale_.getFloat()));
+            text->setCharacterHeight(
+              std::max(1.0f, this->property_generator_text_scale_.getFloat()));
             text->setColor(Ogre::ColourValue(1.0f, 1.0f, 0.0f, 1.0f));
             text->setVisible(true);
-            
+
             found_trajectory = true;
             break;
           }
         }
       }
-      
+
       if (!found_trajectory && gen_idx < this->generator_texts_.size()) {
         auto * text = this->generator_texts_[gen_idx];
         text->setVisible(false);
@@ -500,4 +511,5 @@ void AutowareScoredCandidateTrajectoriesDisplay::processMessage(
 
 }  // namespace rviz_plugins
 
-PLUGINLIB_EXPORT_CLASS(rviz_plugins::AutowareScoredCandidateTrajectoriesDisplay, rviz_common::Display)
+PLUGINLIB_EXPORT_CLASS(
+  rviz_plugins::AutowareScoredCandidateTrajectoriesDisplay, rviz_common::Display)

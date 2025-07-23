@@ -17,8 +17,7 @@
 
 #include "autoware_planning_rviz_plugin/common/color_utils.hpp"
 
-#include <autoware_internal_planning_msgs/msg/candidate_trajectories.hpp>
-#include <autoware_internal_planning_msgs/msg/scored_candidate_trajectories.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <rviz_common/display.hpp>
 #include <rviz_common/properties/bool_property.hpp>
 #include <rviz_common/properties/color_property.hpp>
@@ -26,7 +25,9 @@
 #include <rviz_common/properties/float_property.hpp>
 #include <rviz_common/properties/ros_topic_property.hpp>
 #include <rviz_rendering/objects/movable_text.hpp>
-#include <rclcpp/rclcpp.hpp>
+
+#include <autoware_internal_planning_msgs/msg/candidate_trajectories.hpp>
+#include <autoware_internal_planning_msgs/msg/scored_candidate_trajectories.hpp>
 
 #include <OgreManualObject.h>
 #include <OgreSceneNode.h>
@@ -37,13 +38,13 @@
 namespace rviz_plugins
 {
 
-template<typename MessageType>
+template <typename MessageType>
 class CandidateTrajectoriesDisplayBase : public rviz_common::Display
 {
 public:
   CandidateTrajectoriesDisplayBase();
   virtual ~CandidateTrajectoriesDisplayBase();
-  
+
   void onInitialize() override;
   void onEnable() override;
   void onDisable() override;
@@ -57,23 +58,24 @@ protected:
   virtual void setupColoringModes() = 0;
   /// Handle property visibility changes when coloring mode changes (optional override)
   virtual void updateModeSpecificVisibility(int mode) = 0;
-  
+
   // Common functionality
   virtual bool validateFloats(const typename MessageType::ConstSharedPtr & msg_ptr);
   virtual std::unique_ptr<Ogre::ColourValue> setColorDependsOnVelocity(const double velocity);
-  virtual std::unique_ptr<Ogre::ColourValue> gradation(const QColor & color_min, const QColor & color_max, const double ratio);
-  
+  virtual std::unique_ptr<Ogre::ColourValue> gradation(
+    const QColor & color_min, const QColor & color_max, const double ratio);
+
   // Common initialization methods
   void connectBaseSignals();
   void initializePropertyConstraints();
-  
+
   // Common visualization methods
   void resizeManualObjects(size_t num_trajectories);
   void clearManualObjects();
 
   // Common properties - topic first for UI display order
   rviz_common::properties::RosTopicProperty property_topic_;
-  
+
   // Path visualization properties
   rviz_common::properties::BoolProperty property_path_view_;
   rviz_common::properties::BoolProperty property_path_width_view_;
@@ -81,20 +83,20 @@ protected:
   rviz_common::properties::FloatProperty property_path_alpha_;
   rviz_common::properties::EnumProperty property_coloring_mode_;
   rviz_common::properties::FloatProperty property_fade_out_distance_;
-  
+
   // Velocity-based coloring properties (common to all)
   rviz_common::properties::ColorProperty property_velocity_color_min_;
   rviz_common::properties::ColorProperty property_velocity_color_mid_;
   rviz_common::properties::ColorProperty property_velocity_color_max_;
   rviz_common::properties::FloatProperty property_vel_max_;
-  
+
   // Velocity visualization properties
   rviz_common::properties::BoolProperty property_velocity_view_;
   rviz_common::properties::FloatProperty property_velocity_alpha_;
   rviz_common::properties::FloatProperty property_velocity_scale_;
   rviz_common::properties::BoolProperty property_velocity_color_view_;
   rviz_common::properties::ColorProperty property_velocity_color_;
-  
+
   // Generator visualization properties
   rviz_common::properties::BoolProperty property_generator_text_view_;
   rviz_common::properties::FloatProperty property_generator_text_scale_;
@@ -106,9 +108,7 @@ protected:
   std::vector<Ogre::SceneNode *> generator_text_nodes_;
 
   // Common coloring modes
-  enum CommonColoringMode {
-    VELOCITY_BASED = 0
-  };
+  enum CommonColoringMode { VELOCITY_BASED = 0 };
 
   typename MessageType::ConstSharedPtr last_msg_ptr_;
 

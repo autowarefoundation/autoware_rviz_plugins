@@ -15,8 +15,9 @@
 #ifndef AUTOWARE_PLANNING_RVIZ_PLUGIN__COMMON__COLOR_UTILS_HPP_
 #define AUTOWARE_PLANNING_RVIZ_PLUGIN__COMMON__COLOR_UTILS_HPP_
 
-#include <OgreColourValue.h>
 #include <QColor>
+
+#include <OgreColourValue.h>
 
 #include <memory>
 
@@ -25,7 +26,8 @@ namespace rviz_plugins
 namespace color_utils
 {
 std::unique_ptr<Ogre::ColourValue> setColorDependsOnVelocity(const double velocity);
-std::unique_ptr<Ogre::ColourValue> gradation(const QColor & color_min, const QColor & color_max, const double ratio);
+std::unique_ptr<Ogre::ColourValue> gradation(
+  const QColor & color_min, const QColor & color_max, const double ratio);
 }  // namespace color_utils
 }  // namespace rviz_plugins
 

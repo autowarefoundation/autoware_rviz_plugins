@@ -26,9 +26,9 @@ std::unique_ptr<Ogre::ColourValue> setColorDependsOnVelocity(const double veloci
   // This is a basic implementation - can be customized as needed
   const double vel_max = 10.0;  // Default max velocity
   const double ratio = std::min(std::max(velocity / vel_max, 0.0), 1.0);
-  
+
   std::unique_ptr<Ogre::ColourValue> color_ptr(new Ogre::ColourValue);
-  
+
   if (ratio < 0.5) {
     // Blue to Green transition
     color_ptr->r = 0.0f;
@@ -40,15 +40,17 @@ std::unique_ptr<Ogre::ColourValue> setColorDependsOnVelocity(const double veloci
     color_ptr->g = static_cast<float>(1.0 - (ratio - 0.5) * 2.0);
     color_ptr->b = 0.0f;
   }
-  
+
   color_ptr->a = 1.0f;
   return color_ptr;
 }
 
-std::unique_ptr<Ogre::ColourValue> gradation(const QColor & color_min, const QColor & color_max, const double ratio)
+std::unique_ptr<Ogre::ColourValue> gradation(
+  const QColor & color_min, const QColor & color_max, const double ratio)
 {
   std::unique_ptr<Ogre::ColourValue> color_ptr(new Ogre::ColourValue);
-  color_ptr->g = static_cast<float>(color_max.greenF() * ratio + color_min.greenF() * (1.0 - ratio));
+  color_ptr->g =
+    static_cast<float>(color_max.greenF() * ratio + color_min.greenF() * (1.0 - ratio));
   color_ptr->r = static_cast<float>(color_max.redF() * ratio + color_min.redF() * (1.0 - ratio));
   color_ptr->b = static_cast<float>(color_max.blueF() * ratio + color_min.blueF() * (1.0 - ratio));
   color_ptr->a = 1.0f;

@@ -17,16 +17,18 @@
 
 #include "autoware_planning_rviz_plugin/candidate_trajectories/display_base.hpp"
 
-#include <autoware_internal_planning_msgs/msg/candidate_trajectories.hpp>
 #include <rviz_common/properties/color_property.hpp>
 #include <rviz_common/properties/enum_property.hpp>
+
+#include <autoware_internal_planning_msgs/msg/candidate_trajectories.hpp>
 
 #include <memory>
 
 namespace rviz_plugins
 {
-class AutowareCandidateTrajectoriesDisplay 
-: public CandidateTrajectoriesDisplayBase<autoware_internal_planning_msgs::msg::CandidateTrajectories>
+class AutowareCandidateTrajectoriesDisplay
+: public CandidateTrajectoriesDisplayBase<
+    autoware_internal_planning_msgs::msg::CandidateTrajectories>
 {
   Q_OBJECT
 
@@ -43,8 +45,12 @@ protected:
   // Override base class virtual methods
   void setupColoringModes() override;
   void updateModeSpecificVisibility(int mode) override;
-  void processMessage(const autoware_internal_planning_msgs::msg::CandidateTrajectories::ConstSharedPtr msg_ptr) override;
-  bool validateFloats(const autoware_internal_planning_msgs::msg::CandidateTrajectories::ConstSharedPtr & msg_ptr) override;
+  void processMessage(
+    const autoware_internal_planning_msgs::msg::CandidateTrajectories::ConstSharedPtr msg_ptr)
+    override;
+  bool validateFloats(
+    const autoware_internal_planning_msgs::msg::CandidateTrajectories::ConstSharedPtr & msg_ptr)
+    override;
 
   /// Coloring modes available for candidate trajectories
   enum CandidateColoringMode {
@@ -52,15 +58,19 @@ protected:
     INDEX_BASED = 1                ///< Color trajectories based on their index (cyclical colors)
   };
 
-  // Index-based coloring properties  
-  rviz_common::properties::ColorProperty property_index_color_1_{"Index Color 1", QColor("#FF8080"), "", &property_coloring_mode_};
-  rviz_common::properties::ColorProperty property_index_color_2_{"Index Color 2", QColor("#80FF80"), "", &property_coloring_mode_};
-  rviz_common::properties::ColorProperty property_index_color_3_{"Index Color 3", QColor("#8080FF"), "", &property_coloring_mode_};
-  rviz_common::properties::ColorProperty property_index_color_4_{"Index Color 4", QColor("#FFFF80"), "", &property_coloring_mode_};
+  // Index-based coloring properties
+  rviz_common::properties::ColorProperty property_index_color_1_{
+    "Index Color 1", QColor("#FF8080"), "", &property_coloring_mode_};
+  rviz_common::properties::ColorProperty property_index_color_2_{
+    "Index Color 2", QColor("#80FF80"), "", &property_coloring_mode_};
+  rviz_common::properties::ColorProperty property_index_color_3_{
+    "Index Color 3", QColor("#8080FF"), "", &property_coloring_mode_};
+  rviz_common::properties::ColorProperty property_index_color_4_{
+    "Index Color 4", QColor("#FFFF80"), "", &property_coloring_mode_};
 
   // Helper method for non-scored trajectory coloring
   std::unique_ptr<Ogre::ColourValue> setColorDependsOnIndex(const size_t index);
-  
+
 private:
   std::vector<QColor> index_colors_;
   void updateIndexColors();

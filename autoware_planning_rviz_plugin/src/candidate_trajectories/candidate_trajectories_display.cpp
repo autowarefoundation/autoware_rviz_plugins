@@ -14,17 +14,17 @@
 
 #include "autoware_planning_rviz_plugin/candidate_trajectories/candidate_trajectories_display.hpp"
 
-#include <pluginlib/class_list_macros.hpp>
-#include <rclcpp/rclcpp.hpp>
 #include <autoware_utils/geometry/geometry.hpp>
 #include <autoware_vehicle_info_utils/vehicle_info_utils.hpp>
-#include <rviz_common/validate_floats.hpp>
+#include <pluginlib/class_list_macros.hpp>
+#include <rclcpp/rclcpp.hpp>
 #include <rviz_common/display_context.hpp>
+#include <rviz_common/validate_floats.hpp>
 
-#include <OgreSceneManager.h>
-#include <OgreSceneNode.h>
 #include <OgreManualObject.h>
 #include <OgreMaterialManager.h>
+#include <OgreSceneManager.h>
+#include <OgreSceneNode.h>
 
 #include <cmath>
 #include <memory>
@@ -47,8 +47,9 @@ AutowareCandidateTrajectoriesDisplay::AutowareCandidateTrajectoriesDisplay()
   connect(&property_index_color_2_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&property_index_color_3_, SIGNAL(changed()), this, SLOT(updateVisualization()));
   connect(&property_index_color_4_, SIGNAL(changed()), this, SLOT(updateVisualization()));
-  connect(&this->property_coloring_mode_, SIGNAL(changed()), this, SLOT(updateColoringModeVisibility()));
-  
+  connect(
+    &this->property_coloring_mode_, SIGNAL(changed()), this, SLOT(updateColoringModeVisibility()));
+
   // Connect topic change signal for auto-subscription
   connect(&this->property_topic_, SIGNAL(changed()), this, SLOT(onTopicChanged()));
 
@@ -66,7 +67,7 @@ void AutowareCandidateTrajectoriesDisplay::setupColoringModes()
   // Set up coloring mode enum for candidate trajectories
   this->property_coloring_mode_.addOption("Velocity Based", CANDIDATE_VELOCITY_BASED);
   this->property_coloring_mode_.addOption("Index Based", INDEX_BASED);
-  
+
   // Set default to Velocity Based and trigger UI update
   this->property_coloring_mode_.setString("Velocity Based");
 }
@@ -77,7 +78,6 @@ void AutowareCandidateTrajectoriesDisplay::updateVisualization()
     processMessage(this->last_msg_ptr_);
   }
 }
-
 
 void AutowareCandidateTrajectoriesDisplay::updateColoringModeVisibility()
 {
@@ -104,15 +104,15 @@ std::unique_ptr<Ogre::ColourValue> AutowareCandidateTrajectoriesDisplay::setColo
   const size_t index)
 {
   std::unique_ptr<Ogre::ColourValue> color_ptr(new Ogre::ColourValue);
-  
+
   // Use modulo to cycle through available colors
   QColor qcolor = index_colors_[index % index_colors_.size()];
-  
+
   color_ptr->r = qcolor.redF();
   color_ptr->g = qcolor.greenF();
   color_ptr->b = qcolor.blueF();
   color_ptr->a = 1.0f;
-  
+
   return color_ptr;
 }
 
@@ -121,8 +121,9 @@ bool AutowareCandidateTrajectoriesDisplay::validateFloats(
 {
   for (const auto & trajectory : msg_ptr->candidate_trajectories) {
     for (const auto & point : trajectory.points) {
-      if (!rviz_common::validateFloats(point.pose) || 
-          !rviz_common::validateFloats(point.longitudinal_velocity_mps)) {
+      if (
+        !rviz_common::validateFloats(point.pose) ||
+        !rviz_common::validateFloats(point.longitudinal_velocity_mps)) {
         return false;
       }
     }
@@ -145,7 +146,8 @@ void AutowareCandidateTrajectoriesDisplay::processMessage(
     const auto & first_trajectory = msg_ptr->candidate_trajectories[0];
     Ogre::Vector3 position;
     Ogre::Quaternion orientation;
-    if (!context_->getFrameManager()->getTransform(first_trajectory.header, position, orientation)) {
+    if (!context_->getFrameManager()->getTransform(
+          first_trajectory.header, position, orientation)) {
       setStatus(
         rviz_common::properties::StatusProperty::Error, "Transform",
         QString("Error transforming from frame '%1' to frame '%2'")
@@ -158,7 +160,7 @@ void AutowareCandidateTrajectoriesDisplay::processMessage(
   }
 
   const size_t num_trajectories = msg_ptr->candidate_trajectories.size();
-  
+
   // Use base class methods for common operations
   this->clearManualObjects();
   this->resizeManualObjects(num_trajectories);
@@ -207,36 +209,34 @@ void AutowareCandidateTrajectoriesDisplay::processMessage(
     path_obj->begin("BaseWhiteNoLighting", Ogre::RenderOperation::OT_TRIANGLE_STRIP);
     vel_obj->begin("BaseWhiteNoLighting", Ogre::RenderOperation::OT_LINE_STRIP);
 
-
     for (size_t point_idx = 0; point_idx < num_points; ++point_idx) {
       const auto & point = trajectory.points[point_idx];
 
       // Path visualization
       if (this->property_path_view_.getBool()) {
         Ogre::ColourValue color;
-        
+
         // Select coloring based on mode
         switch (this->property_coloring_mode_.getOptionInt()) {
-          case CANDIDATE_VELOCITY_BASED:
-          {
-            std::unique_ptr<Ogre::ColourValue> velocity_color = this->setColorDependsOnVelocity(point.longitudinal_velocity_mps);
+          case CANDIDATE_VELOCITY_BASED: {
+            std::unique_ptr<Ogre::ColourValue> velocity_color =
+              this->setColorDependsOnVelocity(point.longitudinal_velocity_mps);
             color = *velocity_color;
             break;
           }
-          case INDEX_BASED:
-          {
+          case INDEX_BASED: {
             std::unique_ptr<Ogre::ColourValue> index_color = setColorDependsOnIndex(traj_idx);
             color = *index_color;
             break;
           }
-          default:
-          {
-            std::unique_ptr<Ogre::ColourValue> velocity_color = this->setColorDependsOnVelocity(point.longitudinal_velocity_mps);
+          default: {
+            std::unique_ptr<Ogre::ColourValue> velocity_color =
+              this->setColorDependsOnVelocity(point.longitudinal_velocity_mps);
             color = *velocity_color;
             break;
           }
         }
-        
+
         // Apply fade out distance alpha calculation
         float alpha = this->property_path_alpha_.getFloat();
         if (this->property_fade_out_distance_.getFloat() > 0.0) {
@@ -250,7 +250,7 @@ void AutowareCandidateTrajectoriesDisplay::processMessage(
               std::pow(next_point.pose.position.y - current_point.pose.position.y, 2) +
               std::pow(next_point.pose.position.z - current_point.pose.position.z, 2));
           }
-          
+
           if (distance_from_end < this->property_fade_out_distance_.getFloat()) {
             float ratio = distance_from_end / this->property_fade_out_distance_.getFloat();
             alpha = this->property_path_alpha_.getFloat() * ratio;
@@ -265,13 +265,16 @@ void AutowareCandidateTrajectoriesDisplay::processMessage(
         } else {
           // Use vehicle width (fallback to property if unavailable)
           try {
-            const auto vehicle_info = autoware::vehicle_info_utils::VehicleInfoUtils(*this->context_->getRosNodeAbstraction().lock()->get_raw_node()).getVehicleInfo();
+            const auto vehicle_info =
+              autoware::vehicle_info_utils::VehicleInfoUtils(
+                *this->context_->getRosNodeAbstraction().lock()->get_raw_node())
+                .getVehicleInfo();
             half_width = vehicle_info.vehicle_width_m / 2.0f;
           } catch (...) {
             half_width = this->property_path_width_.getFloat() / 2.0f;
           }
         }
-        
+
         Eigen::Vector3f vec_in, vec_out;
         Eigen::Quaternionf quat(
           static_cast<float>(point.pose.orientation.w),
@@ -283,8 +286,7 @@ void AutowareCandidateTrajectoriesDisplay::processMessage(
         vec_in << 0, half_width, 0;
         vec_out = quat * vec_in;
         path_obj->position(
-          point.pose.position.x + vec_out.x(),
-          point.pose.position.y + vec_out.y(),
+          point.pose.position.x + vec_out.x(), point.pose.position.y + vec_out.y(),
           point.pose.position.z + vec_out.z());
         path_obj->colour(color);
 
@@ -292,8 +294,7 @@ void AutowareCandidateTrajectoriesDisplay::processMessage(
         vec_in << 0, -half_width, 0;
         vec_out = quat * vec_in;
         path_obj->position(
-          point.pose.position.x + vec_out.x(),
-          point.pose.position.y + vec_out.y(),
+          point.pose.position.x + vec_out.x(), point.pose.position.y + vec_out.y(),
           point.pose.position.z + vec_out.z());
         path_obj->colour(color);
       }
@@ -308,14 +309,16 @@ void AutowareCandidateTrajectoriesDisplay::processMessage(
           color.b = qcolor.blueF();
           color.a = 1.0f;
         } else {
-          std::unique_ptr<Ogre::ColourValue> velocity_color = this->setColorDependsOnVelocity(point.longitudinal_velocity_mps);
+          std::unique_ptr<Ogre::ColourValue> velocity_color =
+            this->setColorDependsOnVelocity(point.longitudinal_velocity_mps);
           color = *velocity_color;
         }
         color.a = this->property_velocity_alpha_.getFloat();
 
         vel_obj->position(
           point.pose.position.x, point.pose.position.y,
-          point.pose.position.z + point.longitudinal_velocity_mps * this->property_velocity_scale_.getFloat());
+          point.pose.position.z +
+            point.longitudinal_velocity_mps * this->property_velocity_scale_.getFloat());
         vel_obj->colour(color);
       }
     }
@@ -328,7 +331,7 @@ void AutowareCandidateTrajectoriesDisplay::processMessage(
   if (this->property_generator_text_view_.getBool()) {
     for (size_t gen_idx = 0; gen_idx < msg_ptr->generator_info.size(); ++gen_idx) {
       const auto & gen_info = msg_ptr->generator_info[gen_idx];
-      
+
       // Find trajectory with this generator ID
       bool found_trajectory = false;
       for (size_t traj_idx = 0; traj_idx < num_trajectories; ++traj_idx) {
@@ -336,27 +339,28 @@ void AutowareCandidateTrajectoriesDisplay::processMessage(
         if (trajectory.generator_id == gen_info.generator_id) {
           if (!trajectory.points.empty()) {
             const auto & last_point = trajectory.points.back();
-            
+
             Ogre::Vector3 position;
             position.x = last_point.pose.position.x;
             position.y = last_point.pose.position.y;
             position.z = last_point.pose.position.z + 7.0;
-            
+
             auto * node = this->generator_text_nodes_[gen_idx];
             node->setPosition(position);
-            
+
             auto * text = this->generator_texts_[gen_idx];
             text->setCaption(gen_info.generator_name.data.c_str());
-            text->setCharacterHeight(std::max(1.0f, this->property_generator_text_scale_.getFloat()));
+            text->setCharacterHeight(
+              std::max(1.0f, this->property_generator_text_scale_.getFloat()));
             text->setColor(Ogre::ColourValue(1.0f, 1.0f, 0.0f, 1.0f));
             text->setVisible(true);
-            
+
             found_trajectory = true;
             break;
           }
         }
       }
-      
+
       if (!found_trajectory && gen_idx < this->generator_texts_.size()) {
         auto * text = this->generator_texts_[gen_idx];
         text->setVisible(false);
