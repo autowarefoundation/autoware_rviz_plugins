@@ -173,16 +173,16 @@ AutowareScoredCandidateTrajectoriesDisplay::setColorDependsOnHighestScore(
 
   if (is_highest_score) {
     // Use highest score color
-    auto qcolor = property_highest_score_color_.getColor();
-    color_ptr->r = qcolor.redF();
-    color_ptr->g = qcolor.greenF();
-    color_ptr->b = qcolor.blueF();
+    auto qt_color = property_highest_score_color_.getColor();
+    color_ptr->r = qt_color.redF();
+    color_ptr->g = qt_color.greenF();
+    color_ptr->b = qt_color.blueF();
   } else {
     // Use other score color
-    auto qcolor = property_other_score_color_.getColor();
-    color_ptr->r = qcolor.redF();
-    color_ptr->g = qcolor.greenF();
-    color_ptr->b = qcolor.blueF();
+    auto qt_color = property_other_score_color_.getColor();
+    color_ptr->r = qt_color.redF();
+    color_ptr->g = qt_color.greenF();
+    color_ptr->b = qt_color.blueF();
   }
   color_ptr->a = 1.0f;
 
@@ -431,10 +431,10 @@ void AutowareScoredCandidateTrajectoriesDisplay::processMessage(
       if (this->property_velocity_view_.getBool()) {
         Ogre::ColourValue color;
         if (this->property_velocity_color_view_.getBool()) {
-          auto qcolor = this->property_velocity_color_.getColor();
-          color.r = qcolor.redF();
-          color.g = qcolor.greenF();
-          color.b = qcolor.blueF();
+          auto qt_color = this->property_velocity_color_.getColor();
+          color.r = qt_color.redF();
+          color.g = qt_color.greenF();
+          color.b = qt_color.blueF();
           color.a = 1.0f;
         } else {
           std::unique_ptr<Ogre::ColourValue> velocity_color =

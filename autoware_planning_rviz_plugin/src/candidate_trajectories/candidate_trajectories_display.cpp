@@ -124,11 +124,11 @@ std::unique_ptr<Ogre::ColourValue> AutowareCandidateTrajectoriesDisplay::setColo
   std::unique_ptr<Ogre::ColourValue> color_ptr(new Ogre::ColourValue);
 
   // Use modulo to cycle through available colors
-  QColor qcolor = index_colors_[index % index_colors_.size()];
+  QColor qt_color = index_colors_[index % index_colors_.size()];
 
-  color_ptr->r = qcolor.redF();
-  color_ptr->g = qcolor.greenF();
-  color_ptr->b = qcolor.blueF();
+  color_ptr->r = qt_color.redF();
+  color_ptr->g = qt_color.greenF();
+  color_ptr->b = qt_color.blueF();
   color_ptr->a = 1.0f;
 
   return color_ptr;
@@ -321,10 +321,10 @@ void AutowareCandidateTrajectoriesDisplay::processMessage(
       if (this->property_velocity_view_.getBool()) {
         Ogre::ColourValue color;
         if (this->property_velocity_color_view_.getBool()) {
-          auto qcolor = this->property_velocity_color_.getColor();
-          color.r = qcolor.redF();
-          color.g = qcolor.greenF();
-          color.b = qcolor.blueF();
+          auto qt_color = this->property_velocity_color_.getColor();
+          color.r = qt_color.redF();
+          color.g = qt_color.greenF();
+          color.b = qt_color.blueF();
           color.a = 1.0f;
         } else {
           std::unique_ptr<Ogre::ColourValue> velocity_color =
