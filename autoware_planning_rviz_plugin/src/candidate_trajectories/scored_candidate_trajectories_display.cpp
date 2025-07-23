@@ -12,7 +12,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "autoware_planning_rviz_plugin/candidate_trajectories/display.hpp"
+#include "autoware_planning_rviz_plugin/candidate_trajectories/scored_candidate_trajectories_display.hpp"
 
 #include <pluginlib/class_list_macros.hpp>
 #include <rclcpp/rclcpp.hpp>
