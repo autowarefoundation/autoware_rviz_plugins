@@ -45,7 +45,6 @@ protected Q_SLOTS:
 protected:
   // Override base class virtual methods
   void setupColoringModes() override;
-  void updateModeSpecificVisibility(int mode) override;
   void processMessage(
     const autoware_internal_planning_msgs::msg::CandidateTrajectories::ConstSharedPtr msg_ptr)
     override;

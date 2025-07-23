@@ -121,11 +121,6 @@ void AutowareCandidateTrajectoriesDisplay::onTopicChanged()
   }
 }
 
-void AutowareCandidateTrajectoriesDisplay::updateModeSpecificVisibility(int /* mode */)
-{
-  // Interface compatibility - implementation not needed for current design
-}
-
 std::unique_ptr<Ogre::ColourValue> AutowareCandidateTrajectoriesDisplay::setColorDependsOnIndex(
   const size_t index)
 {

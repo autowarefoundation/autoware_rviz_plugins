@@ -150,11 +150,6 @@ void AutowareScoredCandidateTrajectoriesDisplay::onTopicChanged()
   }
 }
 
-void AutowareScoredCandidateTrajectoriesDisplay::updateModeSpecificVisibility(int /* mode */)
-{
-  // Interface compatibility - implementation not needed for current design
-}
-
 std::unique_ptr<Ogre::ColourValue>
 AutowareScoredCandidateTrajectoriesDisplay::setColorDependsOnScore(const double score)
 {

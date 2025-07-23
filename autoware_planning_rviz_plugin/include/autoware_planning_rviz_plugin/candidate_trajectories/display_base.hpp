@@ -56,8 +56,6 @@ protected:
   virtual void processMessage(const typename MessageType::ConstSharedPtr msg_ptr) = 0;
   /// Setup coloring mode options specific to the message type
   virtual void setupColoringModes() = 0;
-  /// Handle property visibility changes when coloring mode changes (optional override)
-  virtual void updateModeSpecificVisibility(int mode) = 0;
 
   // Common functionality
   virtual bool validateFloats(const typename MessageType::ConstSharedPtr & msg_ptr);
