@@ -30,11 +30,14 @@
 #include <autoware_map_msgs/msg/lanelet_map_bin.hpp>
 #include <autoware_perception_msgs/msg/traffic_light_group_array.hpp>
 
+#include <boost/optional/optional.hpp>
+
 #include <OgreSceneNode.h>
 #include <lanelet2_core/LaneletMap.h>
 #include <lanelet2_core/primitives/Lanelet.h>
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -60,8 +63,16 @@ struct TrafficLightBulbInfo
 struct TrafficLightInfo
 {
   lanelet::Id id;
-  Point3d linestring_center;
+  lanelet::ConstLineString3d linestring;
+  boost::optional<double> height;
   std::vector<TrafficLightBulbInfo> bulbs;
+
+  [[nodiscard]] TrafficLightBulbInfo getEstimatedBulb(const std::string & color) const;
+
+  [[nodiscard]] Point3d getLinestringCenter() const;
+
+  [[nodiscard]] std::vector<TrafficLightBulbInfo> getBlightBulbs(
+    const std::vector<autoware_perception_msgs::msg::TrafficLightElement> & current_elements) const;
 };
 
 class TrafficLightDisplay : public rviz_common::Display
@@ -104,6 +115,7 @@ private:  // NOLINT
   std::unique_ptr<rviz_common::properties::StringProperty> text_prefix_property_;
   std::unique_ptr<rviz_common::properties::FloatProperty> font_size_property_;
   std::unique_ptr<rviz_common::properties::ColorProperty> text_color_property_;
+  std::unique_ptr<rviz_common::properties::FloatProperty> bulb_radius_property_;
 
   // Subscribers
   rclcpp::Subscription<autoware_map_msgs::msg::LaneletMapBin>::SharedPtr lanelet_map_sub_;

@@ -29,8 +29,10 @@
 #include <lanelet2_core/primitives/Lanelet.h>
 #include <lanelet2_core/primitives/Point.h>
 
+#include <map>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <utility>
 #include <vector>
 
@@ -39,41 +41,32 @@ namespace autoware_perception_rviz_plugin::traffic_light
 
 std::string elementToString(const autoware_perception_msgs::msg::TrafficLightElement & element)
 {
-  auto color = element.color;
-  auto shape = element.shape;
-  if (shape == autoware_perception_msgs::msg::TrafficLightElement::CIRCLE) {
-    switch (color) {
-      case autoware_perception_msgs::msg::TrafficLightElement::RED:
-        return "RED";
-      case autoware_perception_msgs::msg::TrafficLightElement::AMBER:
-        return "AMBER";
-      case autoware_perception_msgs::msg::TrafficLightElement::GREEN:
-        return "GREEN";
-      default:
-        return "UNKNOWN";
+  using autoware_perception_msgs::msg::TrafficLightElement;
+
+  static const std::map<uint8_t, std::string> circle_color_map = {
+    {TrafficLightElement::RED, "RED"},
+    {TrafficLightElement::AMBER, "AMBER"},
+    {TrafficLightElement::GREEN, "GREEN"}};
+
+  static const std::map<uint8_t, std::string> arrow_map = {
+    {TrafficLightElement::LEFT_ARROW, "LEFT"},
+    {TrafficLightElement::RIGHT_ARROW, "RIGHT"},
+    {TrafficLightElement::UP_ARROW, "UP"},
+    {TrafficLightElement::DOWN_ARROW, "DOWN"},
+    {TrafficLightElement::DOWN_LEFT_ARROW, "DOWN_LEFT"},
+    {TrafficLightElement::DOWN_RIGHT_ARROW, "DOWN_RIGHT"},
+    {TrafficLightElement::UP_LEFT_ARROW, "UP_LEFT"},
+    {TrafficLightElement::UP_RIGHT_ARROW, "UP_RIGHT"}};
+
+  if (element.shape == TrafficLightElement::CIRCLE) {
+    if (auto it = circle_color_map.find(element.color); it != circle_color_map.end()) {
+      return it->second;
     }
-  } else {
-    switch (shape) {
-      case autoware_perception_msgs::msg::TrafficLightElement::LEFT_ARROW:
-        return "LEFT";
-      case autoware_perception_msgs::msg::TrafficLightElement::RIGHT_ARROW:
-        return "RIGHT";
-      case autoware_perception_msgs::msg::TrafficLightElement::UP_ARROW:
-        return "UP";
-      case autoware_perception_msgs::msg::TrafficLightElement::DOWN_ARROW:
-        return "DOWN";
-      case autoware_perception_msgs::msg::TrafficLightElement::DOWN_LEFT_ARROW:
-        return "DOWN_LEFT";
-      case autoware_perception_msgs::msg::TrafficLightElement::DOWN_RIGHT_ARROW:
-        return "DOWN_RIGHT";
-      case autoware_perception_msgs::msg::TrafficLightElement::UP_LEFT_ARROW:
-        return "UP_LEFT";
-      case autoware_perception_msgs::msg::TrafficLightElement::UP_RIGHT_ARROW:
-        return "UP_RIGHT";
-      default:
-        return "UNKNOWN";
-    }
+  } else if (auto it = arrow_map.find(element.shape); it != arrow_map.end()) {
+    return it->second;
   }
+
+  return "UNKNOWN";
 }
 
 std::vector<TrafficLightInfo> getTrafficLightInfo(
@@ -93,10 +86,12 @@ std::vector<TrafficLightInfo> getTrafficLightInfo(
     auto id = traffic_light_linestring.id();
     auto p1 = traffic_light_linestring.lineString()->front();
     auto p2 = traffic_light_linestring.lineString()->back();
-    Point3d center{(p1.x() + p2.x()) / 2, (p1.y() + p2.y()) / 2, (p1.z() + p2.z()) / 2};
     TrafficLightInfo traffic_light_info;
     traffic_light_info.id = id;
-    traffic_light_info.linestring_center = center;
+    traffic_light_info.linestring = *traffic_light_linestring.lineString();
+    traffic_light_info.height =
+      traffic_light_linestring.lineString()->attribute("height").as<double>();
+
     for (const auto & bulb : traffic_light->lightBulbs()) {
       for (const auto & point : bulb) {
         TrafficLightBulbInfo bulb_info;
@@ -112,23 +107,113 @@ std::vector<TrafficLightInfo> getTrafficLightInfo(
   return traffic_lights;
 }
 
-std::vector<TrafficLightBulbInfo> getBlightBulbs(
-  const std::vector<autoware_perception_msgs::msg::TrafficLightElement> & current_elements,
-  const std::vector<TrafficLightBulbInfo> & bulbs)
+TrafficLightBulbInfo TrafficLightInfo::getEstimatedBulb(const std::string & color) const
+{
+  TrafficLightBulbInfo dummy_bulb;
+
+  // Define color-specific offset values for ID generation
+  static const std::unordered_map<std::string, int> color_offsets = {
+    {"red", 1}, {"yellow", 2}, {"green", 3}};
+
+  // Generate unique ID: multiply TrafficLightInfo's ID by 1000 and add color offset
+  // Example: For TrafficLightInfo.id = 42 and color = "red"
+  // dummy_bulb.id = 42000 + 1 = 42001
+  const int color_offset = color_offsets.count(color) ? color_offsets.at(color) : 0;
+  dummy_bulb.id = id * 1000 + color_offset;
+
+  dummy_bulb.color = color;
+  dummy_bulb.shape = "circle";  // Default shape is circle
+
+  // Calculate linestring vector
+  const double dx = linestring.back().x() - linestring.front().x();
+  const double dy = linestring.back().y() - linestring.front().y();
+  const double dz = linestring.back().z() - linestring.front().z();
+  const double linestring_length = std::sqrt(dx * dx + dy * dy);
+
+  bool horizontal = [&]() -> bool {
+    if (height.has_value()) {
+      return linestring_length > height.value();
+    }
+    return linestring_length > 1.0;
+  }();
+
+  if (horizontal) {
+    // Horizontal traffic light
+    // Place bulbs at trisection points based on color
+    double position_ratio = [color]() -> double {
+      if (color == "red") {
+        return 1.0 / 6.0;  // 1/3 point from left
+      }
+      if (color == "yellow") {
+        return 0.5;  // Center point
+      }
+      if (color == "green") {
+        return 5.0 / 6.0;  // 2/3 point from left
+      }
+      return 0.5;  // Center point for unknown colors
+    }();
+
+    double z_offset = height ? height.value() / 2.0 : 0.3;
+    // Calculate position at trisection point
+    dummy_bulb.position.x = linestring.front().x() + dx * position_ratio;
+    dummy_bulb.position.y = linestring.front().y() + dy * position_ratio;
+    dummy_bulb.position.z = linestring.front().z() + dz * position_ratio + z_offset;
+  } else {
+    // Vertical traffic light
+    const double offset = height ? height.value() / 6.0 : 0.2;
+    const auto center = getLinestringCenter();
+
+    // Place green light at center, yellow and red lights above it
+    dummy_bulb.position.x = center.x;
+    dummy_bulb.position.y = center.y;
+
+    if (color == "red") {
+      dummy_bulb.position.z = center.z + offset * 5.0;  // Top position
+    } else if (color == "yellow") {
+      dummy_bulb.position.z = center.z + offset * 3.0;  // Middle position
+    } else if (color == "green") {
+      dummy_bulb.position.z = center.z + offset * 1.0;  // Bottom position (center)
+    } else {
+      dummy_bulb.position.z = center.z + offset * 3.0;  // Center position for unknown colors
+    }
+  }
+
+  return dummy_bulb;
+}
+
+std::vector<TrafficLightBulbInfo> TrafficLightInfo::getBlightBulbs(
+  const std::vector<autoware_perception_msgs::msg::TrafficLightElement> & current_elements) const
 {
   using autoware_perception_msgs::msg::TrafficLightElement;
 
+  static const std::map<uint8_t, std::string> color_map = {
+    {TrafficLightElement::RED, "red"},
+    {TrafficLightElement::AMBER, "yellow"},
+    {TrafficLightElement::GREEN, "green"}};
+
+  static const std::map<uint8_t, std::string> arrow_map = {
+    {TrafficLightElement::LEFT_ARROW, "left"},
+    {TrafficLightElement::RIGHT_ARROW, "right"},
+    {TrafficLightElement::UP_ARROW, "up"},
+    {TrafficLightElement::DOWN_ARROW, "down"},
+    {TrafficLightElement::DOWN_LEFT_ARROW, "down_left"},
+    {TrafficLightElement::DOWN_RIGHT_ARROW, "down_right"},
+    {TrafficLightElement::UP_LEFT_ARROW, "up_left"},
+    {TrafficLightElement::UP_RIGHT_ARROW, "up_right"}};
+
   std::vector<TrafficLightBulbInfo> current_bulbs;
 
-  auto append_circle_color_bulb = [&current_bulbs, &bulbs](const std::string & color) {
+  auto append_circle_color_bulb = [&current_bulbs, this](const std::string & color) {
     for (const auto & bulb : bulbs) {
       if (bulb.color == color && (bulb.shape == "none" || bulb.shape == "circle")) {
         current_bulbs.emplace_back(bulb);
+        return;
       }
     }
+    current_bulbs.emplace_back(getEstimatedBulb(color));
   };
 
-  auto append_arrow_bulb = [&current_bulbs, &bulbs](const std::string & arrow) {
+  auto append_arrow_bulb = [&current_bulbs, this](const std::string & arrow) {
     for (const auto & bulb : bulbs) {
       if (bulb.shape == arrow) {
         current_bulbs.emplace_back(bulb);
@@ -136,40 +221,26 @@ std::vector<TrafficLightBulbInfo> getBlightBulbs(
     }
   };
 
-  for (const auto & current_element : current_elements) {
-    if (current_element.shape == TrafficLightElement::CIRCLE) {
-      switch (current_element.color) {
-        case TrafficLightElement::RED:
-          append_circle_color_bulb("red");
-          break;
-        case TrafficLightElement::AMBER:
-          append_circle_color_bulb("yellow");
-          break;
-        case TrafficLightElement::GREEN:
-          append_circle_color_bulb("green");
-        default:
-          break;
+  for (const auto & element : current_elements) {
+    if (element.shape == TrafficLightElement::CIRCLE) {
+      if (auto it = color_map.find(element.color); it != color_map.end()) {
+        append_circle_color_bulb(it->second);
       }
-    }
-    if (current_element.shape == TrafficLightElement::LEFT_ARROW) {
-      append_arrow_bulb("left");
-    } else if (current_element.shape == TrafficLightElement::RIGHT_ARROW) {
-      append_arrow_bulb("right");
-    } else if (current_element.shape == TrafficLightElement::UP_ARROW) {
-      append_arrow_bulb("up");
-    } else if (current_element.shape == TrafficLightElement::DOWN_ARROW) {
-      append_arrow_bulb("down");
-    } else if (current_element.shape == TrafficLightElement::DOWN_LEFT_ARROW) {
-      append_arrow_bulb("down_left");
-    } else if (current_element.shape == TrafficLightElement::DOWN_RIGHT_ARROW) {
-      append_arrow_bulb("down_right");
-    } else if (current_element.shape == TrafficLightElement::UP_LEFT_ARROW) {
-      append_arrow_bulb("up_left");
-    } else if (current_element.shape == TrafficLightElement::UP_RIGHT_ARROW) {
-      append_arrow_bulb("up_right");
+    } else if (auto it = arrow_map.find(element.shape); it != arrow_map.end()) {
+      append_arrow_bulb(it->second);
     }
   }
+
   return current_bulbs;
+}
+
+Point3d TrafficLightInfo::getLinestringCenter() const
+{
+  Point3d center{
+    (linestring.front().x() + linestring.back().x()) / 2,
+    (linestring.front().y() + linestring.back().y()) / 2,
+    (linestring.front().z() + linestring.back().z()) / 2};
+  return center;
 }
 
 TrafficLightDisplay::TrafficLightDisplay() = default;
@@ -222,6 +293,10 @@ void TrafficLightDisplay::onInitialize()
 
   text_color_property_ = std::make_unique<rviz_common::properties::ColorProperty>(
     "Text Color", QColor(255, 255, 255), "Color for traffic light state text", this);
+
+  bulb_radius_property_ = std::make_unique<rviz_common::properties::FloatProperty>(
+    "Bulb Radius", 0.4, "Radius in meters for traffic light bulb visualization", this);
+  bulb_radius_property_->setMin(0.1);
 }
 
 void TrafficLightDisplay::setupRosSubscriptions()
@@ -329,9 +404,9 @@ void TrafficLightDisplay::updateTrafficLightText(
 
   std::string display_text = text_prefix_property_->getStdString() + state_text;
   Ogre::Vector3 position(
-    static_cast<float>(info.linestring_center.x) + text_x_offset_property_->getFloat(),
-    static_cast<float>(info.linestring_center.y) + text_y_offset_property_->getFloat(),
-    static_cast<float>(info.linestring_center.z) + text_z_offset_property_->getFloat());
+    static_cast<float>(info.getLinestringCenter().x) + text_x_offset_property_->getFloat(),
+    static_cast<float>(info.getLinestringCenter().y) + text_y_offset_property_->getFloat(),
+    static_cast<float>(info.getLinestringCenter().z) + text_z_offset_property_->getFloat());
   traffic_light_text_nodes_[info.id]->setPosition(position);
   traffic_light_text_displays_[info.id]->setCaption(display_text);
   traffic_light_text_displays_[info.id]->setCharacterHeight(font_size_property_->getFloat());
@@ -346,7 +421,7 @@ void TrafficLightDisplay::updateTrafficLightBulbs(
   const std::vector<autoware_perception_msgs::msg::TrafficLightElement> & elements)
 {
   // Note: This method is called from update() which already holds property_mutex_
-  auto current_bulbs = getBlightBulbs(elements, info.bulbs);
+  auto current_bulbs = info.getBlightBulbs(elements);
   for (const auto & bulb : current_bulbs) {
     if (traffic_light_bulb_displays_.find(bulb.id) == traffic_light_bulb_displays_.end()) {
       auto bulb_display = std::make_unique<rviz_rendering::Shape>(
@@ -365,7 +440,7 @@ void TrafficLightDisplay::updateTrafficLightBulbs(
       bulb_display->setPosition(Ogre::Vector3(
         static_cast<float>(bulb.position.x), static_cast<float>(bulb.position.y),
         static_cast<float>(bulb.position.z)));
-      const float radius = 0.4;
+      const float radius = bulb_radius_property_->getFloat();
       bulb_display->setScale(Ogre::Vector3(radius, radius, radius));
       traffic_light_bulb_displays_[bulb.id] = std::move(bulb_display);
     }
