@@ -134,11 +134,10 @@ private:  // NOLINT
 
   // Data storage
   lanelet::LaneletMapPtr lanelet_map_;
+  std_msgs::msg::Header lanelet_map_header_;
+
   autoware_perception_msgs::msg::TrafficLightGroupArray::ConstSharedPtr traffic_light_groups_;
   rclcpp::Time last_traffic_light_received_time_;
-
-  // Root node for text and shape visualization
-  Ogre::SceneNode * root_node_{nullptr};
 
   // Text visualization
   std::unordered_map<lanelet::Id, Ogre::SceneNode *> traffic_light_text_nodes_;

@@ -249,10 +249,9 @@ TrafficLightDisplay::~TrafficLightDisplay() = default;
 
 void TrafficLightDisplay::onInitialize()
 {
-  auto rviz_ros_node = context_->getRosNodeAbstraction();
+  rviz_common::Display::onInitialize();
 
-  // Create scene node for text displays
-  root_node_ = scene_manager_->getRootSceneNode()->createChildSceneNode();
+  auto rviz_ros_node = context_->getRosNodeAbstraction();
 
   lanelet_map_topic_property_ = std::make_unique<rviz_common::properties::RosTopicProperty>(
     "Lanelet Map Topic", QString("/map/vector_map"), QString("autoware_map_msgs/msg/LaneletMapBin"),
@@ -307,9 +306,9 @@ void TrafficLightDisplay::setupRosSubscriptions()
 
 void TrafficLightDisplay::onEnable()
 {
+  rviz_common::Display::onEnable();
   std::lock_guard<std::mutex> lock_property(property_mutex_);
   setupRosSubscriptions();
-  root_node_->setVisible(true);
   for (const auto & [id, text_node] : traffic_light_text_nodes_) {
     text_node->setVisible(show_text_property_->getBool());
   }
@@ -320,10 +319,10 @@ void TrafficLightDisplay::onEnable()
 
 void TrafficLightDisplay::onDisable()
 {
+  rviz_common::Display::onDisable();
   std::lock_guard<std::mutex> lock_property(property_mutex_);
   lanelet_map_sub_.reset();
   traffic_light_group_array_sub_.reset();
-  root_node_->setVisible(false);
   for (const auto & [id, text_node] : traffic_light_text_nodes_) {
     text_node->setVisible(false);
   }
@@ -353,10 +352,6 @@ void TrafficLightDisplay::reset()
   // Reset subscriptions
   lanelet_map_sub_.reset();
   traffic_light_group_array_sub_.reset();
-
-  if (root_node_) {
-    root_node_->removeAndDestroyAllChildren();
-  }
 }
 
 void TrafficLightDisplay::hideAllDisplays()
@@ -398,7 +393,7 @@ void TrafficLightDisplay::updateTrafficLightText(
   }
 
   if (traffic_light_text_nodes_.find(info.id) == traffic_light_text_nodes_.end()) {
-    traffic_light_text_nodes_[info.id] = root_node_->createChildSceneNode();
+    traffic_light_text_nodes_[info.id] = scene_node_->createChildSceneNode();
     traffic_light_text_nodes_[info.id]->attachObject(traffic_light_text_displays_[info.id].get());
   }
 
@@ -425,7 +420,7 @@ void TrafficLightDisplay::updateTrafficLightBulbs(
   for (const auto & bulb : current_bulbs) {
     if (traffic_light_bulb_displays_.find(bulb.id) == traffic_light_bulb_displays_.end()) {
       auto bulb_display = std::make_unique<rviz_rendering::Shape>(
-        rviz_rendering::Shape::Type::Sphere, scene_manager_, root_node_);
+        rviz_rendering::Shape::Type::Sphere, scene_manager_, scene_node_);
 
       Ogre::ColourValue color;
       if (bulb.color == "red") {
@@ -459,6 +454,17 @@ void TrafficLightDisplay::update(float wall_dt, float ros_dt)
   if (!lanelet_map_ || !traffic_light_groups_) {
     return;
   }
+
+  Ogre::Vector3 position;
+  Ogre::Quaternion orientation;
+  if (!this->context_->getFrameManager()->getTransform(
+        lanelet_map_header_, position, orientation)) {
+    RCLCPP_DEBUG(
+      rclcpp::get_logger("TrafficLightDisplay"), "Error transforming from frame '%s' to frame '%s'",
+      lanelet_map_header_.frame_id.c_str(), qPrintable(this->fixed_frame_));
+  }
+  this->scene_node_->setPosition(position);
+  this->scene_node_->setOrientation(orientation);
 
   if (checkTimeout()) {
     hideAllDisplays();
@@ -509,6 +515,7 @@ void TrafficLightDisplay::onLaneletMapReceived(
   const autoware_map_msgs::msg::LaneletMapBin::ConstSharedPtr msg)
 {
   std::lock_guard<std::mutex> lock(lanelet_map_mutex_);
+  lanelet_map_header_ = msg->header;
   lanelet_map_ = std::make_shared<lanelet::LaneletMap>();
   lanelet::utils::conversion::fromBinMsg(*msg, lanelet_map_);
 }
