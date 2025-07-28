@@ -98,9 +98,7 @@ AutowareScoredCandidateTrajectoriesDisplay::~AutowareScoredCandidateTrajectories
   // Clean up score text objects
   for (auto & text_vector : score_texts_) {
     for (auto * text : text_vector) {
-      if (text) {
-        delete text;
-      }
+      delete text;
     }
   }
   score_texts_.clear();
