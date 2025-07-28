@@ -49,11 +49,16 @@ std::unique_ptr<Ogre::ColourValue> setColorDependsOnVelocity(const double veloci
 std::unique_ptr<Ogre::ColourValue> gradation(
   const QColor & color_min, const QColor & color_max, const double ratio)
 {
+  // Clamp ratio to valid range [0.0, 1.0] to ensure valid color values
+  const double clamped_ratio = std::min(std::max(ratio, 0.0), 1.0);
+
   std::unique_ptr<Ogre::ColourValue> color_ptr(new Ogre::ColourValue);
-  color_ptr->g =
-    static_cast<float>(color_max.greenF() * ratio + color_min.greenF() * (1.0 - ratio));
-  color_ptr->r = static_cast<float>(color_max.redF() * ratio + color_min.redF() * (1.0 - ratio));
-  color_ptr->b = static_cast<float>(color_max.blueF() * ratio + color_min.blueF() * (1.0 - ratio));
+  color_ptr->g = static_cast<float>(
+    color_max.greenF() * clamped_ratio + color_min.greenF() * (1.0 - clamped_ratio));
+  color_ptr->r =
+    static_cast<float>(color_max.redF() * clamped_ratio + color_min.redF() * (1.0 - clamped_ratio));
+  color_ptr->b = static_cast<float>(
+    color_max.blueF() * clamped_ratio + color_min.blueF() * (1.0 - clamped_ratio));
   color_ptr->a = 1.0f;
   return color_ptr;
 }
