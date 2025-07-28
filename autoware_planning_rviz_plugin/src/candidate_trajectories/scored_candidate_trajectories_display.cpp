@@ -158,12 +158,11 @@ AutowareScoredCandidateTrajectoriesDisplay::setColorDependsOnScore(const double 
     // Lower half: interpolate between min (red) and mid (yellow) colors
     return this->gradation(
       property_score_color_min_.getColor(), property_score_color_mid_.getColor(), ratio * 2.0);
-  } else {
-    // Upper half: interpolate between mid (yellow) and max (green) colors
-    return this->gradation(
-      property_score_color_mid_.getColor(), property_score_color_max_.getColor(),
-      (ratio - 0.5) * 2.0);
   }
+  // Upper half: interpolate between mid (yellow) and max (green) colors
+  return this->gradation(
+    property_score_color_mid_.getColor(), property_score_color_max_.getColor(),
+    (ratio - 0.5) * 2.0);
 }
 
 std::unique_ptr<Ogre::ColourValue>
