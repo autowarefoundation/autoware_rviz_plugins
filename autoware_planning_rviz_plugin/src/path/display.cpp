@@ -48,7 +48,11 @@ void AutowarePathWithLaneIdDisplay::preProcessMessageDetail()
 AutowarePathWithLaneIdDisplay::~AutowarePathWithLaneIdDisplay()
 {
   for (const auto & e : lane_id_obj_ptrs_) {
-    scene_node_->removeChild(e.first.get());
+    auto node_ptr = e.first;
+    node_ptr->detachAllObjects();
+    node_ptr->removeAndDestroyAllChildren();
+    scene_node_->removeChild(node_ptr);
+    scene_manager_->destroySceneNode(node_ptr);
   }
   lane_id_obj_ptrs_.clear();
   lane_id_obj_ptrs_.shrink_to_fit();
@@ -58,21 +62,31 @@ void AutowarePathWithLaneIdDisplay::preVisualizePathFootprintDetail(
   const autoware_internal_planning_msgs::msg::PathWithLaneId::ConstSharedPtr msg_ptr)
 {
   const size_t size = msg_ptr->points.size();
-  // clear previous text
-  for (const auto & [node_ptr, text_ptr] : lane_id_obj_ptrs_) {
-    scene_node_->removeChild(node_ptr.get());
+
+  for (auto & e : lane_id_obj_ptrs_) {
+    e.second->setVisible(false);
   }
-  lane_id_obj_ptrs_.clear();
-  for (std::size_t i = 0; i < size; i++) {
-    std::unique_ptr<Ogre::SceneNode> node_ptr;
-    node_ptr.reset(scene_node_->createChildSceneNode());
-    auto text_ptr =
-      std::make_unique<rviz_rendering::MovableText>("not initialized", "Liberation Sans", 0.1);
-    text_ptr->setVisible(false);
-    text_ptr->setTextAlignment(
-      rviz_rendering::MovableText::H_CENTER, rviz_rendering::MovableText::V_ABOVE);
-    node_ptr->attachObject(text_ptr.get());
-    lane_id_obj_ptrs_.push_back(std::make_pair(std::move(node_ptr), std::move(text_ptr)));
+  if (size > lane_id_obj_ptrs_.size()) {
+    for (size_t i = lane_id_obj_ptrs_.size(); i < size; i++) {
+      auto node_ptr = scene_node_->createChildSceneNode();
+      auto text_ptr =
+        std::make_unique<rviz_rendering::MovableText>("not initialized", "Liberation Sans", 0.1);
+      text_ptr->setVisible(false);
+      text_ptr->setTextAlignment(
+        rviz_rendering::MovableText::H_CENTER, rviz_rendering::MovableText::V_ABOVE);
+      node_ptr->attachObject(text_ptr.get());
+      lane_id_obj_ptrs_.emplace_back(node_ptr, std::move(text_ptr));
+    }
+  } else if (size < lane_id_obj_ptrs_.size()) {
+    // Remove excess objects from scene and vector
+    for (size_t i = size; i < lane_id_obj_ptrs_.size(); i++) {
+      auto & node_ptr = lane_id_obj_ptrs_[i].first;
+      node_ptr->detachAllObjects();
+      node_ptr->removeAndDestroyAllChildren();
+      scene_node_->removeChild(node_ptr);
+      scene_manager_->destroySceneNode(node_ptr);
+    }
+    lane_id_obj_ptrs_.resize(size);
   }
 }
 

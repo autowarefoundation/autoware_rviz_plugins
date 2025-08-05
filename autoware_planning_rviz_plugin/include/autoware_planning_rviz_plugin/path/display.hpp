@@ -207,8 +207,7 @@ private:
   rviz_common::properties::BoolProperty property_lane_id_view_;
   rviz_common::properties::FloatProperty property_lane_id_scale_;
 
-  using LaneIdObject =
-    std::pair<std::unique_ptr<Ogre::SceneNode>, std::unique_ptr<rviz_rendering::MovableText>>;
+  using LaneIdObject = std::pair<Ogre::SceneNode *, std::unique_ptr<rviz_rendering::MovableText>>;
   std::vector<LaneIdObject> lane_id_obj_ptrs_;
 };
 
