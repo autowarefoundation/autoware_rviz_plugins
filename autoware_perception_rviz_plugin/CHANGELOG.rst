@@ -2,8 +2,8 @@
 Changelog for package autoware_perception_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.2.0 (2025-08-14)
+------------------
 * fix(autoware_perception_rviz_plugin): improve traffic light visualization transform handling (`#17 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/17>`_)
 * feat(autoware_perception_rviz_plugin): add traffic light display (`#15 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/15>`_)
   * feat(autoware_traffic_light_rviz_plugin): add traffic light display
