@@ -159,7 +159,8 @@ void StringStampedOverlayDisplay::update(float wall_dt, float ros_dt)
       const auto duration = (current_time - last_non_empty_msg_ptr_->stamp).seconds();
       if (
         duration <
-        property_last_diag_keep_time_->getFloat() + property_last_diag_erase_time_->getFloat()) {
+        property_last_diag_keep_time_->getFloat() + property_last_diag_erase_time_->getFloat() &&
+        duration > 0.0) {
         const int dynamic_alpha = static_cast<int>(std::max(
           (1.0 - std::max(duration - property_last_diag_keep_time_->getFloat(), 0.0) /
                    property_last_diag_erase_time_->getFloat()) *
