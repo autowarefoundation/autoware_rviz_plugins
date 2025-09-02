@@ -57,8 +57,8 @@ private:
 
   int current_turn_signal_;    // Internal variable to store turn signal state
   int current_hazard_lights_;  // Internal variable to store hazard lights state
-  double turn_signal_time_; // Internal variable to store time when hazard lights on
-  double hazard_lights_time_; // Internal variable to store time when hazard lights on
+  double turn_signal_time_;    // Internal variable to store time when hazard lights on
+  double hazard_lights_time_;  // Internal variable to store time when hazard lights on
   QImage coloredImage(const QImage & source, const QColor & color);
 };
 
