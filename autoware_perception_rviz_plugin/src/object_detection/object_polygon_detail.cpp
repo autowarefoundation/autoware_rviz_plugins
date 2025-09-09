@@ -492,7 +492,7 @@ visualization_msgs::msg::Marker::SharedPtr get_existence_probability_marker_ptr(
 }
 
 visualization_msgs::msg::Marker::SharedPtr get_area_marker_ptr(
-  const geometry_msgs::msg::Point & centroid,const geometry_msgs::msg::Quaternion & orientation,
+  const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
   const float area, const std_msgs::msg::ColorRGBA & color_rgba)
 {
   auto marker_ptr = std::make_shared<Marker>();

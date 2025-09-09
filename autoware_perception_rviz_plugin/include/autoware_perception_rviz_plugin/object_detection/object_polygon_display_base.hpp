@@ -250,7 +250,7 @@ protected:
   }
   template <typename ClassificationContainerT>
   std::optional<Marker::SharedPtr> get_area_marker_ptr(
-    const geometry_msgs::msg::Point & centroid,const geometry_msgs::msg::Quaternion & orientation,
+    const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
     const float area, const ClassificationContainerT & labels) const
   {
     if (m_display_area_property.getBool()) {

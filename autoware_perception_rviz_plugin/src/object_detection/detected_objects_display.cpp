@@ -101,8 +101,8 @@ void DetectedObjectsDisplay::processMessage(DetectedObjects::ConstSharedPtr msg)
     // Get marker for area
     auto area_marker = get_area_marker_ptr(
       object.kinematics.pose_with_covariance.pose.position,
-      object.kinematics.pose_with_covariance.pose.orientation,
-      getArea(object.shape), object.classification);
+      object.kinematics.pose_with_covariance.pose.orientation, getArea(object.shape),
+      object.classification);
     if (area_marker) {
       auto area_marker_ptr = area_marker.value();
       area_marker_ptr->header = msg->header;
