@@ -491,6 +491,22 @@ visualization_msgs::msg::Marker::SharedPtr get_existence_probability_marker_ptr(
   return marker_ptr;
 }
 
+visualization_msgs::msg::Marker::SharedPtr get_area_marker_ptr(
+  const geometry_msgs::msg::Point & centroid,const geometry_msgs::msg::Quaternion & orientation,
+  const float area, const std_msgs::msg::ColorRGBA & color_rgba)
+{
+  auto marker_ptr = std::make_shared<Marker>();
+  marker_ptr->type = visualization_msgs::msg::Marker::TEXT_VIEW_FACING;
+  marker_ptr->ns = std::string("area");
+  marker_ptr->scale.x = 0.5;
+  marker_ptr->scale.z = 0.5;
+  marker_ptr->text = std::to_string(area);
+  marker_ptr->action = visualization_msgs::msg::Marker::MODIFY;
+  marker_ptr->pose = marker_ptr->pose = to_pose(centroid, orientation);
+  marker_ptr->lifetime = rclcpp::Duration::from_seconds(0.15);
+  marker_ptr->color = color_rgba;
+  return marker_ptr;
+}
 visualization_msgs::msg::Marker::SharedPtr get_shape_marker_ptr(
   const autoware_perception_msgs::msg::Shape & shape_msg,
   const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,

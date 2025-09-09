@@ -248,7 +248,18 @@ protected:
       return std::nullopt;
     }
   }
-
+  template <typename ClassificationContainerT>
+  std::optional<Marker::SharedPtr> get_area_marker_ptr(
+    const geometry_msgs::msg::Point & centroid,const geometry_msgs::msg::Quaternion & orientation,
+    const float area, const ClassificationContainerT & labels) const
+  {
+    if (m_display_area_property.getBool()) {
+      const std_msgs::msg::ColorRGBA color_rgba = get_color_rgba(labels);
+      return detail::get_area_marker_ptr(centroid, orientation, area, color_rgba);
+    } else {
+      return std::nullopt;
+    }
+  }
   template <typename ClassificationContainerT>
   std::optional<Marker::SharedPtr> get_uuid_marker_ptr(
     const unique_identifier_msgs::msg::UUID & uuid, const geometry_msgs::msg::Point & centroid,
@@ -564,6 +575,9 @@ private:
   rviz_common::properties::BoolProperty m_display_path_confidence_property;
 
   rviz_common::properties::BoolProperty m_display_existence_probability_property;
+
+  rviz_common::properties::BoolProperty m_display_area_property{
+    "Display Area", false, "Enable/disable area visualization", this};
 
   // Property to decide line width of object shape
   rviz_common::properties::FloatProperty m_line_width_property;
