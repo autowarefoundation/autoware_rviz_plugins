@@ -99,10 +99,14 @@ void DetectedObjectsDisplay::processMessage(DetectedObjects::ConstSharedPtr msg)
       add_marker(marker_ptr);
     }
     // Get marker for area
+    geometry_msgs::msg::Point area_position;
+    area_position.x = object.kinematics.pose_with_covariance.pose.position.x + 0.5;
+    area_position.y = object.kinematics.pose_with_covariance.pose.position.y;
+    area_position.z = object.kinematics.pose_with_covariance.pose.position.z - 1.0;
     auto area_marker = get_area_marker_ptr(
-      object.kinematics.pose_with_covariance.pose.position,
-      object.kinematics.pose_with_covariance.pose.orientation, getArea(object.shape),
-      object.classification);
+      area_position,
+      object.kinematics.pose_with_covariance.pose.orientation,
+      getArea(object.shape), object.classification);
     if (area_marker) {
       auto area_marker_ptr = area_marker.value();
       area_marker_ptr->header = msg->header;
