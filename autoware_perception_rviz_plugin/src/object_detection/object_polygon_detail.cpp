@@ -19,6 +19,8 @@
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
 
+#include <limits>
+
 #ifdef ROS_DISTRO_GALACTIC
 #include <tf2_geometry_msgs/tf2_geometry_msgs.h>
 #else
