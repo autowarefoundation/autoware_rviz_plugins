@@ -19,6 +19,15 @@
 
 #include <geometry_msgs/msg/transform_stamped.hpp>
 
+#include <limits>
+
+#ifdef ROS_DISTRO_GALACTIC
+#include <tf2_geometry_msgs/tf2_geometry_msgs.h>
+#else
+#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
+#endif
+#include <tf2/utils.h>
+
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
@@ -928,9 +937,20 @@ void calc_path_line_list(
     points.push_back(point);
 
     if (!is_simple || i % 2 == 0) {
-      // get yaw from the line
-      const double yaw =
-        std::atan2(point.y - paths.path.at(i).position.y, point.x - paths.path.at(i).position.x);
+      // get yaw from the orientation if valid, otherwise from the line direction
+      const auto & orientation = paths.path.at(i + 1).orientation;
+      tf2::Quaternion tf_quat;
+      tf2::fromMsg(orientation, tf_quat);
+      const bool is_default_orientation =
+        tf_quat.x() == 0.0 && tf_quat.y() == 0.0 && tf_quat.z() == 0.0 && tf_quat.w() == 1.0;
+      const bool is_valid_orientation =
+        (tf_quat.length() > std::numeric_limits<double>::epsilon()) && !is_default_orientation;
+      const double yaw = is_valid_orientation
+                           ? tf2::getYaw(tf_quat.normalize())
+                           : std::atan2(
+                               paths.path.at(i + 1).position.y - paths.path.at(i).position.y,
+                               paths.path.at(i + 1).position.x - paths.path.at(i).position.x);
+
       // draw triangle
       constexpr double length = 0.5;
       const double arrow_angle = M_PI * 5.0 / 6.0;
