@@ -941,7 +941,10 @@ void calc_path_line_list(
       const auto & orientation = paths.path.at(i + 1).orientation;
       tf2::Quaternion tf_quat;
       tf2::fromMsg(orientation, tf_quat);
-      const bool is_valid_orientation = (tf_quat.length() > std::numeric_limits<double>::epsilon());
+      const bool is_default_orientation =
+        tf_quat.x() == 0.0 && tf_quat.y() == 0.0 && tf_quat.z() == 0.0 && tf_quat.w() == 1.0;
+      const bool is_valid_orientation =
+        (tf_quat.length() > std::numeric_limits<double>::epsilon()) && !is_default_orientation;
       const double yaw = is_valid_orientation
                            ? tf2::getYaw(tf_quat.normalize())
                            : std::atan2(
