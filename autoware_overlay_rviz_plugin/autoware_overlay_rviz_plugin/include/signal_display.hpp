@@ -62,6 +62,7 @@ private Q_SLOTS:
   void updateOverlayPosition();
   void updateOverlayColor();
   void updateTurnSignalBlinkingMode();
+  void updateTurnSignalPriority();
   void topic_updated_gear();
   void topic_updated_steering();
   void topic_updated_speed();
@@ -86,6 +87,7 @@ private:
   rviz_common::properties::ColorProperty * property_dark_limit_color_;
 
   rviz_common::properties::EnumProperty * property_turn_signal_blinking_mode_;
+  rviz_common::properties::EnumProperty * property_turn_signal_priority_;
 
   std::unique_ptr<rviz_common::properties::RosTopicProperty> steering_topic_property_;
   std::unique_ptr<rviz_common::properties::RosTopicProperty> gear_topic_property_;
