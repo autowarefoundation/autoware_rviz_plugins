@@ -2,6 +2,16 @@
 Changelog for package autoware_perception_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+* fix(autoware_perception_rviz_plugin): fix `calc_path_line_list` (`#25 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/25>`_)
+  * Fixed `calc_path_line_list`
+  * Fixed is_valid_orientation
+  * Added `#include <limits>`
+  * Added a new condition `is_default_orientation`
+  ---------
+* Contributors: SakodaShintaro
+
 0.2.0 (2025-08-14)
 ------------------
 * fix(autoware_perception_rviz_plugin): improve traffic light visualization transform handling (`#17 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/17>`_)

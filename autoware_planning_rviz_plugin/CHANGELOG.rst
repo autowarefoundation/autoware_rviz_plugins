@@ -2,6 +2,9 @@
 Changelog for package autoware_planning_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.2.0 (2025-08-14)
 ------------------
 * fix(autoware_planning_rviz_plugin): memory leak in scene node management (`#19 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/19>`_)

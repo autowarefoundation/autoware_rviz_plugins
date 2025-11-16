@@ -2,6 +2,9 @@
 Changelog for package autoware_overlay_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.2.0 (2025-08-14)
 ------------------
 
