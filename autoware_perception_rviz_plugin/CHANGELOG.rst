@@ -2,8 +2,8 @@
 Changelog for package autoware_perception_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.3.0 (2025-11-16)
+------------------
 * fix(autoware_perception_rviz_plugin): fix `calc_path_line_list` (`#25 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/25>`_)
   * Fixed `calc_path_line_list`
   * Fixed is_valid_orientation
