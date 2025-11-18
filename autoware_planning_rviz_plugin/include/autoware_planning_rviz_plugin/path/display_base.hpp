@@ -547,8 +547,9 @@ protected:
 
     // Estimate for both points (circles) and poses (arrows)
     const size_t point_triangles =
-      property_point_view_.getBool() ? 8 * 3 : 0;                         // 8 triangles per circle
-    const size_t pose_triangles = property_pose_view_.getBool() ? 9 : 0;  // 3 triangles per arrow (9 vertices)
+      property_point_view_.getBool() ? 8 * 3 : 0;  // 8 triangles per circle
+    const size_t pose_triangles =
+      property_pose_view_.getBool() ? 9 : 0;  // 3 triangles per arrow (9 vertices)
     point_manual_object_->estimateVertexCount(
       msg_ptr->points.size() * (point_triangles + pose_triangles));
     point_manual_object_->begin("BaseWhiteNoLighting", Ogre::RenderOperation::OT_TRIANGLE_LIST);
