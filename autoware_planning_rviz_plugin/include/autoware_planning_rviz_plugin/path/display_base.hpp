@@ -638,10 +638,14 @@ protected:
         const double offset = property_pose_offset_.getFloat();
         const double yaw = tf2::getYaw(pose.orientation);
         const double arrow_length = property_pose_arrow_length_.getFloat();
-        const double head_length = arrow_length * 0.4;
-        const double head_width = arrow_length * 0.5;  // Make head wider and more visible
+        constexpr static double HEAD_LENGTH_RATIO = 0.4;
+        constexpr static double HEAD_WIDTH_RATIO = 0.5;
+        constexpr static double SHAFT_WIDTH_RATIO = 0.15;
+
+        const double head_length = arrow_length * HEAD_LENGTH_RATIO;
+        const double head_width = arrow_length * HEAD_WIDTH_RATIO;
         const double shaft_length = arrow_length - head_length;
-        const double shaft_width = arrow_length * 0.15;
+        const double shaft_width = arrow_length * SHAFT_WIDTH_RATIO;
 
         const double cos_yaw = std::cos(yaw);
         const double sin_yaw = std::sin(yaw);
