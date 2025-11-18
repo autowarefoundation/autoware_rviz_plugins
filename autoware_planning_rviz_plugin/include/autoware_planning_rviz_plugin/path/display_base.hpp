@@ -644,12 +644,11 @@ protected:
         const double shaft_length = arrow_length - head_length;
         const double shaft_width = arrow_length * 0.15;
 
-        const double origin_x = pose.position.x + offset * std::cos(yaw);
-        const double origin_y = pose.position.y + offset * std::sin(yaw);
-        const double origin_z = pose.position.z;
-
         const double cos_yaw = std::cos(yaw);
         const double sin_yaw = std::sin(yaw);
+        const double origin_x = pose.position.x + offset * cos_yaw;
+        const double origin_y = pose.position.y + offset * sin_yaw;
+        const double origin_z = pose.position.z;
         const double p0_x = origin_x - shaft_width / 2.0 * sin_yaw;
         const double p0_y = origin_y + shaft_width / 2.0 * cos_yaw;
         const double p1_x = origin_x + shaft_width / 2.0 * sin_yaw;
