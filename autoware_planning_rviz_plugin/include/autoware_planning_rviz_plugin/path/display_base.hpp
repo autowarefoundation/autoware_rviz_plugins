@@ -173,7 +173,6 @@ public:
     // initialize point
     property_point_alpha_.setMin(0.0);
     property_point_alpha_.setMax(1.0);
-    property_point_radius_.setMin(0.0);
     // initialize pose
     property_pose_alpha_.setMin(0.0);
     property_pose_alpha_.setMax(1.0);
