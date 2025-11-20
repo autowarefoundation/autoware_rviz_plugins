@@ -494,7 +494,7 @@ visualization_msgs::msg::Marker::SharedPtr get_existence_probability_marker_ptr(
   marker_ptr->scale.x = 0.5;
   marker_ptr->scale.z = 0.5;
   std::ostringstream oss;
-  oss << std::fixed << std::setprecision(2) << existence_probability;
+  oss << std::fixed << std::setprecision(3) << existence_probability;
   marker_ptr->text = oss.str();
   marker_ptr->action = visualization_msgs::msg::Marker::MODIFY;
   marker_ptr->pose = marker_ptr->pose = to_pose(centroid, orientation);
