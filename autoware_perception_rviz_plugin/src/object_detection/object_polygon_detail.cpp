@@ -492,7 +492,9 @@ visualization_msgs::msg::Marker::SharedPtr get_existence_probability_marker_ptr(
   marker_ptr->ns = std::string("existence probability");
   marker_ptr->scale.x = 0.5;
   marker_ptr->scale.z = 0.5;
-  marker_ptr->text = std::to_string(existence_probability);
+  std::ostringstream oss;
+  oss << std::fixed << std::setprecision(2) << existence_probability;
+  marker_ptr->text = oss.str();
   marker_ptr->action = visualization_msgs::msg::Marker::MODIFY;
   marker_ptr->pose = marker_ptr->pose = to_pose(centroid, orientation);
   marker_ptr->lifetime = rclcpp::Duration::from_seconds(0.15);
