@@ -374,7 +374,8 @@ visualization_msgs::msg::Marker::SharedPtr get_pose_covariance_marker_ptr(
   marker_ptr->type = visualization_msgs::msg::Marker::CYLINDER;
   marker_ptr->ns = std::string("position covariance");
   marker_ptr->action = visualization_msgs::msg::Marker::MODIFY;
-  marker_ptr->pose = pose_with_covariance.pose;
+  marker_ptr->pose.position = pose_with_covariance.pose.position;
+  // orientation is for the given frame_id
 
   // position covariance
   // extract eigen values and eigen vectors
