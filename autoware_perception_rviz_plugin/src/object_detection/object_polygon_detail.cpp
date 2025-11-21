@@ -374,7 +374,8 @@ visualization_msgs::msg::Marker::SharedPtr get_pose_covariance_marker_ptr(
   marker_ptr->type = visualization_msgs::msg::Marker::CYLINDER;
   marker_ptr->ns = std::string("position covariance");
   marker_ptr->action = visualization_msgs::msg::Marker::MODIFY;
-  marker_ptr->pose = pose_with_covariance.pose;
+  marker_ptr->pose.position = pose_with_covariance.pose.position;
+  // orientation is for the given frame_id
 
   // position covariance
   // extract eigen values and eigen vectors
@@ -492,7 +493,9 @@ visualization_msgs::msg::Marker::SharedPtr get_existence_probability_marker_ptr(
   marker_ptr->ns = std::string("existence probability");
   marker_ptr->scale.x = 0.5;
   marker_ptr->scale.z = 0.5;
-  marker_ptr->text = std::to_string(existence_probability);
+  std::ostringstream oss;
+  oss << std::fixed << std::setprecision(3) << existence_probability;
+  marker_ptr->text = oss.str();
   marker_ptr->action = visualization_msgs::msg::Marker::MODIFY;
   marker_ptr->pose = marker_ptr->pose = to_pose(centroid, orientation);
   marker_ptr->lifetime = rclcpp::Duration::from_seconds(0.15);
