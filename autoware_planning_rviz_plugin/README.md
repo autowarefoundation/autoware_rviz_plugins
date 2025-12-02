@@ -1,8 +1,5 @@
 # autoware_planning_rviz_plugin
 
-This package is including jsk code.
-Note that jsk_overlay_utils.cpp and jsk_overlay_utils.hpp are BSD license.
-
 ## Purpose
 
 This plugin displays the path, trajectory, and maximum speed.

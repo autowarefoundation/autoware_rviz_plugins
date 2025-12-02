@@ -14,7 +14,6 @@
 
 #ifndef STEERING_WHEEL_DISPLAY_HPP_
 #define STEERING_WHEEL_DISPLAY_HPP_
-#include "overlay_utils.hpp"
 
 #include <QImage>
 #include <QString>

@@ -53,8 +53,8 @@
 #include <string>
 
 #ifndef Q_MOC_RUN
-#include "jsk_overlay_utils.hpp"
 
+#include <rviz_2d_overlay_plugins/overlay_utils.hpp>
 #include <rviz_common/properties/color_property.hpp>
 #include <rviz_common/properties/float_property.hpp>
 #include <rviz_common/properties/int_property.hpp>
@@ -87,7 +87,7 @@ protected:
   void update(float wall_dt, float ros_dt) override;
   void processMessage(
     const autoware_internal_debug_msgs::msg::StringStamped::ConstSharedPtr msg_ptr) override;
-  jsk_rviz_plugins::OverlayObject::Ptr overlay_;
+  rviz_2d_overlay_plugins::OverlayObject::SharedPtr overlay_;
   rviz_common::properties::ColorProperty * property_text_color_;
   rviz_common::properties::IntProperty * property_left_;
   rviz_common::properties::IntProperty * property_top_;

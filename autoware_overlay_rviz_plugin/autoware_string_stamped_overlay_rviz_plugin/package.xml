@@ -4,8 +4,8 @@
   <name>autoware_string_stamped_rviz_plugin</name>
   <version>0.3.0</version>
   <description>
-    RViz2 plugin for 2D overlays in the 3D view. Mainly a port of the JSK overlay plugin
-        (https://github.com/jsk-ros-pkg/jsk_visualization).
+    RViz2 plugin for displaying string stamped messages as 2D overlays in the 3D view.
+    Inspired by the JSK overlay plugin. (https://github.com/jsk-ros-pkg/jsk_visualization))
   </description>
   <maintainer email="takayuki.murooka@tier4.jp">Takayuki Murooka</maintainer>
   <maintainer email="satoshi.ota@tier4.jp">Satoshi Ota</maintainer>
@@ -17,6 +17,8 @@
 
   <depend>ament_index_cpp</depend>
   <depend>autoware_internal_debug_msgs</depend>
+  <depend>rviz_2d_overlay_plugins</depend>
+  <depend>rviz_2d_overlay_msgs</depend>
   <depend>rviz_common</depend>
   <depend>rviz_ogre_vendor</depend>
   <depend>rviz_rendering</depend>

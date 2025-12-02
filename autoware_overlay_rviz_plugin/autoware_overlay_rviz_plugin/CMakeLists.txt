@@ -24,7 +24,6 @@ foreach(header "${headers_to_moc}")
 endforeach()
 
 set(display_source_files
-  src/overlay_utils.cpp
   src/signal_display.cpp
   src/steering_wheel_display.cpp
   src/gear_display.cpp
@@ -66,6 +65,8 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNC
 pluginlib_export_plugin_description_file(rviz_common plugins_description.xml)
 
 ament_target_dependencies(${PROJECT_NAME} PUBLIC
+  rviz_2d_overlay_plugins
+  rviz_2d_overlay_msgs
   rviz_common
   rviz_rendering
   autoware_vehicle_msgs

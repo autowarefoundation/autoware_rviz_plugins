@@ -15,11 +15,11 @@
 #ifndef MISSION_DETAILS_DISPLAY_HPP_
 #define MISSION_DETAILS_DISPLAY_HPP_
 #ifndef Q_MOC_RUN
-#include "overlay_utils.hpp"
 #include "remaining_distance_time_display.hpp"
 
 #include <QImage>
 #include <QString>
+#include <rviz_2d_overlay_plugins/overlay_utils.hpp>
 #include <rviz_common/display.hpp>
 #include <rviz_common/properties/color_property.hpp>
 #include <rviz_common/properties/float_property.hpp>
@@ -56,7 +56,7 @@ private Q_SLOTS:
 
 private:
   std::mutex mutex_;
-  autoware::mission_details_overlay_rviz_plugin::OverlayObject::SharedPtr overlay_;
+  rviz_2d_overlay_plugins::OverlayObject::SharedPtr overlay_;
   rviz_common::properties::IntProperty * property_width_;
   rviz_common::properties::IntProperty * property_height_;
   rviz_common::properties::IntProperty * property_right_;

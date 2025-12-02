@@ -14,7 +14,6 @@
 
 #ifndef SPEED_LIMIT_DISPLAY_HPP_
 #define SPEED_LIMIT_DISPLAY_HPP_
-#include "overlay_utils.hpp"
 
 #include <QImage>
 #include <QString>

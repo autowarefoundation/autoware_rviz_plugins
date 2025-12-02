@@ -36,7 +36,6 @@ ament_auto_add_library(autoware_planning_rviz_plugin SHARED
   src/pose_with_uuid_stamped/display.cpp
   include/autoware_planning_rviz_plugin/mission_checkpoint/mission_checkpoint.hpp
   src/mission_checkpoint/mission_checkpoint.cpp
-  src/tools/jsk_overlay_utils.cpp
   src/tools/max_velocity.cpp
 )
 

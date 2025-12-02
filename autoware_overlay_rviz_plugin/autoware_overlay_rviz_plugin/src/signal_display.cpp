@@ -91,7 +91,7 @@ void SignalDisplay::onInitialize()
   static int count = 0;
   std::stringstream ss;
   ss << "SignalDisplayObject" << count++;
-  overlay_.reset(new autoware_overlay_rviz_plugin::OverlayObject(ss.str()));
+  overlay_.reset(new rviz_2d_overlay_plugins::OverlayObject(ss.str()));
   overlay_->show();
   updateOverlaySize();
   updateOverlayPosition();
@@ -182,7 +182,7 @@ void SignalDisplay::update(float /* wall_dt */, float /* ros_dt */)
   if (!overlay_) {
     return;
   }
-  autoware_overlay_rviz_plugin::ScopedPixelBuffer buffer = overlay_->getBuffer();
+  rviz_2d_overlay_plugins::ScopedPixelBuffer buffer = overlay_->getBuffer();
   QImage hud = buffer.getQImage(*overlay_);
   hud.fill(Qt::transparent);
   drawWidget(hud);
@@ -387,8 +387,8 @@ void SignalDisplay::updateOverlayPosition()
 {
   std::lock_guard<std::mutex> lock(mutex_);
   overlay_->setPosition(
-    property_left_->getInt(), property_top_->getInt(), HorizontalAlignment::CENTER,
-    VerticalAlignment::TOP);
+    property_left_->getInt(), property_top_->getInt(), rviz_2d_overlay_plugins::HorizontalAlignment::CENTER,
+    rviz_2d_overlay_plugins::VerticalAlignment::TOP);
   queueRender();
 }
 
