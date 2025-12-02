@@ -58,8 +58,7 @@ void MissionDetailsDisplay::onInitialize()
   static int count = 0;
   std::stringstream ss;
   ss << "MissionDetailsDisplay" << count++;
-  overlay_ =
-    std::make_shared<rviz_2d_overlay_plugins::OverlayObject>(ss.str());
+  overlay_ = std::make_shared<rviz_2d_overlay_plugins::OverlayObject>(ss.str());
   overlay_->show();
   update_size();
 
@@ -193,7 +192,8 @@ void MissionDetailsDisplay::update_size()
   overlay_->updateTextureSize(property_width_->getInt(), property_height_->getInt());
   overlay_->setDimensions(overlay_->getTextureWidth(), overlay_->getTextureHeight());
   overlay_->setPosition(
-    property_right_->getInt(), property_top_->getInt(), rviz_2d_overlay_plugins::HorizontalAlignment::RIGHT,
+    property_right_->getInt(), property_top_->getInt(),
+    rviz_2d_overlay_plugins::HorizontalAlignment::RIGHT,
     rviz_2d_overlay_plugins::VerticalAlignment::TOP);
   queueRender();
 }

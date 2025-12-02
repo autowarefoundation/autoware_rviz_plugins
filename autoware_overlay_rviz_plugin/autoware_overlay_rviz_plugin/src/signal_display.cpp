@@ -387,7 +387,8 @@ void SignalDisplay::updateOverlayPosition()
 {
   std::lock_guard<std::mutex> lock(mutex_);
   overlay_->setPosition(
-    property_left_->getInt(), property_top_->getInt(), rviz_2d_overlay_plugins::HorizontalAlignment::CENTER,
+    property_left_->getInt(), property_top_->getInt(),
+    rviz_2d_overlay_plugins::HorizontalAlignment::CENTER,
     rviz_2d_overlay_plugins::VerticalAlignment::TOP);
   queueRender();
 }

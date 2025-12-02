@@ -78,7 +78,6 @@ void MaxVelocityDisplay::onInitialize()
   overlay_->setPosition(property_left_->getInt(), property_top_->getInt());
   overlay_->setDimensions(overlay_->getTextureWidth(), overlay_->getTextureHeight());
   updateVisualization();
-
 }
 
 void MaxVelocityDisplay::updateTopic()

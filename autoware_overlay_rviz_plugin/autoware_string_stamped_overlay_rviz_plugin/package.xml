@@ -17,8 +17,8 @@
 
   <depend>ament_index_cpp</depend>
   <depend>autoware_internal_debug_msgs</depend>
-  <depend>rviz_2d_overlay_plugins</depend>
   <depend>rviz_2d_overlay_msgs</depend>
+  <depend>rviz_2d_overlay_plugins</depend>
   <depend>rviz_common</depend>
   <depend>rviz_ogre_vendor</depend>
   <depend>rviz_rendering</depend>
