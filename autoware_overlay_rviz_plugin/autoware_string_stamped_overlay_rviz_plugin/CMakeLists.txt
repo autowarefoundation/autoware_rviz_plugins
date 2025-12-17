@@ -24,5 +24,6 @@ pluginlib_export_plugin_description_file(rviz_common plugins/plugins_description
 
 ament_auto_package(
   INSTALL_TO_SHARE
+  icons
   plugins
 )

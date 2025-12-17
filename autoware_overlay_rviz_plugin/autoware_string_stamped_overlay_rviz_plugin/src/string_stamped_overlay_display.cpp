@@ -12,222 +12,317 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Copyright (c) 2014, JSK Lab
-// All rights reserved.
-//
-// Software License Agreement (BSD License)
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-//
-//  * Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-//  * Redistributions in binary form must reproduce the above
-//    copyright notice, this list of conditions and the following
-//    disclaimer in the documentation and/or other materials provided
-//    with the distribution.
-//  * Neither the name of {copyright_holder} nor the names of its
-//    contributors may be used to endorse or promote products derived
-//    from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-// COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.S SOFTWARE, EVEN IF ADVISED OF THE
-//  POSSIBILITY OF SUCH DAMAGE.
-
 #include "string_stamped_overlay_display.hpp"
 
-#include "jsk_overlay_utils.hpp"
-
+#include <QFontMetrics>
 #include <QPainter>
-#include <rviz_common/uniform_string_stream.hpp>
-
-#include <X11/Xlib.h>
+#include <rviz_common/display_context.hpp>
+#include <rviz_rendering/render_system.hpp>
 
 #include <algorithm>
-#include <optional>
+#include <memory>
 #include <string>
-#include <utility>
-#include <vector>
+
+namespace
+{
+constexpr int k_min_width = 1;
+constexpr int k_min_height = 1;
+}  // namespace
 
 namespace autoware::string_stamped_rviz_plugin
 {
+
 StringStampedOverlayDisplay::StringStampedOverlayDisplay()
 {
-  const Screen * screen_info = DefaultScreenOfDisplay(XOpenDisplay(NULL));
+  // Topic property
+  topic_property_ = new rviz_common::properties::RosTopicProperty(
+    "Topic", "",
+    rosidl_generator_traits::data_type<autoware_internal_debug_msgs::msg::StringStamped>(),
+    "Topic to subscribe for StringStamped messages", this, SLOT(update_topic()), this);
 
-  constexpr float hight_4k = 2160.0;
-  const float scale = static_cast<float>(screen_info->height) / hight_4k;
-  const auto left = static_cast<int>(std::round(1024 * scale));
-  const auto top = static_cast<int>(std::round(128 * scale));
+  // Padding property (size is calculated automatically based on text)
+  padding_property_ = new rviz_common::properties::IntProperty(
+    "Padding", 5, "Padding around the text (pixels)", this);
+  padding_property_->setMin(0);
 
-  property_text_color_ = new rviz_common::properties::ColorProperty(
-    "Text Color", QColor(25, 255, 240), "text color", this, SLOT(updateVisualization()), this);
-  property_left_ = new rviz_common::properties::IntProperty(
-    "Left", left, "Left of the plotter window", this, SLOT(updateVisualization()), this);
-  property_left_->setMin(0);
-  property_top_ = new rviz_common::properties::IntProperty(
-    "Top", top, "Top of the plotter window", this, SLOT(updateVisualization()));
-  property_top_->setMin(0);
+  // Position properties
+  left_property_ = new rviz_common::properties::IntProperty(
+    "Left", 0, "Horizontal distance from alignment edge", this, SLOT(update_overlay_position()));
 
-  property_value_height_offset_ = new rviz_common::properties::IntProperty(
-    "Value height offset", 0, "Height offset of the plotter window", this,
-    SLOT(updateVisualization()));
-  property_font_size_ = new rviz_common::properties::IntProperty(
-    "Font Size", 15, "Font Size", this, SLOT(updateVisualization()), this);
-  property_font_size_->setMin(1);
-  property_max_letter_num_ = new rviz_common::properties::IntProperty(
-    "Max Letter Num", 100, "Max Letter Num", this, SLOT(updateVisualization()), this);
-  property_max_letter_num_->setMin(10);
+  top_property_ = new rviz_common::properties::IntProperty(
+    "Top", 0, "Vertical distance from alignment edge", this, SLOT(update_overlay_position()));
 
-  property_last_diag_keep_time_ = new rviz_common::properties::FloatProperty(
-    "Time To Keep Last Diag", 1.0, "Time To Keep Last Diag", this, SLOT(updateVisualization()),
+  // Alignment properties
+  hor_alignment_property_ = new rviz_common::properties::EnumProperty(
+    "Horizontal Alignment", "Left", "Horizontal alignment of the overlay", this,
+    SLOT(update_overlay_position()));
+  hor_alignment_property_->addOption("Left", 0);
+  hor_alignment_property_->addOption("Center", 1);
+  hor_alignment_property_->addOption("Right", 2);
+
+  ver_alignment_property_ = new rviz_common::properties::EnumProperty(
+    "Vertical Alignment", "Top", "Vertical alignment of the overlay", this,
+    SLOT(update_overlay_position()));
+  ver_alignment_property_->addOption("Top", 0);
+  ver_alignment_property_->addOption("Center", 1);
+  ver_alignment_property_->addOption("Bottom", 2);
+
+  // Font size property
+  font_size_property_ =
+    new rviz_common::properties::IntProperty("Font Size", 12, "Font size for text display", this);
+  font_size_property_->setMin(1);
+
+  // Color properties
+  fg_color_property_ = new rviz_common::properties::ColorProperty(
+    "Text Color", QColor(255, 255, 255), "Text color", this);
+
+  fg_alpha_property_ = new rviz_common::properties::FloatProperty(
+    "Text Alpha", 1.0, "Text transparency (0.0 - 1.0)", this);
+  fg_alpha_property_->setMin(0.0);
+  fg_alpha_property_->setMax(1.0);
+
+  bg_color_property_ = new rviz_common::properties::ColorProperty(
+    "Background Color", QColor(0, 0, 0), "Background color", this);
+
+  bg_alpha_property_ = new rviz_common::properties::FloatProperty(
+    "Background Alpha", 0.0, "Background transparency (0.0 - 1.0)", this);
+  bg_alpha_property_->setMin(0.0);
+  bg_alpha_property_->setMax(1.0);
+
+  // Fade-out timing properties
+  fade_delay_property_ = new rviz_common::properties::FloatProperty(
+    "Fade Delay", 0.0, "Delay before fade-out starts after receiving empty message (seconds)",
     this);
-  property_last_diag_keep_time_->setMin(0);
+  fade_delay_property_->setMin(0.0);
 
-  property_last_diag_erase_time_ = new rviz_common::properties::FloatProperty(
-    "Time To Erase Last Diag", 2.0, "Time To Erase Last Diag", this, SLOT(updateVisualization()),
-    this);
-  property_last_diag_erase_time_->setMin(0.001);
+  fade_time_property_ = new rviz_common::properties::FloatProperty(
+    "Fade Time", 1.0, "Duration of fade-out effect after keep time (seconds)", this);
+  fade_time_property_->setMin(0.001);
 }
 
 StringStampedOverlayDisplay::~StringStampedOverlayDisplay()
 {
-  if (initialized()) {
-    overlay_->hide();
-  }
+  subscription_.reset();
+  overlay_.reset();
 }
 
 void StringStampedOverlayDisplay::onInitialize()
 {
-  RTDClass::onInitialize();
+  rviz_common::Display::onInitialize();
+  rviz_rendering::RenderSystem::get()->prepareOverlays(scene_manager_);
 
   static int count = 0;
-  rviz_common::UniformStringStream ss;
-  ss << "StringOverlayDisplayObject" << count++;
-  auto logger = context_->getRosNodeAbstraction().lock()->get_raw_node()->get_logger();
-  overlay_.reset(new jsk_rviz_plugins::OverlayObject(scene_manager_, logger, ss.str()));
+  std::stringstream ss;
+  ss << "StringStampedOverlayDisplay" << count++;
+  overlay_ = std::make_shared<rviz_2d_overlay_plugins::OverlayObject>(ss.str());
 
   overlay_->show();
+  update_overlay_position();
 
-  const int texture_size = property_font_size_->getInt() * property_max_letter_num_->getInt();
-  overlay_->updateTextureSize(texture_size, texture_size);
-  overlay_->setPosition(property_left_->getInt(), property_top_->getInt());
-  overlay_->setDimensions(overlay_->getTextureWidth(), overlay_->getTextureHeight());
+  topic_property_->initialize(context_->getRosNodeAbstraction());
 }
 
 void StringStampedOverlayDisplay::onEnable()
 {
-  subscribe();
-  overlay_->show();
+  if (overlay_) {
+    overlay_->show();
+  }
+  update_topic();
 }
 
 void StringStampedOverlayDisplay::onDisable()
 {
-  unsubscribe();
-  reset();
-  overlay_->hide();
-}
-
-void StringStampedOverlayDisplay::update(float wall_dt, float ros_dt)
-{
-  (void)wall_dt;
-  (void)ros_dt;
-
-  {
-    std::lock_guard<std::mutex> message_lock(mutex_);
-    if (!last_non_empty_msg_ptr_) {
-      return;
-    }
+  subscription_.reset();
+  if (overlay_) {
+    overlay_->hide();
   }
-
-  // calculate text and alpha
-  const auto text_with_alpha = [&]() {
-    std::lock_guard<std::mutex> message_lock(mutex_);
-    if (last_msg_text_.empty()) {
-      const auto current_time = context_->getRosNodeAbstraction().lock()->get_raw_node()->now();
-      const auto duration = (current_time - last_non_empty_msg_ptr_->stamp).seconds();
-      if (
-        duration <
-        property_last_diag_keep_time_->getFloat() + property_last_diag_erase_time_->getFloat()) {
-        const int dynamic_alpha = static_cast<int>(std::max(
-          (1.0 - std::max(duration - property_last_diag_keep_time_->getFloat(), 0.0) /
-                   property_last_diag_erase_time_->getFloat()) *
-            255,
-          0.0));
-        return std::make_pair(last_non_empty_msg_ptr_->data, dynamic_alpha);
-      }
-    }
-    return std::make_pair(last_msg_text_, 255);
-  }();
-
-  // Display
-  QColor background_color;
-  background_color.setAlpha(0);
-  jsk_rviz_plugins::ScopedPixelBuffer buffer = overlay_->getBuffer();
-  QImage hud = buffer.getQImage(*overlay_);
-  hud.fill(background_color);
-
-  QPainter painter(&hud);
-  painter.setRenderHint(QPainter::Antialiasing, true);
-
-  const int w = overlay_->getTextureWidth() - line_width_;
-  const int h = overlay_->getTextureHeight() - line_width_;
-
-  // text
-  QColor text_color(property_text_color_->getColor());
-  text_color.setAlpha(text_with_alpha.second);
-  painter.setPen(QPen(text_color, static_cast<int>(2), Qt::SolidLine));
-  QFont font = painter.font();
-  font.setPixelSize(property_font_size_->getInt());
-  font.setBold(true);
-  painter.setFont(font);
-
-  // same as above, but align on right side
-  painter.drawText(
-    0, std::min(property_value_height_offset_->getInt(), h - 1), w,
-    std::max(h - property_value_height_offset_->getInt(), 1), Qt::AlignLeft | Qt::AlignTop,
-    text_with_alpha.first.c_str());
-  painter.end();
-  updateVisualization();
 }
 
-void StringStampedOverlayDisplay::processMessage(
-  const autoware_internal_debug_msgs::msg::StringStamped::ConstSharedPtr msg_ptr)
+void StringStampedOverlayDisplay::reset()
 {
+  rviz_common::Display::reset();
+  if (overlay_) {
+    overlay_->hide();
+  }
+  std::lock_guard<std::mutex> lock(mutex_);
+  text_.clear();
+  last_msg_.reset();
+  last_non_empty_msg_.reset();
+  current_alpha_ = 255;
+}
+
+void StringStampedOverlayDisplay::update_topic()
+{
+  subscription_.reset();
+
   if (!isEnabled()) {
     return;
   }
 
-  {
-    std::lock_guard<std::mutex> message_lock(mutex_);
-    last_msg_text_ = msg_ptr->data;
-
-    // keep the non empty last message for visualization
-    if (!msg_ptr->data.empty()) {
-      last_non_empty_msg_ptr_ = msg_ptr;
-    }
+  const std::string topic = topic_property_->getTopicStd();
+  if (topic.empty()) {
+    return;
   }
 
+  try {
+    auto node = context_->getRosNodeAbstraction().lock()->get_raw_node();
+    subscription_ = node->create_subscription<autoware_internal_debug_msgs::msg::StringStamped>(
+      topic, rclcpp::QoS(10),
+      std::bind(&StringStampedOverlayDisplay::process_message, this, std::placeholders::_1));
+  } catch (const std::exception & e) {
+    setStatus(rviz_common::properties::StatusProperty::Error, "Topic", e.what());
+  }
+}
+
+void StringStampedOverlayDisplay::update_overlay_position()
+{
+  if (!overlay_) {
+    return;
+  }
+  std::lock_guard<std::mutex> lock(mutex_);
+
+  // Get horizontal alignment
+  auto hor_alignment = rviz_2d_overlay_plugins::HorizontalAlignment::LEFT;
+  switch (hor_alignment_property_->getOptionInt()) {
+    case 1:
+      hor_alignment = rviz_2d_overlay_plugins::HorizontalAlignment::CENTER;
+      break;
+    case 2:
+      hor_alignment = rviz_2d_overlay_plugins::HorizontalAlignment::RIGHT;
+      break;
+    default:
+      break;
+  }
+
+  // Get vertical alignment
+  auto ver_alignment = rviz_2d_overlay_plugins::VerticalAlignment::TOP;
+  switch (ver_alignment_property_->getOptionInt()) {
+    case 1:
+      ver_alignment = rviz_2d_overlay_plugins::VerticalAlignment::CENTER;
+      break;
+    case 2:
+      ver_alignment = rviz_2d_overlay_plugins::VerticalAlignment::BOTTOM;
+      break;
+    default:
+      break;
+  }
+
+  overlay_->setPosition(
+    left_property_->getInt(), top_property_->getInt(), hor_alignment, ver_alignment);
   queueRender();
 }
 
-void StringStampedOverlayDisplay::updateVisualization()
+void StringStampedOverlayDisplay::process_message(
+  const autoware_internal_debug_msgs::msg::StringStamped::ConstSharedPtr msg)
 {
-  const int texture_size = property_font_size_->getInt() * property_max_letter_num_->getInt();
-  overlay_->updateTextureSize(texture_size, texture_size);
-  overlay_->setPosition(property_left_->getInt(), property_top_->getInt());
-  overlay_->setDimensions(overlay_->getTextureWidth(), overlay_->getTextureHeight());
+  std::lock_guard<std::mutex> lock(mutex_);
+  last_msg_ = msg;
+  if (!msg->data.empty()) {
+    last_non_empty_msg_ = msg;
+    current_alpha_ = 255;
+  }
+  text_ = msg->data;
+  queueRender();
+}
+
+void StringStampedOverlayDisplay::update(float /*wall_dt*/, float /*ros_dt*/)
+{
+  if (!overlay_ || !overlay_->isVisible()) {
+    return;
+  }
+
+  std::string display_text;
+
+  // Handle fade-out effect for empty messages
+  {
+    std::lock_guard<std::mutex> lock(mutex_);
+    if (last_msg_ && last_msg_->data.empty() && last_non_empty_msg_) {
+      auto node = context_->getRosNodeAbstraction().lock()->get_raw_node();
+      const auto current_time = node->now();
+      const double duration = (current_time - last_non_empty_msg_->stamp).seconds();
+
+      const double fade_delay = fade_delay_property_->getFloat();
+      const double fade_time = fade_time_property_->getFloat();
+
+      if (duration < fade_delay + fade_time) {
+        // Show last non-empty message with fade effect
+        text_ = last_non_empty_msg_->data;
+        const double fade_progress = std::max(0.0, duration - fade_delay) / fade_time;
+        current_alpha_ = static_cast<int>((1.0 - fade_progress) * 255);
+      } else {
+        // Fully faded, clear text
+        text_.clear();
+        current_alpha_ = 255;
+      }
+    } else if (last_msg_ && !last_msg_->data.empty()) {
+      // Reset alpha for non-empty messages
+      current_alpha_ = 255;
+    }
+    display_text = text_;
+  }
+
+  // Calculate required size based on text
+  const int padding = padding_property_->getInt();
+  QFont font;
+  font.setPointSize(font_size_property_->getInt());
+  QFontMetrics fm(font);
+
+  QString q_text = QString::fromStdString(display_text);
+
+  QRect text_rect = fm.boundingRect(QRect(0, 0, 0, 0), Qt::AlignLeft, q_text);
+
+  const int required_width = std::max(k_min_width, text_rect.width() + padding * 2);
+  const int required_height = std::max(k_min_height, text_rect.height() + padding * 2);
+
+  // Update overlay size if needed
+  if (
+    static_cast<int>(overlay_->getTextureWidth()) != required_width ||
+    static_cast<int>(overlay_->getTextureHeight()) != required_height) {
+    overlay_->updateTextureSize(required_width, required_height);
+    overlay_->setDimensions(overlay_->getTextureWidth(), overlay_->getTextureHeight());
+  }
+  // Draw overlay
+  rviz_2d_overlay_plugins::ScopedPixelBuffer buffer = overlay_->getBuffer();
+  QImage image = buffer.getQImage(*overlay_);
+
+  // Fill background
+  QColor bg_color = bg_color_property_->getColor();
+  bg_color.setAlphaF(bg_alpha_property_->getFloat());
+  image.fill(bg_color);
+
+  draw_text(image);
+}
+
+void StringStampedOverlayDisplay::draw_text(QImage & image)
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+
+  if (text_.empty()) {
+    return;
+  }
+
+  QPainter painter(&image);
+  painter.setRenderHint(QPainter::Antialiasing, true);
+  painter.setRenderHint(QPainter::TextAntialiasing, true);
+
+  // Set font
+  QFont font = painter.font();
+  font.setPointSize(font_size_property_->getInt());
+  painter.setFont(font);
+
+  // Set text color with alpha
+  QColor fg_color = fg_color_property_->getColor();
+  const double alpha_ratio = static_cast<double>(current_alpha_) / 255.0;
+  const int alpha = static_cast<int>(fg_alpha_property_->getFloat() * alpha_ratio * 255.0);
+  fg_color.setAlpha(alpha);
+  painter.setPen(fg_color);
+
+  // Draw text
+  QRect rect(0, 0, image.width(), image.height());
+  painter.drawText(
+    rect, Qt::AlignLeft | Qt::AlignVCenter | Qt::TextWordWrap, QString::fromStdString(text_));
+
+  painter.end();
 }
 
 }  // namespace autoware::string_stamped_rviz_plugin

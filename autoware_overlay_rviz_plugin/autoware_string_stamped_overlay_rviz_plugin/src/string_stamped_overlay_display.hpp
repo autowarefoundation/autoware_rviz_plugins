@@ -12,99 +12,84 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-// Copyright (c) 2014, JSK Lab
-// All rights reserved.
-//
-// Software License Agreement (BSD License)
-//
-// Redistribution and use in source and binary forms, with or without
-// modification, are permitted provided that the following conditions
-// are met:
-//
-//  * Redistributions of source code must retain the above copyright
-//    notice, this list of conditions and the following disclaimer.
-//  * Redistributions in binary form must reproduce the above
-//    copyright notice, this list of conditions and the following
-//    disclaimer in the documentation and/or other materials provided
-//    with the distribution.
-//  * Neither the name of {copyright_holder} nor the names of its
-//    contributors may be used to endorse or promote products derived
-//    from this software without specific prior written permission.
-//
-// THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS
-// "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT
-// LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS
-// FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE
-// COPYRIGHT OWNER OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT,
-// INCIDENTAL, SPECIAL, EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING,
-// BUT NOT LIMITED TO, PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES;
-// LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER
-// CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT
-// LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN
-// ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-// POSSIBILITY OF SUCH DAMAGE.S SOFTWARE, EVEN IF ADVISED OF THE
-//  POSSIBILITY OF SUCH DAMAGE.
-
 #ifndef STRING_STAMPED_OVERLAY_DISPLAY_HPP_
 #define STRING_STAMPED_OVERLAY_DISPLAY_HPP_
 
-#include <memory>
 #include <mutex>
 #include <string>
 
 #ifndef Q_MOC_RUN
-#include "jsk_overlay_utils.hpp"
-
+#include <rviz_2d_overlay_plugins/overlay_utils.hpp>
+#include <rviz_common/display.hpp>
 #include <rviz_common/properties/color_property.hpp>
+#include <rviz_common/properties/enum_property.hpp>
 #include <rviz_common/properties/float_property.hpp>
 #include <rviz_common/properties/int_property.hpp>
-#include <rviz_common/ros_topic_display.hpp>
-
+#include <rviz_common/properties/ros_topic_property.hpp>
 #endif
 
 #include <autoware_internal_debug_msgs/msg/string_stamped.hpp>
 
 namespace autoware::string_stamped_rviz_plugin
 {
-class StringStampedOverlayDisplay
-: public rviz_common::RosTopicDisplay<autoware_internal_debug_msgs::msg::StringStamped>
 
+class StringStampedOverlayDisplay : public rviz_common::Display
 {
   Q_OBJECT
 
 public:
   StringStampedOverlayDisplay();
   ~StringStampedOverlayDisplay() override;
+  StringStampedOverlayDisplay(const StringStampedOverlayDisplay &) = delete;
+  StringStampedOverlayDisplay(StringStampedOverlayDisplay &&) = delete;
+  StringStampedOverlayDisplay & operator=(const StringStampedOverlayDisplay &) = delete;
+  StringStampedOverlayDisplay & operator=(StringStampedOverlayDisplay &&) = delete;
 
   void onInitialize() override;
+  void update(float wall_dt, float ros_dt) override;
+  void reset() override;
+
+protected:
   void onEnable() override;
   void onDisable() override;
 
 private Q_SLOTS:
-  void updateVisualization();
+  void update_topic();
+  void update_overlay_position();
 
-protected:
-  void update(float wall_dt, float ros_dt) override;
-  void processMessage(
-    const autoware_internal_debug_msgs::msg::StringStamped::ConstSharedPtr msg_ptr) override;
-  jsk_rviz_plugins::OverlayObject::Ptr overlay_;
-  rviz_common::properties::ColorProperty * property_text_color_;
-  rviz_common::properties::IntProperty * property_left_;
-  rviz_common::properties::IntProperty * property_top_;
-  rviz_common::properties::IntProperty * property_value_height_offset_;
-  rviz_common::properties::IntProperty * property_font_size_;
-  rviz_common::properties::IntProperty * property_max_letter_num_;
-  rviz_common::properties::FloatProperty * property_last_diag_keep_time_;
-  rviz_common::properties::FloatProperty * property_last_diag_erase_time_;
+private:  // NOLINT
+  void process_message(const autoware_internal_debug_msgs::msg::StringStamped::ConstSharedPtr msg);
+  void draw_text(QImage & image);
 
-private:
-  static constexpr int line_width_ = 2;
-  static constexpr int hand_width_ = 4;
+  // Overlay object
+  rviz_2d_overlay_plugins::OverlayObject::SharedPtr overlay_;
 
+  // Subscription
+  rclcpp::Subscription<autoware_internal_debug_msgs::msg::StringStamped>::SharedPtr subscription_;
+
+  // Properties
+  rviz_common::properties::RosTopicProperty * topic_property_;
+  rviz_common::properties::IntProperty * padding_property_;
+  rviz_common::properties::IntProperty * left_property_;
+  rviz_common::properties::IntProperty * top_property_;
+  rviz_common::properties::EnumProperty * hor_alignment_property_;
+  rviz_common::properties::EnumProperty * ver_alignment_property_;
+  rviz_common::properties::IntProperty * font_size_property_;
+  rviz_common::properties::ColorProperty * fg_color_property_;
+  rviz_common::properties::FloatProperty * fg_alpha_property_;
+  rviz_common::properties::ColorProperty * bg_color_property_;
+  rviz_common::properties::FloatProperty * bg_alpha_property_;
+  rviz_common::properties::FloatProperty * fade_delay_property_;
+  rviz_common::properties::FloatProperty * fade_time_property_;
+
+  // State
   std::mutex mutex_;
-  std::string last_msg_text_;
-  autoware_internal_debug_msgs::msg::StringStamped::ConstSharedPtr last_non_empty_msg_ptr_;
+  std::string text_;
+  autoware_internal_debug_msgs::msg::StringStamped::ConstSharedPtr last_msg_;
+  autoware_internal_debug_msgs::msg::StringStamped::ConstSharedPtr last_non_empty_msg_;
+  int current_alpha_{255};
 };
+
 }  // namespace autoware::string_stamped_rviz_plugin
 
 #endif  // STRING_STAMPED_OVERLAY_DISPLAY_HPP_
