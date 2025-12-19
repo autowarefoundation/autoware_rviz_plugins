@@ -70,7 +70,7 @@ void MaxVelocityDisplay::onInitialize()
   rviz_common::UniformStringStream ss;
   ss << "MaxVelocityDisplayObject" << count++;
   auto logger = context_->getRosNodeAbstraction().lock()->get_raw_node()->get_logger();
-  overlay_.reset(new jsk_rviz_plugins::OverlayObject(scene_manager_, logger, ss.str()));
+  overlay_.reset(new rviz_2d_overlay_plugins::OverlayObject(ss.str()));
 
   overlay_->show();
 
@@ -78,18 +78,6 @@ void MaxVelocityDisplay::onInitialize()
   overlay_->setPosition(property_left_->getInt(), property_top_->getInt());
   overlay_->setDimensions(overlay_->getTextureWidth(), overlay_->getTextureHeight());
   updateVisualization();
-
-  // QColor background_color;
-  // background_color.setAlpha(0);
-  // jsk_rviz_plugins::ScopedPixelBuffer buffer = overlay_->getBuffer();
-  // hud_ = buffer.getQImage(*overlay_);
-  // for (int i = 0; i < overlay_->getTextureWidth(); i++)
-  // {
-  //   for (int j = 0; j < overlay_->getTextureHeight(); j++)
-  //   {
-  //     hud_.setPixel(i, j, background_color.rgba());
-  //   }
-  // }
 }
 
 void MaxVelocityDisplay::updateTopic()
@@ -137,7 +125,7 @@ void MaxVelocityDisplay::processMessage(
 
   QColor background_color;
   background_color.setAlpha(0);
-  jsk_rviz_plugins::ScopedPixelBuffer buffer = overlay_->getBuffer();
+  rviz_2d_overlay_plugins::ScopedPixelBuffer buffer = overlay_->getBuffer();
   QImage hud = buffer.getQImage(*overlay_);
   hud.fill(background_color);
 

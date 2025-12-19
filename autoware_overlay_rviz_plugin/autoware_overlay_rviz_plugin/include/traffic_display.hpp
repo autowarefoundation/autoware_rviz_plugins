@@ -14,7 +14,6 @@
 
 #ifndef TRAFFIC_DISPLAY_HPP_
 #define TRAFFIC_DISPLAY_HPP_
-#include "overlay_utils.hpp"
 
 #include <QImage>
 #include <QString>

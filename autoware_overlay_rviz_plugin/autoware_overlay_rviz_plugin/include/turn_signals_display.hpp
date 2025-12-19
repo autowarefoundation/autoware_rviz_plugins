@@ -14,7 +14,6 @@
 
 #ifndef TURN_SIGNALS_DISPLAY_HPP_
 #define TURN_SIGNALS_DISPLAY_HPP_
-#include "overlay_utils.hpp"
 
 #include <QImage>
 #include <QString>

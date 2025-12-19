@@ -14,7 +14,6 @@
 
 #ifndef REMAINING_DISTANCE_TIME_DISPLAY_HPP_
 #define REMAINING_DISTANCE_TIME_DISPLAY_HPP_
-#include "overlay_utils.hpp"
 
 #include <QImage>
 #include <QString>

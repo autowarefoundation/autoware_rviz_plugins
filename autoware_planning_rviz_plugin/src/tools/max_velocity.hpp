@@ -19,9 +19,9 @@
 #include <memory>
 
 #ifndef Q_MOC_RUN
-#include "jsk_overlay_utils.hpp"
 
 #include <rclcpp/rclcpp.hpp>
+#include <rviz_2d_overlay_plugins/overlay_utils.hpp>
 #include <rviz_common/display_context.hpp>
 #include <rviz_common/frame_manager_iface.hpp>
 #include <rviz_common/message_filter_display.hpp>
@@ -65,7 +65,7 @@ private Q_SLOTS:
 protected:
   void processMessage(
     const autoware_internal_planning_msgs::msg::VelocityLimit::ConstSharedPtr msg_ptr);
-  jsk_rviz_plugins::OverlayObject::Ptr overlay_;
+  rviz_2d_overlay_plugins::OverlayObject::SharedPtr overlay_;
   rviz_common::properties::ColorProperty * property_text_color_;
   rviz_common::properties::IntProperty * property_left_;
   rviz_common::properties::IntProperty * property_top_;

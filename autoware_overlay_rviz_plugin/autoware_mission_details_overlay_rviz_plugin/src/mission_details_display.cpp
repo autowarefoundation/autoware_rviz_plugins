@@ -28,7 +28,6 @@
 
 namespace autoware::mission_details_overlay_rviz_plugin
 {
-
 MissionDetailsDisplay::MissionDetailsDisplay()
 {
   property_width_ = new rviz_common::properties::IntProperty(
@@ -59,8 +58,7 @@ void MissionDetailsDisplay::onInitialize()
   static int count = 0;
   std::stringstream ss;
   ss << "MissionDetailsDisplay" << count++;
-  overlay_ =
-    std::make_shared<autoware::mission_details_overlay_rviz_plugin::OverlayObject>(ss.str());
+  overlay_ = std::make_shared<rviz_2d_overlay_plugins::OverlayObject>(ss.str());
   overlay_->show();
   update_size();
 
@@ -108,7 +106,7 @@ void MissionDetailsDisplay::update(float wall_dt, float ros_dt)
   if (!overlay_) {
     return;
   }
-  autoware::mission_details_overlay_rviz_plugin::ScopedPixelBuffer buffer = overlay_->getBuffer();
+  rviz_2d_overlay_plugins::ScopedPixelBuffer buffer = overlay_->getBuffer();
   QImage hud = buffer.getQImage(*overlay_);
   hud.fill(Qt::transparent);
   draw_widget(hud);
@@ -194,8 +192,9 @@ void MissionDetailsDisplay::update_size()
   overlay_->updateTextureSize(property_width_->getInt(), property_height_->getInt());
   overlay_->setDimensions(overlay_->getTextureWidth(), overlay_->getTextureHeight());
   overlay_->setPosition(
-    property_right_->getInt(), property_top_->getInt(), HorizontalAlignment::RIGHT,
-    VerticalAlignment::TOP);
+    property_right_->getInt(), property_top_->getInt(),
+    rviz_2d_overlay_plugins::HorizontalAlignment::RIGHT,
+    rviz_2d_overlay_plugins::VerticalAlignment::TOP);
   queueRender();
 }
 

@@ -2,9 +2,6 @@
 
 Plugin for displaying 2D overlays over the RViz2 3D scene.
 
-Based on the [jsk_visualization](https://github.com/jsk-ros-pkg/jsk_visualization)
-package, under the 3-Clause BSD license.
-
 ## Purpose
 
 This plugin provides a visual and easy-to-understand display of vehicle speed, turn signal, steering status and gears.

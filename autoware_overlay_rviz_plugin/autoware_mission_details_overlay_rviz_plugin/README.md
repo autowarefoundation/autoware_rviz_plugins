@@ -25,10 +25,6 @@ The mission details display is aligned with top right corner of the screen.
 
 Similar to [autoware_overlay_rviz_plugin](../autoware_overlay_rviz_plugin/README.md)
 
-## Credits
-
-Based on the [jsk_visualization](https://github.com/jsk-ros-pkg/jsk_visualization) package.
-
 ### Icons
 
 - <https://fonts.google.com/icons?selected=Material+Symbols+Outlined:conversion_path:FILL@1;wght@400;GRAD@200;opsz@20&icon.size=20&icon.color=%23e8eaed&icon.query=path>
