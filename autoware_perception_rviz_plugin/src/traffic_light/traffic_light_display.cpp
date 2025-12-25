@@ -516,8 +516,7 @@ void TrafficLightDisplay::onLaneletMapReceived(
 {
   std::lock_guard<std::mutex> lock(lanelet_map_mutex_);
   lanelet_map_header_ = msg->header;
-  lanelet_map_ = std::make_shared<lanelet::LaneletMap>();
-  lanelet::utils::conversion::fromBinMsg(*msg, lanelet_map_);
+  lanelet_map_ = impl::from_autoware_map_msgs(*msg);
 }
 
 void TrafficLightDisplay::onTrafficLightGroupArrayReceived(
