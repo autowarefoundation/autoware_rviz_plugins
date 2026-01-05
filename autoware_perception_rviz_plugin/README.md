@@ -55,6 +55,22 @@ Overwrite prediction results with tracking results.
 
 ![predicted-object-visualization-description](./images/predicted-object-visualization-description.jpg)
 
+### Mesh Visualization
+
+For all object types mentioned above it is possible to additionally visualize a mesh file for each object based on its class. For this the mesh namespace can be activated in RViz.
+For cars the visualization dynamically switches between a sedan and SUV model, based on the ratio between height and length.
+
+#### Visualization Result
+
+Visualization of only the mesh files for different vehicle types, pedestrians and cyclists.
+
+![predicted-object-visualization-description](./images/mesh-object-visualization-description.jpg)
+
+##### Customizable Features
+
+- Set visualization offset for predicted objects (n steps in to the future)
+- Visualize vehicle lights (brake, left indicator, right indicator)
+
 ### TrafficLight
 
 #### Input Types
@@ -82,6 +98,11 @@ The plugin visualizes traffic light states in two ways:
 - Show/hide bulb visualization
 - Timeout for stale data
 - Topic names for both input types
+
+## Resources / License
+The 3D models in the 'meshes' directory are provided by Sebastian Preuße ([LinkedIn](https://www.linkedin.com/in/sebastianpreusse), [sebastianpreusse.com](sebastianpreusse.com)) and are licensed under [Creative Commons Attribution-ShareAlike 4.0 International License][cc-by-sa].
+[![CC BY-SA 4.0][cc-by-sa-image]][cc-by-sa]
+
 
 ## References/External links
 
