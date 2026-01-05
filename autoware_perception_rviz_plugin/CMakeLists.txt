@@ -67,4 +67,5 @@ pluginlib_export_plugin_description_file(rviz_common plugins_description.xml)
 ament_auto_package(
   INSTALL_TO_SHARE
   icons
+  meshes
 )
