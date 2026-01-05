@@ -21,7 +21,7 @@
 #include <boost/functional/hash.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
-
+#include <rviz_common/properties/int_property.hpp>
 #include <condition_variable>
 #include <list>
 #include <queue>
@@ -126,6 +126,8 @@ private:
   void messageProcessorThreadJob();
 
   void update(float wall_dt, float ros_dt) override;
+
+  rviz_common::properties::IntProperty m_offset_property;
 
   std::unordered_map<boost::uuids::uuid, int32_t, boost::hash<boost::uuids::uuid>> id_map;
   // std::unordered_map<boost::uuids::uuid, int32_t> id_map;

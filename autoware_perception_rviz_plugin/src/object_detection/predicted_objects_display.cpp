@@ -24,7 +24,8 @@ namespace rviz_plugins
 {
 namespace object_detection
 {
-PredictedObjectsDisplay::PredictedObjectsDisplay() : ObjectPolygonDisplayBase("tracks")
+PredictedObjectsDisplay::PredictedObjectsDisplay() : ObjectPolygonDisplayBase("predicted_objects"),
+m_offset_property{"Display Offset", 0, "Visualize steps in predicted path", this}
 {
   max_num_threads = 1;  // hard code the number of threads to be created
 
@@ -74,10 +75,25 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
   std::vector<visualization_msgs::msg::Marker::SharedPtr> markers;
 
   for (const auto & object : msg->objects) {
+    auto object_pose = &(object.kinematics.initial_pose_with_covariance.pose);
+    if (m_offset_property.getInt() > 0) {
+      // get best confidence path
+      auto best_path = std::max_element(
+        object.kinematics.predicted_paths.begin(),
+        object.kinematics.predicted_paths.end(),
+        [](const auto & a, const auto & b) { return a.confidence < b.confidence; });
+      if (best_path != object.kinematics.predicted_paths.end() && !best_path->path.empty()) {
+        // clamp offset
+        auto offset = std::min(
+          static_cast<size_t>(m_offset_property.getInt()), best_path->path.size() - 1);
+        // get offset pose
+        object_pose = &(best_path->path.at(offset));
+      }
+    }
     // Get marker for shape
     auto shape_marker = get_shape_marker_ptr(
-      object.shape, object.kinematics.initial_pose_with_covariance.pose.position,
-      object.kinematics.initial_pose_with_covariance.pose.orientation, object.classification,
+      object.shape, object_pose->position,
+      object_pose->orientation, object.classification,
       get_line_width(), true);
     if (shape_marker) {
       auto marker_ptr = shape_marker.value();
@@ -86,10 +102,20 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
       markers.push_back(marker_ptr);
     }
 
+    auto mesh_marker = get_mesh_marker_ptr(
+      object.shape, object_pose->position,
+      object_pose->orientation, object.classification);
+    if (mesh_marker) {
+      auto mesh_marker_ptr = mesh_marker.value();
+      mesh_marker_ptr->header = msg->header;
+      mesh_marker_ptr->id = uuid_to_marker_id(object.object_id);
+      add_marker(mesh_marker_ptr);
+    }
+
     // Get marker for label
     auto label_marker = get_label_marker_ptr(
-      object.kinematics.initial_pose_with_covariance.pose.position,
-      object.kinematics.initial_pose_with_covariance.pose.orientation, object.classification);
+      object_pose->position,
+      object_pose->orientation, object.classification);
     if (label_marker) {
       auto marker_ptr = label_marker.value();
       marker_ptr->header = msg->header;
@@ -99,9 +125,9 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
 
     // Get marker for id
     geometry_msgs::msg::Point uuid_vis_position;
-    uuid_vis_position.x = object.kinematics.initial_pose_with_covariance.pose.position.x - 0.5;
-    uuid_vis_position.y = object.kinematics.initial_pose_with_covariance.pose.position.y;
-    uuid_vis_position.z = object.kinematics.initial_pose_with_covariance.pose.position.z - 0.5;
+    uuid_vis_position.x = object_pose->position.x - 0.5;
+    uuid_vis_position.y = object_pose->position.y;
+    uuid_vis_position.z = object_pose->position.z - 0.5;
 
     auto id_marker =
       get_uuid_marker_ptr(object.object_id, uuid_vis_position, object.classification);
@@ -136,15 +162,15 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
     // Get marker for existence probability
     geometry_msgs::msg::Point existence_probability_position;
     existence_probability_position.x =
-      object.kinematics.initial_pose_with_covariance.pose.position.x + 0.5;
+      object_pose->position.x + 0.5;
     existence_probability_position.y =
-      object.kinematics.initial_pose_with_covariance.pose.position.y;
+      object_pose->position.y;
     existence_probability_position.z =
-      object.kinematics.initial_pose_with_covariance.pose.position.z + 0.5;
+      object_pose->position.z + 0.5;
     const float existence_probability = object.existence_probability;
     auto existence_prob_marker = get_existence_probability_marker_ptr(
       existence_probability_position,
-      object.kinematics.initial_pose_with_covariance.pose.orientation, existence_probability,
+      object_pose->orientation, existence_probability,
       object.classification);
     if (existence_prob_marker) {
       auto existence_prob_marker_ptr = existence_prob_marker.value();
