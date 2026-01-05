@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <asset>
+    <contributor>
+      <author>Blender User</author>
+      <authoring_tool>Blender 4.1.0 commit date:2024-03-25, commit time:20:42, hash:40a5e739e270</authoring_tool>
+    </contributor>
+    <created>2025-12-04T14:13:29</created>
+    <modified>2025-12-04T14:13:29</modified>
+    <unit name="meter" meter="1"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_effects>
+    <effect id="Blinker-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">1 0.1834501 0 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_images/>
+  <library_materials>
+    <material id="Blinker-material" name="Blinker">
+      <instance_effect url="#Blinker-effect"/>
+    </material>
+  </library_materials>
+  <library_geometries>
+    <geometry id="Cube_143-mesh" name="Cube.143">
+      <mesh>
+        <source id="Cube_143-mesh-positions">
+          <float_array id="Cube_143-mesh-positions-array" count="72">-1.247735 -5.809544 -0.7800459 -1.212042 -5.985433 -0.7800422 -1.162814 -6.053263 -0.7800299 -1.21201 6.327871 -0.4009558 -1.163652 6.401126 -0.4063282 -1.247731 -5.81029 -0.8818903 -1.16281 -6.053949 -0.8818743 -1.212044 -5.986124 -0.8818842 -1.081774 -6.100458 -0.7800257 -1.081774 -6.10114 -0.8818699 -1.211895 6.326797 0.3678191 -1.163652 6.399549 0.3658152 -1.237686 -5.807511 -0.7800601 -1.202651 -5.981319 -0.7800703 -1.155938 -6.045659 -0.780081 -1.203459 6.322214 -0.4009662 -1.155102 6.395468 -0.4063383 -1.237682 -5.808258 -0.8819049 -1.155943 -6.046337 -0.8819256 -1.202659 -5.981994 -0.8819125 -1.076625 -6.091593 -0.7800852 -1.076625 -6.092275 -0.8819292 -1.203344 6.321138 0.3678086 -1.155102 6.393891 0.3658047</float_array>
+          <technique_common>
+            <accessor source="#Cube_143-mesh-positions-array" count="24" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Cube_143-mesh-normals">
+          <float_array id="Cube_143-mesh-normals-array" count="114">-0.5032342 -0.8641306 0.005795657 -0.6711238 -0.7413287 0.00498414 -0.6702561 -0.7421131 0.004989326 -0.8339641 0.5518179 0.001012265 -0.9158338 -0.4015483 0.002737641 -0.915169 -0.4030614 0.002747654 -0.9800207 -0.198891 0.001397192 0.5011678 0.8653307 -0.005794465 0.669304 0.742972 -0.004988312 0.6701902 0.7421727 -0.004983007 0.833965 -0.5518165 -0.001012384 0.916069 0.4010116 -0.002739906 0.9154008 0.4025345 -0.002749919 0.9802809 0.1976042 -0.001403927 -0.1411953 0.6904134 -0.7095021 -0.1392934 0.6959874 0.704414 -0.1392928 0.6959848 0.7044165 -0.1411982 0.6904276 -0.7094879 0.00261867 0.001362502 0.9999957 0.002619326 0.001363575 0.9999957 0.002968132 0.003523468 0.9999895 0.002967953 0.003524243 0.9999895 0.612594 -0.3513266 0.7080243 0.6126093 -0.3513356 0.7080065 -0.3854052 -0.583788 0.7146009 -0.4022098 -0.6066124 -0.6857468 -0.4024021 -0.6069038 -0.685376 -0.3851875 -0.5834597 0.7149864 0.3779509 0.5725113 -0.7275879 0.3948061 0.595364 0.6997641 0.3950308 0.5957044 0.6993475 0.3777002 0.5721333 -0.7280151 0.6107785 -0.3591871 -0.7056446 -0.002979338 -0.003514707 -0.9999894 -0.002979516 -0.003513753 -0.9999894 0.6107915 -0.3591946 -0.7056295 -0.002649903 -0.001364469 -0.9999956 -0.002649307 -0.001363456 -0.9999957</float_array>
+          <technique_common>
+            <accessor source="#Cube_143-mesh-normals-array" count="38" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Cube_143-mesh-map-0">
+          <float_array id="Cube_143-mesh-map-0-array" count="160">0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</float_array>
+          <technique_common>
+            <accessor source="#Cube_143-mesh-map-0-array" count="80" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="Cube_143-mesh-vertices">
+          <input semantic="POSITION" source="#Cube_143-mesh-positions"/>
+        </vertices>
+        <polylist material="Blinker-material" count="20">
+          <input semantic="VERTEX" source="#Cube_143-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#Cube_143-mesh-normals" offset="1"/>
+          <input semantic="TEXCOORD" source="#Cube_143-mesh-map-0" offset="2" set="0"/>
+          <vcount>4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 </vcount>
+          <p>9 0 0 8 0 1 2 1 2 6 2 3 11 3 4 4 3 5 3 3 6 10 3 7 1 4 8 7 5 9 6 2 10 2 1 11 0 6 12 5 6 13 7 5 14 1 4 15 21 7 16 18 8 17 14 9 18 20 7 19 23 10 20 22 10 21 15 10 22 16 10 23 13 11 24 14 9 25 18 8 26 19 12 27 12 13 28 13 11 29 19 12 30 17 13 31 5 14 32 0 15 33 12 16 34 17 17 35 0 15 36 1 18 37 13 19 38 12 16 39 1 18 40 2 20 41 14 21 42 13 19 43 2 20 44 8 22 45 20 23 46 14 21 47 10 24 48 3 25 49 15 26 50 22 27 51 4 28 52 11 29 53 23 30 54 16 31 55 3 25 56 4 28 57 16 31 58 15 26 59 9 32 60 6 33 61 18 34 62 21 35 63 6 33 64 7 36 65 19 37 66 18 34 67 7 36 68 5 14 69 17 17 70 19 37 71 8 22 72 9 32 73 21 35 74 20 23 75 11 29 76 10 24 77 22 27 78 23 30 79</p>
+        </polylist>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="BusBlinker-Right" name="BusBlinker-Right" type="NODE">
+        <matrix sid="transform">-1.4105e-8 -0.07795095 0 0 0.3226839 -3.40734e-9 0 0 0 0 0.2866569 0 0 0 0 1</matrix>
+        <instance_geometry url="#Cube_143-mesh" name="BusBlinker-Right">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="Blinker-material" target="#Blinker-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Scene"/>
+  </scene>
+</COLLADA>
