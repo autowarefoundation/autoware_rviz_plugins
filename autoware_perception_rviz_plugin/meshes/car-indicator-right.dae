@@ -1,0 +1,217 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <asset>
+    <contributor>
+      <author>Blender User</author>
+      <authoring_tool>Blender 4.1.0 commit date:2024-03-25, commit time:20:42, hash:40a5e739e270</authoring_tool>
+    </contributor>
+    <created>2025-12-04T15:18:04</created>
+    <modified>2025-12-04T15:18:04</modified>
+    <unit name="meter" meter="1"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_effects>
+    <effect id="Tire-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">0.1720213 0.1720213 0.1720213 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="Body-light-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">0.5449077 0.5449077 0.5449077 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="Glas-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">0.3807849 0.3807849 0.3807849 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="Body-dark-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">0.3113004 0.3113004 0.3113004 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="Blinker-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">1 0.1834501 0 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="Brake_light-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0.4794593 0.003629237 0.02136081 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">0.2951922 0 0.01265424 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_images/>
+  <library_materials>
+    <material id="Tire-material" name="Tire">
+      <instance_effect url="#Tire-effect"/>
+    </material>
+    <material id="Body-light-material" name="Body-light">
+      <instance_effect url="#Body-light-effect"/>
+    </material>
+    <material id="Glas-material" name="Glas">
+      <instance_effect url="#Glas-effect"/>
+    </material>
+    <material id="Body-dark-material" name="Body-dark">
+      <instance_effect url="#Body-dark-effect"/>
+    </material>
+    <material id="Blinker-material" name="Blinker">
+      <instance_effect url="#Blinker-effect"/>
+    </material>
+    <material id="Brake_light-material" name="Brake light">
+      <instance_effect url="#Brake_light-effect"/>
+    </material>
+  </library_materials>
+  <library_geometries>
+    <geometry id="Sedan_005-mesh" name="Sedan.005">
+      <mesh>
+        <source id="Sedan_005-mesh-positions">
+          <float_array id="Sedan_005-mesh-positions-array" count="54">-0.8189903 2.304645 0.2623888 -0.8189903 2.304645 0.112478 -0.7159927 2.390666 0.2623888 -0.7159927 2.420016 0.1124778 -0.9313346 -1.816764 0.1106927 -0.9188208 -2.088458 -0.0279197 -0.8939636 -2.062686 0.09169441 -0.7536508 -2.337444 -0.06118959 -0.7698888 -2.249873 0.06973272 -0.8119925 2.297487 0.2616878 -0.8119925 2.297487 0.1117773 -0.7089949 2.383508 0.2616878 -0.7089949 2.412858 0.1117771 -0.9217205 -1.815124 0.1083322 -0.9101683 -2.084151 -0.03061765 -0.8849066 -2.059242 0.08908611 -0.7457859 -2.331871 -0.06397765 -0.7620239 -2.2443 0.06694442</float_array>
+          <technique_common>
+            <accessor source="#Sedan_005-mesh-positions-array" count="18" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Sedan_005-mesh-normals">
+          <float_array id="Sedan_005-mesh-normals-array" count="84">-0.6973651 0.7133063 0.0698291 -0.9582507 -0.1637272 0.2344124 -0.8622383 -0.4293377 0.2687276 -0.9028414 -0.3428314 0.2595077 -0.7839383 -0.5550754 0.2780868 0.6973665 -0.7133051 -0.06982779 0.9579486 0.1630756 -0.2360951 0.9023234 0.343529 -0.260385 0.8622795 0.4290854 -0.2689977 0.7836207 0.5557503 -0.2776334 -0.474027 -0.5321338 0.7015213 -0.5415575 -0.460613 -0.7032433 -0.5409172 -0.4598925 -0.7042071 -0.4712327 -0.5297612 0.70519 0.5050982 0.5582524 -0.6582022 0.5044386 0.4192564 0.7548283 0.5071589 0.4222592 0.7513236 0.5054104 0.5585126 -0.6577416 -0.3331272 0.1753289 -0.9264373 -0.2418873 0.918183 0.3137362 -0.241883 0.9181801 0.3137485 -0.3352785 0.1875739 -0.9232575 0.2687639 0.01455771 0.9630961 0.2688564 0.01636427 0.9630414 0.3726118 -0.7649636 -0.5253487 0.3717265 -0.7644096 -0.5267802 0.4947238 -0.3097643 0.8119695 0.4948295 -0.3099764 0.8118242</float_array>
+          <technique_common>
+            <accessor source="#Sedan_005-mesh-normals-array" count="28" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Sedan_005-mesh-map-0">
+          <float_array id="Sedan_005-mesh-map-0-array" count="116">0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</float_array>
+          <technique_common>
+            <accessor source="#Sedan_005-mesh-map-0-array" count="58" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="Sedan_005-mesh-vertices">
+          <input semantic="POSITION" source="#Sedan_005-mesh-positions"/>
+        </vertices>
+        <polylist material="Blinker-material" count="15">
+          <input semantic="VERTEX" source="#Sedan_005-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#Sedan_005-mesh-normals" offset="1"/>
+          <input semantic="TEXCOORD" source="#Sedan_005-mesh-map-0" offset="2" set="0"/>
+          <vcount>4 3 4 4 3 4 4 4 4 4 4 4 4 4 4 </vcount>
+          <p>2 0 0 3 0 1 1 0 2 0 0 3 4 1 4 5 2 5 6 3 6 8 4 7 6 3 8 5 2 9 7 4 10 11 5 11 9 5 12 10 5 13 12 5 14 13 6 15 15 7 16 14 8 17 17 9 18 16 9 19 14 8 20 15 7 21 0 10 22 1 11 23 10 12 24 9 13 25 3 14 26 2 15 27 11 16 28 12 17 29 1 11 30 3 14 31 12 17 32 10 12 33 2 15 34 0 10 35 9 13 36 11 16 37 5 18 38 4 19 39 13 20 40 14 21 41 4 19 42 6 22 43 15 23 44 13 20 45 7 24 46 5 18 47 14 21 48 16 25 49 8 26 50 7 24 51 16 25 52 17 27 53 6 22 54 8 26 55 17 27 56 15 23 57</p>
+        </polylist>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="SedanBlinker-Right" name="SedanBlinker-Right" type="NODE">
+        <matrix sid="transform">-2.02387e-8 -0.1952802 0 3.72529e-9 0.4630076 -8.53597e-9 0 0 0 0 0.6434955 0 0 0 0 1</matrix>
+        <instance_geometry url="#Sedan_005-mesh" name="SedanBlinker-Right">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="Tire-material" target="#Tire-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+              <instance_material symbol="Body-light-material" target="#Body-light-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+              <instance_material symbol="Glas-material" target="#Glas-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+              <instance_material symbol="Body-dark-material" target="#Body-dark-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+              <instance_material symbol="Blinker-material" target="#Blinker-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+              <instance_material symbol="Brake_light-material" target="#Brake_light-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Scene"/>
+  </scene>
+</COLLADA>
