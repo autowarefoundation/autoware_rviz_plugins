@@ -52,6 +52,7 @@ class AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC ObjectPolygonDisplayBase
 public:
   using Color = std::array<float, 3U>;
   using Marker = visualization_msgs::msg::Marker;
+  using MarkerArray = visualization_msgs::msg::MarkerArray;
   using MarkerCommon = rviz_default_plugins::displays::MarkerCommon;
   using ObjectClassificationMsg = autoware_perception_msgs::msg::ObjectClassification;
   using RosTopicDisplay = rviz_common::RosTopicDisplay<MsgT>;
@@ -62,6 +63,10 @@ public:
   explicit ObjectPolygonDisplayBase(const std::string & default_topic)
   : m_marker_common(this),
     // m_display_type_property{"Polygon Type", "3d", "Type of the polygon to display object", this},
+    m_display_mesh_property{
+      "Display Mesh", false, "Enable/disable mesh visualization of the object", this},
+    m_display_indicator_property{
+      "Display Indicator", false, "Enable/disable indicator visualization of the object", this},
     m_display_label_property{"Display Label", true, "Enable/disable label visualization", this},
     m_display_uuid_property{"Display UUID", true, "Enable/disable uuid visualization", this},
     m_display_velocity_text_property{
@@ -216,6 +221,37 @@ protected:
     const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
     const std_msgs::msg::ColorRGBA & color_rgba, const double & line_width,
     const bool & is_orientation_available);
+
+  template <typename ClassificationContainerT>
+  std::optional<Marker::SharedPtr> get_mesh_marker_ptr(
+    const autoware_perception_msgs::msg::Shape & shape_msg,
+    const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
+    const ClassificationContainerT & labels) const
+  {
+    if (m_display_mesh_property.getBool()) {
+      auto marker_ptr = detail::get_mesh_marker_ptr(shape_msg, centroid, orientation, labels);
+      if (marker_ptr) {
+        return marker_ptr;
+      }
+    } 
+    return std::nullopt;
+  }
+
+  template <typename ClassificationContainerT>
+  std::optional<MarkerArray::SharedPtr> get_indicator_marker_ptr(
+    const autoware_perception_msgs::msg::Shape & shape_msg,
+    const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
+    const ClassificationContainerT & labels) const
+  {
+    if (m_display_indicator_property.getBool()) {
+      static const std::string kLoggerName("ObjectPolygonDisplayBase");
+      auto marker_ptr = detail::get_indicator_marker_ptr(shape_msg, centroid, orientation, labels);
+      if (marker_ptr) {
+        return marker_ptr;
+      }
+    } 
+    return std::nullopt;
+  }
 
   /// \brief Convert given shape msg into a Marker to visualize label name
   /// \tparam ClassificationContainerT List type with ObjectClassificationMsg
@@ -534,6 +570,10 @@ private:
   rviz_common::properties::EnumProperty * m_display_type_property;
   // Property to choose simplicity of visualization polygon
   rviz_common::properties::EnumProperty * m_simple_visualize_mode_property;
+  // Property to enable/disable mesh visualization of the object
+  rviz_common::properties::BoolProperty m_display_mesh_property;
+  // Property to enable/disable mesh visualization of the object
+  rviz_common::properties::BoolProperty m_display_indicator_property;
   // Property to set confidence interval of state estimations
   rviz_common::properties::EnumProperty * m_confidence_interval_property;
   // Property to set visualization type
