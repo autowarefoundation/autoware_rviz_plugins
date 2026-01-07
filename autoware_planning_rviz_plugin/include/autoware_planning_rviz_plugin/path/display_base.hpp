@@ -142,6 +142,12 @@ public:
     property_point_color_{"Color", QColor(0, 60, 255), "", &property_point_view_},
     property_point_radius_{"Radius", 0.1, "", &property_point_view_},
     property_point_offset_{"Offset", 0.0, "", &property_point_view_},
+    // pose
+    property_pose_view_{"View Pose", false, "", this},
+    property_pose_alpha_{"Alpha", 1.0, "", &property_pose_view_},
+    property_pose_color_{"Color", QColor(255, 60, 0), "", &property_pose_view_},
+    property_pose_arrow_length_{"Arrow Length", 0.3, "", &property_pose_view_},
+    property_pose_offset_{"Offset", 0.0, "", &property_pose_view_},
     // slope
     property_slope_text_view_{"View Text Slope", false, "", this},
     property_slope_text_scale_{"Scale", 0.3, "", &property_slope_text_view_}
@@ -167,6 +173,10 @@ public:
     // initialize point
     property_point_alpha_.setMin(0.0);
     property_point_alpha_.setMax(1.0);
+    // initialize pose
+    property_pose_alpha_.setMin(0.0);
+    property_pose_alpha_.setMax(1.0);
+    property_pose_arrow_length_.setMin(0.0);
 
     updateVehicleInfo();
   }
@@ -534,7 +544,14 @@ protected:
 
     footprint_manual_object_->estimateVertexCount(msg_ptr->points.size() * 4 * 2);
     footprint_manual_object_->begin("BaseWhiteNoLighting", Ogre::RenderOperation::OT_LINE_LIST);
-    point_manual_object_->estimateVertexCount(msg_ptr->points.size() * 3 * 8);
+
+    // Estimate for both points (circles) and poses (arrows)
+    const size_t point_triangles =
+      property_point_view_.getBool() ? 8 * 3 : 0;  // 8 triangles per circle
+    const size_t pose_triangles =
+      property_pose_view_.getBool() ? 9 : 0;  // 3 triangles per arrow (9 vertices)
+    point_manual_object_->estimateVertexCount(
+      msg_ptr->points.size() * (point_triangles + pose_triangles));
     point_manual_object_->begin("BaseWhiteNoLighting", Ogre::RenderOperation::OT_TRIANGLE_LIST);
 
     preVisualizePathFootprintDetail(msg_ptr);
@@ -613,6 +630,68 @@ protected:
         }
       }
 
+      // Pose - visualized as arrows showing pose direction
+      if (property_pose_view_.getBool()) {
+        Ogre::ColourValue color;
+        color = rviz_common::properties::qtToOgre(property_pose_color_.getColor());
+        color.a = property_pose_alpha_.getFloat();
+
+        const double offset = property_pose_offset_.getFloat();
+        const double yaw = tf2::getYaw(pose.orientation);
+        const double arrow_length = property_pose_arrow_length_.getFloat();
+        constexpr static double HEAD_LENGTH_RATIO = 0.4;
+        constexpr static double HEAD_WIDTH_RATIO = 0.5;
+        constexpr static double SHAFT_WIDTH_RATIO = 0.15;
+
+        const double head_length = arrow_length * HEAD_LENGTH_RATIO;
+        const double head_width = arrow_length * HEAD_WIDTH_RATIO;
+        const double shaft_length = arrow_length - head_length;
+        const double shaft_width = arrow_length * SHAFT_WIDTH_RATIO;
+
+        const double cos_yaw = std::cos(yaw);
+        const double sin_yaw = std::sin(yaw);
+        const double origin_x = pose.position.x + offset * cos_yaw;
+        const double origin_y = pose.position.y + offset * sin_yaw;
+        const double origin_z = pose.position.z;
+        const double p0_x = origin_x - shaft_width / 2.0 * sin_yaw;
+        const double p0_y = origin_y + shaft_width / 2.0 * cos_yaw;
+        const double p1_x = origin_x + shaft_width / 2.0 * sin_yaw;
+        const double p1_y = origin_y - shaft_width / 2.0 * cos_yaw;
+        const double p2_x = origin_x + shaft_length * cos_yaw + shaft_width / 2.0 * sin_yaw;
+        const double p2_y = origin_y + shaft_length * sin_yaw - shaft_width / 2.0 * cos_yaw;
+        const double p3_x = origin_x + shaft_length * cos_yaw - shaft_width / 2.0 * sin_yaw;
+        const double p3_y = origin_y + shaft_length * sin_yaw + shaft_width / 2.0 * cos_yaw;
+
+        point_manual_object_->position(p0_x, p0_y, origin_z);
+        point_manual_object_->colour(color);
+        point_manual_object_->position(p1_x, p1_y, origin_z);
+        point_manual_object_->colour(color);
+        point_manual_object_->position(p2_x, p2_y, origin_z);
+        point_manual_object_->colour(color);
+
+        point_manual_object_->position(p0_x, p0_y, origin_z);
+        point_manual_object_->colour(color);
+        point_manual_object_->position(p2_x, p2_y, origin_z);
+        point_manual_object_->colour(color);
+        point_manual_object_->position(p3_x, p3_y, origin_z);
+        point_manual_object_->colour(color);
+
+        // Arrow head (triangle)
+        const double tip_x = origin_x + arrow_length * cos_yaw;
+        const double tip_y = origin_y + arrow_length * sin_yaw;
+        const double base_left_x = origin_x + shaft_length * cos_yaw - head_width / 2.0 * sin_yaw;
+        const double base_left_y = origin_y + shaft_length * sin_yaw + head_width / 2.0 * cos_yaw;
+        const double base_right_x = origin_x + shaft_length * cos_yaw + head_width / 2.0 * sin_yaw;
+        const double base_right_y = origin_y + shaft_length * sin_yaw - head_width / 2.0 * cos_yaw;
+
+        point_manual_object_->position(base_left_x, base_left_y, origin_z);
+        point_manual_object_->colour(color);
+        point_manual_object_->position(base_right_x, base_right_y, origin_z);
+        point_manual_object_->colour(color);
+        point_manual_object_->position(tip_x, tip_y, origin_z);
+        point_manual_object_->colour(color);
+      }
+
       visualizePathFootprintDetail(msg_ptr, p_idx);
     }
 
@@ -682,6 +761,12 @@ protected:
   rviz_common::properties::ColorProperty property_point_color_;
   rviz_common::properties::FloatProperty property_point_radius_;
   rviz_common::properties::FloatProperty property_point_offset_;
+
+  rviz_common::properties::BoolProperty property_pose_view_;
+  rviz_common::properties::FloatProperty property_pose_alpha_;
+  rviz_common::properties::ColorProperty property_pose_color_;
+  rviz_common::properties::FloatProperty property_pose_arrow_length_;
+  rviz_common::properties::FloatProperty property_pose_offset_;
 
   rviz_common::properties::BoolProperty property_slope_text_view_;
   rviz_common::properties::FloatProperty property_slope_text_scale_;
