@@ -16,12 +16,14 @@
 
 #include "autoware_perception_rviz_plugin/object_detection/object_polygon_display_base.hpp"
 
+#include <rviz_common/properties/int_property.hpp>
+
 #include <autoware_perception_msgs/msg/predicted_objects.hpp>
 
 #include <boost/functional/hash.hpp>
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
-#include <rviz_common/properties/int_property.hpp>
+
 #include <condition_variable>
 #include <list>
 #include <queue>
