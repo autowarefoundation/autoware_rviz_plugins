@@ -660,7 +660,7 @@ visualization_msgs::msg::Marker::SharedPtr get_mesh_marker_ptr(
 
   for (const auto& indicator : classification) {
     if (indicator.label == 110 ) {  // RGB
-      int rgb = int(indicator.probability);
+      int rgb = static_cast<int>(indicator.probability);
       marker_ptr->color.r = ((rgb >> 16) & 0xFF) / 255.0f;
       marker_ptr->color.g = ((rgb >> 8) & 0xFF) / 255.0f;
       marker_ptr->color.b = (rgb & 0xFF) / 255.0f;
