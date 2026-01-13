@@ -14,10 +14,10 @@
 
 #include "autoware_perception_rviz_plugin/object_detection/predicted_objects_display.hpp"
 
+#include <algorithm>
 #include <memory>
 #include <set>
 #include <vector>
-#include <algorithm>
 
 namespace autoware
 {
