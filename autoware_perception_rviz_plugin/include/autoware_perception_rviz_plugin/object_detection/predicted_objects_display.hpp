@@ -16,6 +16,8 @@
 
 #include "autoware_perception_rviz_plugin/object_detection/object_polygon_display_base.hpp"
 
+#include <rviz_common/properties/int_property.hpp>
+
 #include <autoware_perception_msgs/msg/predicted_objects.hpp>
 
 #include <boost/functional/hash.hpp>
@@ -126,6 +128,8 @@ private:
   void messageProcessorThreadJob();
 
   void update(float wall_dt, float ros_dt) override;
+
+  rviz_common::properties::IntProperty m_offset_property;
 
   std::unordered_map<boost::uuids::uuid, int32_t, boost::hash<boost::uuids::uuid>> id_map;
   // std::unordered_map<boost::uuids::uuid, int32_t> id_map;

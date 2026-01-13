@@ -603,6 +603,157 @@ void calc_line_list_from_points(
   }
 }
 
+visualization_msgs::msg::Marker::SharedPtr get_mesh_marker_ptr(
+  const autoware_perception_msgs::msg::Shape & shape_msg,
+  const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
+  const std::vector<autoware_perception_msgs::msg::ObjectClassification> & classification)
+{
+  static const std::string kLoggerName("ObjectPolygonDisplayBase");
+  const auto label = detail::get_best_label(classification, kLoggerName);
+  std::string mesh_name;
+  switch (label) {
+    case autoware_perception_msgs::msg::ObjectClassification::CAR:
+      mesh_name = "car";
+      if (shape_msg.dimensions.z * 2.8 > shape_msg.dimensions.x) {
+        mesh_name = "suv";
+      }
+      break;
+    case autoware_perception_msgs::msg::ObjectClassification::PEDESTRIAN:
+      mesh_name = "pedestrian";
+      break;
+    case autoware_perception_msgs::msg::ObjectClassification::BICYCLE:
+      mesh_name = "bicycle";
+      if (shape_msg.dimensions.z * 1.5 > shape_msg.dimensions.x) {
+        mesh_name = "cyclist";
+      }
+      break;
+    case autoware_perception_msgs::msg::ObjectClassification::TRUCK:
+      mesh_name = "truck";
+      break;
+    case autoware_perception_msgs::msg::ObjectClassification::BUS:
+      mesh_name = "bus";
+      break;
+    case autoware_perception_msgs::msg::ObjectClassification::TRAILER:
+      mesh_name = "trailer";
+      break;
+    case autoware_perception_msgs::msg::ObjectClassification::MOTORCYCLE:
+      mesh_name = "motorcycle";
+      break;
+    default:
+      return nullptr;
+      break;
+  }
+
+  auto marker_ptr = std::make_shared<Marker>();
+  marker_ptr->ns = std::string("mesh/" + mesh_name);
+  marker_ptr->mesh_resource =
+    "package://autoware_perception_rviz_plugin/meshes/" + mesh_name + ".dae";
+  marker_ptr->type = visualization_msgs::msg::Marker::MESH_RESOURCE;
+  marker_ptr->scale.x = shape_msg.dimensions.x;
+  marker_ptr->scale.y = shape_msg.dimensions.y;
+  marker_ptr->scale.z = shape_msg.dimensions.z;
+
+  marker_ptr->action = visualization_msgs::msg::Marker::MODIFY;
+  marker_ptr->pose = to_pose(centroid, orientation);
+  marker_ptr->lifetime = rclcpp::Duration::from_seconds(0.2);
+  marker_ptr->mesh_use_embedded_materials = true;
+
+  for (const auto & indicator : classification) {
+    if (indicator.label == 110) {  // RGB
+      int rgb = static_cast<int>(indicator.probability);
+      marker_ptr->color.r = ((rgb >> 16) & 0xFF) / 255.0f;
+      marker_ptr->color.g = ((rgb >> 8) & 0xFF) / 255.0f;
+      marker_ptr->color.b = (rgb & 0xFF) / 255.0f;
+      marker_ptr->color.a = 1.0;
+      marker_ptr->mesh_use_embedded_materials = false;
+      break;
+    }
+  }
+
+  return marker_ptr;
+}
+
+visualization_msgs::msg::MarkerArray::SharedPtr get_indicator_marker_ptr(
+  const autoware_perception_msgs::msg::Shape & shape_msg,
+  const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
+  const std::vector<autoware_perception_msgs::msg::ObjectClassification> & classification)
+{
+  static const std::string kLoggerName("ObjectPolygonDisplayBase");
+  const auto label = detail::get_best_label(classification, kLoggerName);
+  std::string mesh_name;
+  switch (label) {
+    case autoware_perception_msgs::msg::ObjectClassification::CAR:
+      mesh_name = "car";
+      if (shape_msg.dimensions.z * 2.8 > shape_msg.dimensions.x) {
+        mesh_name = "suv";
+      }
+      break;
+    case autoware_perception_msgs::msg::ObjectClassification::PEDESTRIAN:
+      return nullptr;  // There are currently no indicators for pedestrians
+      break;
+    case autoware_perception_msgs::msg::ObjectClassification::BICYCLE:
+      return nullptr;  // There are currently no indicators for bicycles
+      break;
+    case autoware_perception_msgs::msg::ObjectClassification::TRUCK:
+      mesh_name = "truck";
+      break;
+    case autoware_perception_msgs::msg::ObjectClassification::BUS:
+      mesh_name = "bus";
+      break;
+    case autoware_perception_msgs::msg::ObjectClassification::TRAILER:
+      mesh_name = "trailer";
+      break;
+    case autoware_perception_msgs::msg::ObjectClassification::MOTORCYCLE:
+      return nullptr;  // There are currently no indicators for the motorcycle
+      break;
+    default:
+      return nullptr;
+      break;
+  }
+
+  auto markers = std::make_shared<visualization_msgs::msg::MarkerArray>();
+  for (const auto & indicator : classification) {
+    if (indicator.label == 100 || indicator.label == 101 || indicator.label == 102) {
+      Marker marker;
+      marker.ns = std::string("indicator");
+
+      marker.type = visualization_msgs::msg::Marker::MESH_RESOURCE;
+      if (indicator.label == 100) {
+        marker.mesh_resource =
+          "package://autoware_perception_rviz_plugin/meshes/" + mesh_name + "-brake.dae";
+        marker.color.r = 1.0;
+        marker.color.g = 0.0;
+        marker.color.b = 0.0;
+      } else {
+        if (indicator.label == 101) {
+          marker.mesh_resource =
+            "package://autoware_perception_rviz_plugin/meshes/" + mesh_name + "-indicator-left.dae";
+        } else if (indicator.label == 102) {
+          marker.mesh_resource = "package://autoware_perception_rviz_plugin/meshes/" + mesh_name +
+                                 "-indicator-right.dae";
+        }
+        marker.color.r = 1.0;
+        marker.color.g = 1.0;
+        marker.color.b = 0.0;
+      }
+
+      marker.scale.x = shape_msg.dimensions.x;
+      marker.scale.y = shape_msg.dimensions.y;
+      marker.scale.z = shape_msg.dimensions.z;
+
+      marker.action = visualization_msgs::msg::Marker::ADD;
+      marker.pose = to_pose(centroid, orientation);
+      marker.lifetime = rclcpp::Duration::from_seconds(0.2);
+      marker.mesh_use_embedded_materials = false;
+      marker.color.a = indicator.probability;
+
+      markers->markers.push_back(marker);
+    }
+  }
+
+  return markers;
+}
+
 void calc_bounding_box_line_list(
   const autoware_perception_msgs::msg::Shape & shape,
   std::vector<geometry_msgs::msg::Point> & points)

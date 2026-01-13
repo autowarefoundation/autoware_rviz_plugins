@@ -9,6 +9,7 @@
   <maintainer email="takeshi.miura@tier4.jp">Takeshi Miura</maintainer>
   <maintainer email="yoshi.ri@tier4.jp">Yoshi Ri</maintainer>
   <license>Apache 2.0</license>
+  <license>CC BY-SA 4.0</license>
 
   <buildtool_depend>ament_cmake</buildtool_depend>
   <buildtool_depend>autoware_cmake</buildtool_depend>

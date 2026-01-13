@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <asset>
+    <contributor>
+      <author>Blender User</author>
+      <authoring_tool>Blender 4.1.0 commit date:2024-03-25, commit time:20:42, hash:40a5e739e270</authoring_tool>
+    </contributor>
+    <created>2025-12-04T14:13:46</created>
+    <modified>2025-12-04T14:13:46</modified>
+    <unit name="meter" meter="1"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_effects>
+    <effect id="Brake_light-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0.4794593 0.003629237 0.02136081 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">0.2951922 0 0.01265424 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_images/>
+  <library_materials>
+    <material id="Brake_light-material" name="Brake light">
+      <instance_effect url="#Brake_light-effect"/>
+    </material>
+  </library_materials>
+  <library_geometries>
+    <geometry id="Cube_144-mesh" name="Cube.144">
+      <mesh>
+        <source id="Cube_144-mesh-positions">
+          <float_array id="Cube_144-mesh-positions-array" count="48">-1.159364 6.403423 -0.4063209 1.159371 6.403423 -0.4063209 -1.080684 6.403421 -0.4063209 1.080706 6.403421 -0.4063209 -1.159364 6.401847 0.3658221 1.159371 6.401847 0.3658223 -1.080684 6.401847 0.1985228 1.080706 6.401847 0.1985228 -1.159389 6.39317 -0.4063445 1.159396 6.39317 -0.4063445 -1.080709 6.393169 -0.4063445 1.080731 6.393169 -0.4063445 -1.159389 6.391594 0.3657987 1.159396 6.391594 0.3657987 -1.080709 6.391594 0.1984994 1.080731 6.391594 0.1984994</float_array>
+          <technique_common>
+            <accessor source="#Cube_144-mesh-positions-array" count="16" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Cube_144-mesh-normals">
+          <float_array id="Cube_144-mesh-normals-array" count="54">0.002444863 0.9999945 0.002287507 -0.00244534 0.9999945 0.002289056 -0.002439558 -0.9999944 -0.002289712 0.002440035 -0.9999944 -0.002289056 -0.2191468 -0.001702845 0.9756904 -0.7066223 0.003347575 -0.7075832 -0.7075894 0.003347694 -0.706616 -0.2169503 -0.001709342 0.9761812 0.999997 0.00243932 4.98678e-6 -8.17715e-7 0.002302169 -0.9999974 0.7075809 -1.00478e-4 -0.7066324 0.7066268 -9.59519e-5 -0.7075865 0.9759244 -0.00287795 0.2180906 0.975946 -0.002877771 0.2179939 -0.9759368 -0.00287801 0.2180351 -0.9999971 -0.002441346 -6.35936e-6 -0.9759584 -0.002877831 0.2179383 -0.9049555 -0.003176033 0.4254947</float_array>
+          <technique_common>
+            <accessor source="#Cube_144-mesh-normals-array" count="18" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Cube_144-mesh-map-0">
+          <float_array id="Cube_144-mesh-map-0-array" count="96">0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</float_array>
+          <technique_common>
+            <accessor source="#Cube_144-mesh-map-0-array" count="48" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="Cube_144-mesh-vertices">
+          <input semantic="POSITION" source="#Cube_144-mesh-positions"/>
+        </vertices>
+        <polylist material="Brake_light-material" count="12">
+          <input semantic="VERTEX" source="#Cube_144-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#Cube_144-mesh-normals" offset="1"/>
+          <input semantic="TEXCOORD" source="#Cube_144-mesh-map-0" offset="2" set="0"/>
+          <vcount>4 4 4 4 4 4 4 4 4 4 4 4 </vcount>
+          <p>0 0 0 4 0 1 6 0 2 2 0 3 3 1 4 7 1 5 5 1 6 1 1 7 8 2 8 10 2 9 14 2 10 12 2 11 11 3 12 9 3 13 13 3 14 15 3 15 4 4 16 0 5 17 8 6 18 12 7 19 1 8 20 5 8 21 13 8 22 9 8 23 3 9 24 1 9 25 9 9 26 11 9 27 0 5 28 2 10 29 10 11 30 8 6 31 2 10 32 6 12 33 14 13 34 10 11 35 7 14 36 3 15 37 11 15 38 15 16 39 6 12 40 4 4 41 12 7 42 14 13 43 5 17 44 7 14 45 15 16 46 13 17 47</p>
+        </polylist>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="BusBrakes" name="BusBrakes" type="NODE">
+        <matrix sid="transform">-1.4105e-8 -0.07795095 0 0 0.3226839 -3.40734e-9 0 0 0 0 0.2866569 0 0 0 0 1</matrix>
+        <instance_geometry url="#Cube_144-mesh" name="BusBrakes">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="Brake_light-material" target="#Brake_light-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Scene"/>
+  </scene>
+</COLLADA>
