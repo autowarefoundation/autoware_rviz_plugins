@@ -17,6 +17,7 @@
 #include <memory>
 #include <set>
 #include <vector>
+#include <algorithm>
 
 namespace autoware
 {
