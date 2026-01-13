@@ -25,8 +25,9 @@ namespace rviz_plugins
 {
 namespace object_detection
 {
-PredictedObjectsDisplay::PredictedObjectsDisplay() : ObjectPolygonDisplayBase("predicted_objects"),
-m_offset_property{"Display Offset", 0, "Visualize steps in predicted path", this}
+PredictedObjectsDisplay::PredictedObjectsDisplay()
+: ObjectPolygonDisplayBase("predicted_objects"),
+  m_offset_property{"Display Offset", 0, "Visualize steps in predicted path", this}
 {
   max_num_threads = 1;  // hard code the number of threads to be created
 
@@ -80,21 +81,19 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
     if (m_offset_property.getInt() > 0) {
       // get best confidence path
       auto best_path = std::max_element(
-        object.kinematics.predicted_paths.begin(),
-        object.kinematics.predicted_paths.end(),
+        object.kinematics.predicted_paths.begin(), object.kinematics.predicted_paths.end(),
         [](const auto & a, const auto & b) { return a.confidence < b.confidence; });
       if (best_path != object.kinematics.predicted_paths.end() && !best_path->path.empty()) {
         // clamp offset
-        auto offset = std::min(
-          static_cast<size_t>(m_offset_property.getInt()), best_path->path.size() - 1);
+        auto offset =
+          std::min(static_cast<size_t>(m_offset_property.getInt()), best_path->path.size() - 1);
         // get offset pose
         object_pose = &(best_path->path.at(offset));
       }
     }
     // Get marker for shape
     auto shape_marker = get_shape_marker_ptr(
-      object.shape, object_pose->position,
-      object_pose->orientation, object.classification,
+      object.shape, object_pose->position, object_pose->orientation, object.classification,
       get_line_width(), true);
     if (shape_marker) {
       auto marker_ptr = shape_marker.value();
@@ -104,8 +103,7 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
     }
 
     auto mesh_marker = get_mesh_marker_ptr(
-      object.shape, object_pose->position,
-      object_pose->orientation, object.classification);
+      object.shape, object_pose->position, object_pose->orientation, object.classification);
     if (mesh_marker) {
       auto mesh_marker_ptr = mesh_marker.value();
       mesh_marker_ptr->header = msg->header;
@@ -114,9 +112,8 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
     }
 
     // Get marker for label
-    auto label_marker = get_label_marker_ptr(
-      object_pose->position,
-      object_pose->orientation, object.classification);
+    auto label_marker =
+      get_label_marker_ptr(object_pose->position, object_pose->orientation, object.classification);
     if (label_marker) {
       auto marker_ptr = label_marker.value();
       marker_ptr->header = msg->header;
@@ -162,16 +159,12 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
 
     // Get marker for existence probability
     geometry_msgs::msg::Point existence_probability_position;
-    existence_probability_position.x =
-      object_pose->position.x + 0.5;
-    existence_probability_position.y =
-      object_pose->position.y;
-    existence_probability_position.z =
-      object_pose->position.z + 0.5;
+    existence_probability_position.x = object_pose->position.x + 0.5;
+    existence_probability_position.y = object_pose->position.y;
+    existence_probability_position.z = object_pose->position.z + 0.5;
     const float existence_probability = object.existence_probability;
     auto existence_prob_marker = get_existence_probability_marker_ptr(
-      existence_probability_position,
-      object_pose->orientation, existence_probability,
+      existence_probability_position, object_pose->orientation, existence_probability,
       object.classification);
     if (existence_prob_marker) {
       auto existence_prob_marker_ptr = existence_prob_marker.value();

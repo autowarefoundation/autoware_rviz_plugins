@@ -103,13 +103,13 @@ AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC visualization_msgs::msg::Marker::SharedPt
 get_mesh_marker_ptr(
   const autoware_perception_msgs::msg::Shape & shape_msg,
   const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
-  const std::vector<autoware_perception_msgs::msg::ObjectClassification>& classification);
+  const std::vector<autoware_perception_msgs::msg::ObjectClassification> & classification);
 
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC visualization_msgs::msg::MarkerArray::SharedPtr
 get_indicator_marker_ptr(
   const autoware_perception_msgs::msg::Shape & shape_msg,
   const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
-  const std::vector<autoware_perception_msgs::msg::ObjectClassification>& classification);
+  const std::vector<autoware_perception_msgs::msg::ObjectClassification> & classification);
 
 /// \brief Convert the given polygon into a marker representing the shape in 3d
 /// \param centroid Centroid position of the shape in Object.header.frame_id frame
@@ -290,9 +290,10 @@ AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC
   autoware_perception_msgs::msg::ObjectClassification::_label_type
   get_best_label(ClassificationContainerT labels, const std::string & logger_name)
 {
-  const auto best_class_label = std::max_element(
-    labels.begin(), labels.end(),
-    [](const auto & a, const auto & b) -> bool { return a.label >=100 || (a.probability < b.probability && b.label < 100); });  // label > 100 is reserved for status labels
+  const auto best_class_label =
+    std::max_element(labels.begin(), labels.end(), [](const auto & a, const auto & b) -> bool {
+      return a.label >= 100 || (a.probability < b.probability && b.label < 100);
+    });  // label > 100 is reserved for status labels
   if (best_class_label == labels.end()) {
     RCLCPP_WARN(
       rclcpp::get_logger(logger_name),

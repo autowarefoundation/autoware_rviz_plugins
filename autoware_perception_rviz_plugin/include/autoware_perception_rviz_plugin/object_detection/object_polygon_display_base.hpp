@@ -233,7 +233,7 @@ protected:
       if (marker_ptr) {
         return marker_ptr;
       }
-    } 
+    }
     return std::nullopt;
   }
 
@@ -249,7 +249,7 @@ protected:
       if (marker_ptr) {
         return marker_ptr;
       }
-    } 
+    }
     return std::nullopt;
   }
 
