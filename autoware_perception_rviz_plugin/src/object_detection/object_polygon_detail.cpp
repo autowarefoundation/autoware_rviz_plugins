@@ -659,7 +659,7 @@ visualization_msgs::msg::Marker::SharedPtr get_mesh_marker_ptr(
   marker_ptr->mesh_use_embedded_materials = true;
 
   for (const auto & indicator : classification) {
-    if (indicator.label == 110 ) {  // RGB
+    if (indicator.label == 110) {  // RGB
       int rgb = static_cast<int>(indicator.probability);
       marker_ptr->color.r = ((rgb >> 16) & 0xFF) / 255.0f;
       marker_ptr->color.g = ((rgb >> 8) & 0xFF) / 255.0f;
