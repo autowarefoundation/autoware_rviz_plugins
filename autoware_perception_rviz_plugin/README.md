@@ -101,7 +101,7 @@ The plugin visualizes traffic light states in two ways:
 
 ## Resources / License
 
-<!-- cspell:ignore Preuße -->
+<!-- cspell:ignore Preuße sebastianpreusse -->
 
 The 3D models in the 'meshes' directory are provided by Sebastian Preuße ([LinkedIn](https://www.linkedin.com/in/sebastianpreusse), [sebastianpreusse.com](sebastianpreusse.com)) and are licensed under [Creative Commons Attribution-ShareAlike 4.0 International License](https://creativecommons.org/licenses/by-sa/4.0/legalcode.en).
 
