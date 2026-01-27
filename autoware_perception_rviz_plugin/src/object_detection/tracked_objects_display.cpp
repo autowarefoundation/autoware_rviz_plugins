@@ -69,6 +69,16 @@ void TrackedObjectsDisplay::processMessage(TrackedObjects::ConstSharedPtr msg)
       add_marker(shape_marker_ptr);
     }
 
+    auto mesh_marker = get_mesh_marker_ptr(
+      object.shape, object.kinematics.pose_with_covariance.pose.position,
+      object.kinematics.pose_with_covariance.pose.orientation, object.classification);
+    if (mesh_marker) {
+      auto mesh_marker_ptr = mesh_marker.value();
+      mesh_marker_ptr->header = msg->header;
+      mesh_marker_ptr->id = uuid_to_marker_id(object.object_id);
+      add_marker(mesh_marker_ptr);
+    }
+
     // Get marker for label
     auto label_marker = get_label_marker_ptr(
       object.kinematics.pose_with_covariance.pose.position,

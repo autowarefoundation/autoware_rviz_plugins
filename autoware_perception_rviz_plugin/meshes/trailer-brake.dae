@@ -1,0 +1,240 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <asset>
+    <contributor>
+      <author>Blender User</author>
+      <authoring_tool>Blender 4.1.0 commit date:2024-03-25, commit time:20:42, hash:40a5e739e270</authoring_tool>
+    </contributor>
+    <created>2025-12-04T14:48:03</created>
+    <modified>2025-12-04T14:48:03</modified>
+    <unit name="meter" meter="1"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_effects>
+    <effect id="Blinker-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">1 0.1834501 0 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="Brake_light-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0.4794593 0.003629237 0.02136081 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">0.2951922 0 0.01265424 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="Body-light-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">0.5449077 0.5449077 0.5449077 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="Lights-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0.2 0.2 0.2 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">1 1 1 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="Body-dark-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">0.3113004 0.3113004 0.3113004 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="Glas-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">0.3807849 0.3807849 0.3807849 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+    <effect id="Tire-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">0.1720213 0.1720213 0.1720213 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_images/>
+  <library_materials>
+    <material id="Blinker-material" name="Blinker">
+      <instance_effect url="#Blinker-effect"/>
+    </material>
+    <material id="Brake_light-material" name="Brake light">
+      <instance_effect url="#Brake_light-effect"/>
+    </material>
+    <material id="Body-light-material" name="Body-light">
+      <instance_effect url="#Body-light-effect"/>
+    </material>
+    <material id="Lights-material" name="Lights">
+      <instance_effect url="#Lights-effect"/>
+    </material>
+    <material id="Body-dark-material" name="Body-dark">
+      <instance_effect url="#Body-dark-effect"/>
+    </material>
+    <material id="Glas-material" name="Glas">
+      <instance_effect url="#Glas-effect"/>
+    </material>
+    <material id="Tire-material" name="Tire">
+      <instance_effect url="#Tire-effect"/>
+    </material>
+  </library_materials>
+  <library_geometries>
+    <geometry id="_-702_GeneiniaR500_semi_OBJ_015-mesh" name="--702_GeneiniaR500 semi_OBJ.015">
+      <mesh>
+        <source id="_-702_GeneiniaR500_semi_OBJ_015-mesh-positions">
+          <float_array id="_-702_GeneiniaR500_semi_OBJ_015-mesh-positions-array" count="108">0.9695205 6.015605 -4.552154 -1.159746 6.015605 -4.552154 0.9695205 -1.363985 -4.76832 -1.159746 -1.363985 -4.76832 0.8348731 5.976668 -1.006415 0.8348731 5.976668 -0.8593705 0.8348731 6.015605 -1.006415 0.8348731 6.015605 -0.8593705 1.156379 5.976668 -1.006415 1.156379 5.976668 -0.8593705 1.156379 6.015605 -1.006415 1.156379 6.015605 -0.8593705 -0.838241 5.976668 -1.006415 -0.838241 5.976668 -0.8593705 -0.838241 6.015605 -1.006415 -0.838241 6.015605 -0.8593705 -1.159747 5.976668 -1.006415 -1.159747 5.976668 -0.8593705 -1.159747 6.015605 -1.006415 -1.159747 6.015605 -0.8593705 0.8348731 -1.40292 -1.222581 0.8348731 -1.40292 -1.075537 0.8348731 -1.363985 -1.222581 0.8348731 -1.363985 -1.075537 1.156379 -1.40292 -1.222581 1.156379 -1.40292 -1.075537 1.156379 -1.363985 -1.222581 1.156379 -1.363985 -1.075537 -0.838241 -1.40292 -1.222581 -0.838241 -1.40292 -1.075537 -0.838241 -1.363985 -1.222581 -0.838241 -1.363985 -1.075537 -1.159747 -1.40292 -1.222581 -1.159747 -1.40292 -1.075537 -1.159747 -1.363985 -1.222581 -1.159747 -1.363985 -1.075537</float_array>
+          <technique_common>
+            <accessor source="#_-702_GeneiniaR500_semi_OBJ_015-mesh-positions-array" count="36" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="_-702_GeneiniaR500_semi_OBJ_015-mesh-normals">
+          <float_array id="_-702_GeneiniaR500_semi_OBJ_015-mesh-normals-array" count="30">-1 0 0 0 1 -6.05238e-7 1 0 8.10704e-7 0 -1 0 0 0 -1 0 0 1 1 0 0 0 1 0 0 1 -2.78467e-7 1 0 8.10706e-7</float_array>
+          <technique_common>
+            <accessor source="#_-702_GeneiniaR500_semi_OBJ_015-mesh-normals-array" count="10" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="_-702_GeneiniaR500_semi_OBJ_015-mesh-map-0">
+          <float_array id="_-702_GeneiniaR500_semi_OBJ_015-mesh-map-0-array" count="192">0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</float_array>
+          <technique_common>
+            <accessor source="#_-702_GeneiniaR500_semi_OBJ_015-mesh-map-0-array" count="96" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="_-702_GeneiniaR500_semi_OBJ_015-mesh-vertices">
+          <input semantic="POSITION" source="#_-702_GeneiniaR500_semi_OBJ_015-mesh-positions"/>
+        </vertices>
+        <polylist material="Brake_light-material" count="24">
+          <input semantic="VERTEX" source="#_-702_GeneiniaR500_semi_OBJ_015-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#_-702_GeneiniaR500_semi_OBJ_015-mesh-normals" offset="1"/>
+          <input semantic="TEXCOORD" source="#_-702_GeneiniaR500_semi_OBJ_015-mesh-map-0" offset="2" set="0"/>
+          <vcount>4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 </vcount>
+          <p>4 0 0 5 0 1 7 0 2 6 0 3 6 1 4 7 1 5 11 1 6 10 1 7 10 2 8 11 2 9 9 2 10 8 2 11 8 3 12 9 3 13 5 3 14 4 3 15 6 4 16 10 4 17 8 4 18 4 4 19 11 5 20 7 5 21 5 5 22 9 5 23 12 6 24 14 6 25 15 6 26 13 6 27 14 7 28 18 7 29 19 7 30 15 7 31 18 0 32 16 0 33 17 0 34 19 0 35 16 3 36 12 3 37 13 3 38 17 3 39 14 4 40 12 4 41 16 4 42 18 4 43 19 5 44 17 5 45 13 5 46 15 5 47 20 0 48 21 0 49 23 0 50 22 0 51 22 8 52 23 8 53 27 8 54 26 8 55 26 9 56 27 9 57 25 9 58 24 9 59 24 3 60 25 3 61 21 3 62 20 3 63 22 4 64 26 4 65 24 4 66 20 4 67 27 5 68 23 5 69 21 5 70 25 5 71 28 6 72 30 6 73 31 6 74 29 6 75 30 7 76 34 7 77 35 7 78 31 7 79 34 0 80 32 0 81 33 0 82 35 0 83 32 3 84 28 3 85 29 3 86 33 3 87 30 4 88 28 4 89 32 4 90 34 4 91 35 5 92 33 5 93 29 5 94 31 5 95</p>
+        </polylist>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="BigtruckBrakes" name="BigtruckBrakes" type="NODE">
+        <matrix sid="transform">-1.43579e-8 -0.08307222 0 -1.49012e-8 0.3284706 -3.6312e-9 0 -7.10543e-15 0 0 0.2820286 5.96046e-8 0 0 0 1</matrix>
+        <instance_geometry url="#_-702_GeneiniaR500_semi_OBJ_015-mesh" name="BigtruckBrakes">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="Blinker-material" target="#Blinker-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+              <instance_material symbol="Brake_light-material" target="#Brake_light-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+              <instance_material symbol="Body-light-material" target="#Body-light-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+              <instance_material symbol="Lights-material" target="#Lights-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+              <instance_material symbol="Body-dark-material" target="#Body-dark-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+              <instance_material symbol="Glas-material" target="#Glas-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+              <instance_material symbol="Tire-material" target="#Tire-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Scene"/>
+  </scene>
+</COLLADA>

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<COLLADA xmlns="http://www.collada.org/2005/11/COLLADASchema" version="1.4.1" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <asset>
+    <contributor>
+      <author>Blender User</author>
+      <authoring_tool>Blender 4.1.0 commit date:2024-03-25, commit time:20:42, hash:40a5e739e270</authoring_tool>
+    </contributor>
+    <created>2025-12-04T19:41:31</created>
+    <modified>2025-12-04T19:41:31</modified>
+    <unit name="meter" meter="1"/>
+    <up_axis>Z_UP</up_axis>
+  </asset>
+  <library_effects>
+    <effect id="Blinker-effect">
+      <profile_COMMON>
+        <technique sid="common">
+          <lambert>
+            <emission>
+              <color sid="emission">0 0 0 1</color>
+            </emission>
+            <diffuse>
+              <color sid="diffuse">1 0.1834501 0 1</color>
+            </diffuse>
+            <index_of_refraction>
+              <float sid="ior">1.5</float>
+            </index_of_refraction>
+          </lambert>
+        </technique>
+      </profile_COMMON>
+    </effect>
+  </library_effects>
+  <library_images/>
+  <library_materials>
+    <material id="Blinker-material" name="Blinker">
+      <instance_effect url="#Blinker-effect"/>
+    </material>
+  </library_materials>
+  <library_geometries>
+    <geometry id="Cylinder_073-mesh" name="Cylinder.073">
+      <mesh>
+        <source id="Cylinder_073-mesh-positions">
+          <float_array id="Cylinder_073-mesh-positions-array" count="84">0.2314409 -0.4579104 0.03368425 0.2801533 -0.4428901 0.03711336 0.3588048 -0.4073811 0.04874646 0.230629 -0.4687494 -0.05786377 0.2868033 -0.4516184 -0.05626821 0.3765136 -0.4142753 -0.0513724 0.3645526 0.4242846 0.1307939 0.3309891 0.432383 0.1771274 0.3065485 0.4458725 0.1778824 0.3423533 0.4369 0.1308014 0.305679 0.4529269 0.1307485 0.3792192 0.4264433 0.04889076 0.3550143 0.4424066 0.04887592 0.302114 0.4616183 0.04885584 0.2300313 -0.45688 0.03272533 0.2785602 -0.4419222 0.03613919 0.3570677 -0.4064704 0.04776477 0.2292194 -0.4677191 -0.05882263 0.2852364 -0.450641 -0.0572406 0.3747764 -0.4133646 -0.05235409 0.3625162 0.4235383 0.1297181 0.3291244 0.4315782 0.1758564 0.3047125 0.4450399 0.1766842 0.3404585 0.4360781 0.1297106 0.3039221 0.4520249 0.1297635 0.3771328 0.4256985 0.04799169 0.3531129 0.4415559 0.04800653 0.3004212 0.4606711 0.04802662</float_array>
+          <technique_common>
+            <accessor source="#Cylinder_073-mesh-positions-array" count="28" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Cylinder_073-mesh-normals">
+          <float_array id="Cylinder_073-mesh-normals-array" count="162">0.3356106 -0.9348143 0.1161378 0.4460701 -0.8130652 0.3740942 0.5029039 -0.8553874 0.1240977 0.337737 -0.9340142 0.1164097 0.1009232 -0.9846828 0.1421777 0.1331815 -0.9814782 0.1377072 0.4499491 0.8807469 0.1477523 0.3962805 0.9091502 0.1280934 0.4308865 0.8883994 0.1583774 0.4419369 0.8813052 0.1673115 0.6050285 0.7818866 0.1503124 0.4503638 0.8913479 0.05168515 0.3603618 0.9319394 0.04035431 0.633565 0.7710013 0.06443911 -0.3356069 0.9348149 -0.1161419 -0.3377168 0.9340213 -0.1164118 -0.4172113 0.9087732 0.008133172 -0.5784981 0.7739948 -0.2574338 -0.2448006 0.9238719 -0.294166 -0.3197138 0.9464264 0.04538953 -0.4499535 -0.8807415 -0.1477713 -0.4419537 -0.881284 -0.1673781 -0.4309387 -0.8883609 -0.1584514 -0.3962789 -0.9091401 -0.1281688 -0.4413878 -0.8940815 -0.07612556 -0.4211253 -0.9013513 -0.1010906 -0.4445958 -0.8792479 -0.1710494 -0.4365856 -0.8635191 -0.2524437 -0.4051646 -0.07663959 0.9110258 -0.2751047 0.4141955 0.8676173 -0.2395994 0.4613115 0.8542738 -0.8274859 -0.3545187 0.4354121 0.1541896 0.7730654 0.6153013 -0.002105891 0.8703438 0.4924402 -0.05448818 -0.9048841 -0.4221563 -0.532882 -0.7585226 -0.375074 0.2227934 -0.4830027 -0.8468008 0.2014891 -0.5069047 -0.8381228 0.3695631 0.6141113 -0.6973454 0.7202359 0.2797929 -0.6348042 0.3365083 -0.9053285 0.2591189 0.00173819 -0.8443305 0.53582 -0.0831235 -0.7768276 0.624203 0.1740217 -0.9809882 0.08589959 -0.5282201 -0.1068865 0.8423532 -0.5033387 0.8545741 0.1278805 -0.5082006 0.8526636 0.1212309 -0.6305372 0.567178 0.5298415 0.5780273 -0.6063349 -0.5461158 0.3452326 -0.3957687 -0.8509887 0.2508534 0.4505313 -0.8567929 0.1699404 0.3942924 -0.9031355 -0.1524401 0.8708133 -0.4673826 -0.2816352 0.8369605 -0.4692323</float_array>
+          <technique_common>
+            <accessor source="#Cylinder_073-mesh-normals-array" count="54" stride="3">
+              <param name="X" type="float"/>
+              <param name="Y" type="float"/>
+              <param name="Z" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <source id="Cylinder_073-mesh-map-0">
+          <float_array id="Cylinder_073-mesh-map-0-array" count="196">0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0</float_array>
+          <technique_common>
+            <accessor source="#Cylinder_073-mesh-map-0-array" count="98" stride="2">
+              <param name="S" type="float"/>
+              <param name="T" type="float"/>
+            </accessor>
+          </technique_common>
+        </source>
+        <vertices id="Cylinder_073-mesh-vertices">
+          <input semantic="POSITION" source="#Cylinder_073-mesh-positions"/>
+        </vertices>
+        <polylist material="Blinker-material" count="25">
+          <input semantic="VERTEX" source="#Cylinder_073-mesh-vertices" offset="0"/>
+          <input semantic="NORMAL" source="#Cylinder_073-mesh-normals" offset="1"/>
+          <input semantic="TEXCOORD" source="#Cylinder_073-mesh-map-0" offset="2" set="0"/>
+          <vcount>4 4 4 3 4 4 4 4 4 3 4 4 4 4 4 4 4 4 4 4 4 4 4 4 4 </vcount>
+          <p>4 0 0 5 1 1 2 2 2 1 3 3 3 4 4 4 0 5 1 3 6 0 5 7 9 6 8 10 7 9 8 8 10 7 9 11 9 6 12 7 9 13 6 10 14 10 7 15 9 6 16 12 11 17 13 12 18 12 11 19 9 6 20 6 10 21 11 13 22 18 14 23 15 15 24 16 16 25 19 17 26 17 18 27 14 19 28 15 15 29 18 14 30 23 20 31 21 21 32 22 22 33 24 23 34 23 20 35 20 24 36 21 21 37 24 23 38 27 25 39 26 26 40 23 20 41 26 26 42 25 27 43 20 24 44 23 20 45 0 28 46 1 29 47 15 30 48 14 31 49 1 29 50 2 32 51 16 33 52 15 30 53 3 34 54 0 28 55 14 31 56 17 35 57 4 36 58 3 34 59 17 35 60 18 37 61 5 38 62 4 36 63 18 37 64 19 39 65 2 32 66 5 38 67 19 39 68 16 33 69 6 40 70 7 41 71 21 42 72 20 43 73 8 44 74 10 45 75 24 46 76 22 47 77 11 48 78 6 40 79 20 43 80 25 49 81 12 50 82 11 48 83 25 49 84 26 51 85 13 52 86 12 50 87 26 51 88 27 53 89 7 41 90 8 44 91 22 47 92 21 42 93 10 45 94 13 52 95 27 53 96 24 46 97</p>
+        </polylist>
+      </mesh>
+    </geometry>
+  </library_geometries>
+  <library_visual_scenes>
+    <visual_scene id="Scene" name="Scene">
+      <node id="SUVBlinker-Left" name="SUVBlinker-Left" type="NODE">
+        <matrix sid="transform">-4.37114e-8 -1 0 0 1 -4.37114e-8 0 0 0 0 1 0 0 0 0 1</matrix>
+        <instance_geometry url="#Cylinder_073-mesh" name="SUVBlinker-Left">
+          <bind_material>
+            <technique_common>
+              <instance_material symbol="Blinker-material" target="#Blinker-material">
+                <bind_vertex_input semantic="UVMap" input_semantic="TEXCOORD" input_set="0"/>
+              </instance_material>
+            </technique_common>
+          </bind_material>
+        </instance_geometry>
+      </node>
+    </visual_scene>
+  </library_visual_scenes>
+  <scene>
+    <instance_visual_scene url="#Scene"/>
+  </scene>
+</COLLADA>

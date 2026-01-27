@@ -48,6 +48,28 @@ void DetectedObjectsDisplay::processMessage(DetectedObjects::ConstSharedPtr msg)
       add_marker(shape_marker_ptr);
     }
 
+    auto mesh_marker = get_mesh_marker_ptr(
+      object.shape, object.kinematics.pose_with_covariance.pose.position,
+      object.kinematics.pose_with_covariance.pose.orientation, object.classification);
+    if (mesh_marker) {
+      auto mesh_marker_ptr = mesh_marker.value();
+      mesh_marker_ptr->header = msg->header;
+      mesh_marker_ptr->id = id++;
+      add_marker(mesh_marker_ptr);
+    }
+
+    auto indicator_marker = get_indicator_marker_ptr(
+      object.shape, object.kinematics.pose_with_covariance.pose.position,
+      object.kinematics.pose_with_covariance.pose.orientation, object.classification);
+    if (indicator_marker) {
+      auto indicator_marker_ptr = indicator_marker.value();
+      for (auto & marker : indicator_marker_ptr->markers) {
+        marker.header = msg->header;
+        marker.id = id++;
+      }
+      add_marker(indicator_marker_ptr);
+    }
+
     // Get marker for label
     auto label_marker = get_label_marker_ptr(
       object.kinematics.pose_with_covariance.pose.position,
