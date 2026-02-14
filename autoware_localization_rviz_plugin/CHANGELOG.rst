@@ -2,6 +2,9 @@
 Changelog for package autoware_localization_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.3.0 (2025-11-16)
 ------------------
 
