@@ -460,9 +460,10 @@ void TrafficLightDisplay::updateTrafficLightBulbs(
       }
       bulb_display->setColor(color);
 
-      bulb_display->setPosition(Ogre::Vector3(
-        static_cast<float>(bulb.position.x), static_cast<float>(bulb.position.y),
-        static_cast<float>(bulb.position.z)));
+      bulb_display->setPosition(
+        Ogre::Vector3(
+          static_cast<float>(bulb.position.x), static_cast<float>(bulb.position.y),
+          static_cast<float>(bulb.position.z)));
       const float radius = bulb_radius_property_->getFloat();
       bulb_display->setScale(Ogre::Vector3(radius, radius, radius));
       traffic_light_bulb_displays_[bulb.id] = std::move(bulb_display);
