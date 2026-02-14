@@ -2,8 +2,8 @@
 Changelog for package autoware_mission_details_overlay_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.4.0 (2026-02-14)
+------------------
 * feat: use rviz_2d_overlay_plugins package for OverlayObject class (`#29 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/29>`_)
   * feat: use rviz_2d_overlay_plugins package for OverlayObject class
   * style(pre-commit): autofix
