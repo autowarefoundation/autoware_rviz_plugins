@@ -27,7 +27,26 @@ namespace object_detection
 DetectedObjectsDisplay::DetectedObjectsDisplay() : ObjectPolygonDisplayBase("detected_objects")
 {
 }
-
+double getArea(const autoware_perception_msgs::msg::Shape & shape)
+{
+  switch (shape.type) {
+    case autoware_perception_msgs::msg::Shape::BOUNDING_BOX:
+      return shape.dimensions.x * shape.dimensions.y;
+    case autoware_perception_msgs::msg::Shape::CYLINDER:
+      return shape.dimensions.x * shape.dimensions.x * M_PI * 0.25;
+    case autoware_perception_msgs::msg::Shape::POLYGON: {
+      double area = 0.0;
+      for (size_t i = 0; i < shape.footprint.points.size(); ++i) {
+        size_t j = (i + 1) % shape.footprint.points.size();
+        area += 0.5 * (shape.footprint.points.at(i).x * shape.footprint.points.at(j).y -
+                       shape.footprint.points.at(j).x * shape.footprint.points.at(i).y);
+      }
+      return area;
+    }
+    default:
+      return 0.0;
+  }
+}
 void DetectedObjectsDisplay::processMessage(DetectedObjects::ConstSharedPtr msg)
 {
   clear_markers();
@@ -100,6 +119,20 @@ void DetectedObjectsDisplay::processMessage(DetectedObjects::ConstSharedPtr msg)
       marker_ptr->header = msg->header;
       marker_ptr->id = id++;
       add_marker(marker_ptr);
+    }
+    // Get marker for area
+    geometry_msgs::msg::Point area_position;
+    area_position.x = object.kinematics.pose_with_covariance.pose.position.x + 0.5;
+    area_position.y = object.kinematics.pose_with_covariance.pose.position.y;
+    area_position.z = object.kinematics.pose_with_covariance.pose.position.z - 1.0;
+    auto area_marker = get_area_marker_ptr(
+      area_position, object.kinematics.pose_with_covariance.pose.orientation, getArea(object.shape),
+      object.classification);
+    if (area_marker) {
+      auto area_marker_ptr = area_marker.value();
+      area_marker_ptr->header = msg->header;
+      area_marker_ptr->id = id++;
+      add_marker(area_marker_ptr);
     }
 
     // Get marker for existence probability
