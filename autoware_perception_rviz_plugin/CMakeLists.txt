@@ -64,7 +64,7 @@ endif()
 # Export the plugin to be imported by rviz2
 pluginlib_export_plugin_description_file(rviz_common plugins_description.xml)
 
-ament_auto_package(
+autoware_ament_auto_package(
   INSTALL_TO_SHARE
   icons
 )
