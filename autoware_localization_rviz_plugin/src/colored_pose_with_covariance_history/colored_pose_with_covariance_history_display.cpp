@@ -101,6 +101,7 @@ void ColoredPoseWithCovarianceHistory::onInitialize()
   }
 
   property_value_topic_->initialize(node_abstraction);
+  update_value_type();
 }
 
 void ColoredPoseWithCovarianceHistory::onEnable()
