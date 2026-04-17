@@ -55,11 +55,11 @@ public:
   void save(rviz_common::Config config) const override;
 
 private Q_SLOTS:
-  void refreshTopics();
-  void renderOverlay();
-  void handleTopicItemChanged(QListWidgetItem * item);
-  void handleNamespaceItemChanged(QListWidgetItem * item);
-  void rebuildNamespaceList();
+  void refresh_topics();
+  void render_overlay();
+  void handle_topic_item_changed(QListWidgetItem * item);
+  void handle_namespace_item_changed(QListWidgetItem * item);
+  void rebuild_namespace_list();
 
 private:
   enum class TopicKind {
@@ -92,17 +92,17 @@ private:
     rclcpp::SubscriptionBase::SharedPtr subscription;
   };
 
-  void rebuildTopicList();
-  void syncSubscriptions();
-  void setTopicText(const std::string & topic, const std::string & text);
-  void setMarkerArrayTextAndNamespaces(
+  void rebuild_topic_list();
+  void sync_subscriptions();
+  void set_topic_text(const std::string & topic, const std::string & text);
+  void set_marker_array_text_and_namespaces(
     const std::string & topic, const visualization_msgs::msg::MarkerArray & msg);
-  void subscribeTopic(const std::string & topic, TopicState & state);
-  std::vector<std::pair<std::string, TopicState>> snapshotSelectedTopics() const;
+  void subscribe_topic(const std::string & topic, TopicState & state);
+  std::vector<std::pair<std::string, TopicState>> snapshot_selected_topics() const;
 
-  static bool isSupportedTopicType(const std::string & type_name, TopicKind & kind);
-  static std::string displayTypeName(TopicKind kind);
-  static QColor topicColor(size_t index);
+  static bool is_supported_topic_type(const std::string & type_name, TopicKind & kind);
+  static std::string display_type_name(TopicKind kind);
+  static QColor topic_color(size_t index);
 
   rviz_common::ros_integration::RosNodeAbstractionIface::WeakPtr rviz_ros_node_;
   rclcpp::Node::SharedPtr raw_node_;

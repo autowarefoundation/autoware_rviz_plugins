@@ -49,8 +49,8 @@
 #include <iomanip>
 #include <map>
 #include <memory>
-#include <sstream>
 #include <set>
+#include <sstream>
 #include <string>
 #include <utility>
 #include <vector>
@@ -79,7 +79,7 @@ constexpr const char * marker_type = "visualization_msgs/msg/Marker";
 constexpr const char * marker_array_type = "visualization_msgs/msg/MarkerArray";
 constexpr int namespace_role = Qt::UserRole + 1;
 
-std::string truncateText(const std::string & text, const int max_letters)
+std::string truncate_text(const std::string & text, const int max_letters)
 {
   if (max_letters <= 0 || static_cast<int>(text.size()) <= max_letters) {
     return text;
@@ -87,13 +87,13 @@ std::string truncateText(const std::string & text, const int max_letters)
   return text.substr(0, static_cast<size_t>(max_letters)) + "...";
 }
 
-size_t countLines(const std::string & text)
+size_t count_lines(const std::string & text)
 {
   return static_cast<size_t>(std::count(text.begin(), text.end(), '\n')) + 1U;
 }
 
 template <typename T>
-std::string numberToString(const T value)
+std::string number_to_string(const T value)
 {
   std::ostringstream stream;
   stream << std::setprecision(6) << value;
@@ -101,7 +101,7 @@ std::string numberToString(const T value)
 }
 
 template <typename Container>
-std::string arrayToString(const Container & values)
+std::string array_to_string(const Container & values)
 {
   std::ostringstream stream;
   stream << "[";
@@ -115,7 +115,7 @@ std::string arrayToString(const Container & values)
   return stream.str();
 }
 
-std::string markerText(const visualization_msgs::msg::Marker & marker)
+std::string marker_text(const visualization_msgs::msg::Marker & marker)
 {
   if (
     marker.action == visualization_msgs::msg::Marker::DELETE ||
@@ -126,7 +126,7 @@ std::string markerText(const visualization_msgs::msg::Marker & marker)
   return marker.text;
 }
 
-std::string composeMarkerArrayText(
+std::string compose_marker_array_text(
   const std::map<std::string, std::string> & namespace_texts,
   const std::set<std::string> & selected_namespaces)
 {
@@ -194,27 +194,28 @@ TopicTextOverlayPanel::TopicTextOverlayPanel(QWidget * parent) : rviz_common::Pa
   render_timer_ = new QTimer(this);
   render_timer_->setInterval(100);
 
-  connect(refresh_button, &QPushButton::clicked, this, &TopicTextOverlayPanel::refreshTopics);
-  connect(refresh_timer_, &QTimer::timeout, this, &TopicTextOverlayPanel::refreshTopics);
-  connect(render_timer_, &QTimer::timeout, this, &TopicTextOverlayPanel::renderOverlay);
+  connect(refresh_button, &QPushButton::clicked, this, &TopicTextOverlayPanel::refresh_topics);
+  connect(refresh_timer_, &QTimer::timeout, this, &TopicTextOverlayPanel::refresh_topics);
+  connect(render_timer_, &QTimer::timeout, this, &TopicTextOverlayPanel::render_overlay);
   connect(
-    topic_list_, &QListWidget::itemChanged, this, &TopicTextOverlayPanel::handleTopicItemChanged);
+    topic_list_, &QListWidget::itemChanged, this,
+    &TopicTextOverlayPanel::handle_topic_item_changed);
   connect(
     namespace_list_, &QListWidget::itemChanged, this,
-    &TopicTextOverlayPanel::handleNamespaceItemChanged);
-  connect(enable_overlay_, &QCheckBox::stateChanged, this, &TopicTextOverlayPanel::renderOverlay);
+    &TopicTextOverlayPanel::handle_namespace_item_changed);
+  connect(enable_overlay_, &QCheckBox::stateChanged, this, &TopicTextOverlayPanel::render_overlay);
   connect(
     left_spin_, qOverload<int>(&QSpinBox::valueChanged), this,
-    &TopicTextOverlayPanel::renderOverlay);
+    &TopicTextOverlayPanel::render_overlay);
   connect(
     top_spin_, qOverload<int>(&QSpinBox::valueChanged), this,
-    &TopicTextOverlayPanel::renderOverlay);
+    &TopicTextOverlayPanel::render_overlay);
   connect(
     font_size_spin_, qOverload<int>(&QSpinBox::valueChanged), this,
-    &TopicTextOverlayPanel::renderOverlay);
+    &TopicTextOverlayPanel::render_overlay);
   connect(
     max_letter_spin_, qOverload<int>(&QSpinBox::valueChanged), this,
-    &TopicTextOverlayPanel::renderOverlay);
+    &TopicTextOverlayPanel::render_overlay);
 
   connect(enable_overlay_, &QCheckBox::stateChanged, this, [this](int) { Q_EMIT configChanged(); });
   connect(left_spin_, qOverload<int>(&QSpinBox::valueChanged), this, [this](int) {
@@ -250,8 +251,8 @@ void TopicTextOverlayPanel::onInitialize()
   overlay_ = std::make_shared<rviz_2d_overlay_plugins::OverlayObject>(overlay_name.str());
   overlay_->show();
 
-  refreshTopics();
-  renderOverlay();
+  refresh_topics();
+  render_overlay();
   refresh_timer_->start();
   render_timer_->start();
 }
@@ -317,7 +318,7 @@ void TopicTextOverlayPanel::load(const rviz_common::Config & config)
     }
   }
 
-  refreshTopics();
+  refresh_topics();
 }
 
 void TopicTextOverlayPanel::save(rviz_common::Config config) const
@@ -368,7 +369,7 @@ void TopicTextOverlayPanel::save(rviz_common::Config config) const
   }
 }
 
-bool TopicTextOverlayPanel::isSupportedTopicType(const std::string & type_name, TopicKind & kind)
+bool TopicTextOverlayPanel::is_supported_topic_type(const std::string & type_name, TopicKind & kind)
 {
   if (type_name == autoware_string_stamped_type) {
     kind = TopicKind::AutowareStringStamped;
@@ -425,7 +426,7 @@ bool TopicTextOverlayPanel::isSupportedTopicType(const std::string & type_name, 
   return false;
 }
 
-std::string TopicTextOverlayPanel::displayTypeName(const TopicKind kind)
+std::string TopicTextOverlayPanel::display_type_name(const TopicKind kind)
 {
   switch (kind) {
     case TopicKind::AutowareStringStamped:
@@ -458,7 +459,7 @@ std::string TopicTextOverlayPanel::displayTypeName(const TopicKind kind)
   return "Unknown";
 }
 
-QColor TopicTextOverlayPanel::topicColor(const size_t index)
+QColor TopicTextOverlayPanel::topic_color(const size_t index)
 {
   static const std::vector<QColor> colors = {
     QColor(0, 220, 255),   QColor(255, 180, 0),   QColor(120, 255, 120), QColor(255, 110, 180),
@@ -466,7 +467,7 @@ QColor TopicTextOverlayPanel::topicColor(const size_t index)
   return colors.at(index % colors.size());
 }
 
-void TopicTextOverlayPanel::refreshTopics()
+void TopicTextOverlayPanel::refresh_topics()
 {
   if (!raw_node_) {
     return;
@@ -488,7 +489,7 @@ void TopicTextOverlayPanel::refreshTopics()
   for (const auto & [topic_name, type_names] : topic_names_and_types) {
     for (const auto & type_name : type_names) {
       TopicKind kind;
-      if (!isSupportedTopicType(type_name, kind)) {
+      if (!is_supported_topic_type(type_name, kind)) {
         continue;
       }
       auto state_it = existing_topics.find(topic_name);
@@ -503,7 +504,7 @@ void TopicTextOverlayPanel::refreshTopics()
         state.selected_marker_namespaces = namespaces_it->second;
       }
       if (!state.color.isValid()) {
-        state.color = topicColor(color_index);
+        state.color = topic_color(color_index);
       }
       refreshed_topics.emplace(topic_name, std::move(state));
       break;
@@ -516,21 +517,21 @@ void TopicTextOverlayPanel::refreshTopics()
     topics_ = std::move(refreshed_topics);
   }
 
-  rebuildTopicList();
-  rebuildNamespaceList();
-  syncSubscriptions();
+  rebuild_topic_list();
+  rebuild_namespace_list();
+  sync_subscriptions();
   status_label_->setText(QString("Found %1 supported topics").arg(topic_list_->count()));
-  renderOverlay();
+  render_overlay();
 }
 
-void TopicTextOverlayPanel::rebuildTopicList()
+void TopicTextOverlayPanel::rebuild_topic_list()
 {
   rebuilding_topic_list_ = true;
   topic_list_->clear();
 
   std::lock_guard<std::mutex> lock(mutex_);
   for (const auto & [topic, state] : topics_) {
-    const auto label = QString::fromStdString(topic + "  [" + displayTypeName(state.kind) + "]");
+    const auto label = QString::fromStdString(topic + "  [" + display_type_name(state.kind) + "]");
     auto * item = new QListWidgetItem(label, topic_list_);
     item->setFlags(item->flags() | Qt::ItemIsUserCheckable);
     item->setCheckState(state.selected ? Qt::Checked : Qt::Unchecked);
@@ -541,7 +542,7 @@ void TopicTextOverlayPanel::rebuildTopicList()
   rebuilding_topic_list_ = false;
 }
 
-void TopicTextOverlayPanel::rebuildNamespaceList()
+void TopicTextOverlayPanel::rebuild_namespace_list()
 {
   rebuilding_namespace_list_ = true;
   namespace_list_->clear();
@@ -567,7 +568,7 @@ void TopicTextOverlayPanel::rebuildNamespaceList()
   rebuilding_namespace_list_ = false;
 }
 
-void TopicTextOverlayPanel::handleTopicItemChanged(QListWidgetItem * item)
+void TopicTextOverlayPanel::handle_topic_item_changed(QListWidgetItem * item)
 {
   if (rebuilding_topic_list_) {
     return;
@@ -592,13 +593,13 @@ void TopicTextOverlayPanel::handleTopicItemChanged(QListWidgetItem * item)
       it->second.text.clear();
     }
   }
-  syncSubscriptions();
-  rebuildNamespaceList();
+  sync_subscriptions();
+  rebuild_namespace_list();
   Q_EMIT configChanged();
-  renderOverlay();
+  render_overlay();
 }
 
-void TopicTextOverlayPanel::handleNamespaceItemChanged(QListWidgetItem * item)
+void TopicTextOverlayPanel::handle_namespace_item_changed(QListWidgetItem * item)
 {
   if (rebuilding_namespace_list_) {
     return;
@@ -617,17 +618,17 @@ void TopicTextOverlayPanel::handleNamespaceItemChanged(QListWidgetItem * item)
     } else {
       it->second.selected_marker_namespaces.erase(marker_namespace);
     }
-    it->second.text = composeMarkerArrayText(
+    it->second.text = compose_marker_array_text(
       it->second.marker_namespace_texts, it->second.selected_marker_namespaces);
     it->second.has_message = true;
     configured_selected_marker_namespaces_[topic] = it->second.selected_marker_namespaces;
   }
 
   Q_EMIT configChanged();
-  renderOverlay();
+  render_overlay();
 }
 
-void TopicTextOverlayPanel::syncSubscriptions()
+void TopicTextOverlayPanel::sync_subscriptions()
 {
   std::vector<std::pair<std::string, TopicKind>> topics_to_subscribe;
   {
@@ -649,12 +650,12 @@ void TopicTextOverlayPanel::syncSubscriptions()
     if (
       it != topics_.end() && it->second.selected && !it->second.subscription &&
       it->second.kind == kind) {
-      subscribeTopic(topic, it->second);
+      subscribe_topic(topic, it->second);
     }
   }
 }
 
-void TopicTextOverlayPanel::subscribeTopic(const std::string & topic, TopicState & state)
+void TopicTextOverlayPanel::subscribe_topic(const std::string & topic, TopicState & state)
 {
   const auto qos = rclcpp::QoS(rclcpp::KeepLast(10)).best_effort().durability_volatile();
   switch (state.kind) {
@@ -664,13 +665,13 @@ void TopicTextOverlayPanel::subscribeTopic(const std::string & topic, TopicState
           topic, qos,
           [this,
            topic](const autoware_internal_debug_msgs::msg::StringStamped::ConstSharedPtr msg) {
-            setTopicText(topic, msg->data);
+            set_topic_text(topic, msg->data);
           });
       break;
     case TopicKind::Tier4StringStamped:
       state.subscription = raw_node_->create_subscription<tier4_debug_msgs::msg::StringStamped>(
         topic, qos, [this, topic](const tier4_debug_msgs::msg::StringStamped::ConstSharedPtr msg) {
-          setTopicText(topic, msg->data);
+          set_topic_text(topic, msg->data);
         });
       break;
     case TopicKind::BoolStamped:
@@ -678,7 +679,7 @@ void TopicTextOverlayPanel::subscribeTopic(const std::string & topic, TopicState
         raw_node_->create_subscription<autoware_internal_debug_msgs::msg::BoolStamped>(
           topic, qos,
           [this, topic](const autoware_internal_debug_msgs::msg::BoolStamped::ConstSharedPtr msg) {
-            setTopicText(topic, msg->data ? "true" : "false");
+            set_topic_text(topic, msg->data ? "true" : "false");
           });
       break;
     case TopicKind::Float32Stamped:
@@ -687,7 +688,7 @@ void TopicTextOverlayPanel::subscribeTopic(const std::string & topic, TopicState
           topic, qos,
           [this,
            topic](const autoware_internal_debug_msgs::msg::Float32Stamped::ConstSharedPtr msg) {
-            setTopicText(topic, numberToString(msg->data));
+            set_topic_text(topic, number_to_string(msg->data));
           });
       break;
     case TopicKind::Float64Stamped:
@@ -696,7 +697,7 @@ void TopicTextOverlayPanel::subscribeTopic(const std::string & topic, TopicState
           topic, qos,
           [this,
            topic](const autoware_internal_debug_msgs::msg::Float64Stamped::ConstSharedPtr msg) {
-            setTopicText(topic, numberToString(msg->data));
+            set_topic_text(topic, number_to_string(msg->data));
           });
       break;
     case TopicKind::Int32Stamped:
@@ -704,7 +705,7 @@ void TopicTextOverlayPanel::subscribeTopic(const std::string & topic, TopicState
         raw_node_->create_subscription<autoware_internal_debug_msgs::msg::Int32Stamped>(
           topic, qos,
           [this, topic](const autoware_internal_debug_msgs::msg::Int32Stamped::ConstSharedPtr msg) {
-            setTopicText(topic, std::to_string(msg->data));
+            set_topic_text(topic, std::to_string(msg->data));
           });
       break;
     case TopicKind::Int64Stamped:
@@ -712,7 +713,7 @@ void TopicTextOverlayPanel::subscribeTopic(const std::string & topic, TopicState
         raw_node_->create_subscription<autoware_internal_debug_msgs::msg::Int64Stamped>(
           topic, qos,
           [this, topic](const autoware_internal_debug_msgs::msg::Int64Stamped::ConstSharedPtr msg) {
-            setTopicText(topic, std::to_string(msg->data));
+            set_topic_text(topic, std::to_string(msg->data));
           });
       break;
     case TopicKind::Float32MultiArrayStamped:
@@ -721,7 +722,7 @@ void TopicTextOverlayPanel::subscribeTopic(const std::string & topic, TopicState
           topic, qos,
           [this, topic](
             const autoware_internal_debug_msgs::msg::Float32MultiArrayStamped::ConstSharedPtr msg) {
-            setTopicText(topic, arrayToString(msg->data));
+            set_topic_text(topic, array_to_string(msg->data));
           });
       break;
     case TopicKind::Float64MultiArrayStamped:
@@ -730,7 +731,7 @@ void TopicTextOverlayPanel::subscribeTopic(const std::string & topic, TopicState
           topic, qos,
           [this, topic](
             const autoware_internal_debug_msgs::msg::Float64MultiArrayStamped::ConstSharedPtr msg) {
-            setTopicText(topic, arrayToString(msg->data));
+            set_topic_text(topic, array_to_string(msg->data));
           });
       break;
     case TopicKind::Int32MultiArrayStamped:
@@ -739,7 +740,7 @@ void TopicTextOverlayPanel::subscribeTopic(const std::string & topic, TopicState
           topic, qos,
           [this, topic](
             const autoware_internal_debug_msgs::msg::Int32MultiArrayStamped::ConstSharedPtr msg) {
-            setTopicText(topic, arrayToString(msg->data));
+            set_topic_text(topic, array_to_string(msg->data));
           });
       break;
     case TopicKind::Int64MultiArrayStamped:
@@ -748,31 +749,31 @@ void TopicTextOverlayPanel::subscribeTopic(const std::string & topic, TopicState
           topic, qos,
           [this, topic](
             const autoware_internal_debug_msgs::msg::Int64MultiArrayStamped::ConstSharedPtr msg) {
-            setTopicText(topic, arrayToString(msg->data));
+            set_topic_text(topic, array_to_string(msg->data));
           });
       break;
     case TopicKind::Marker:
       state.subscription = raw_node_->create_subscription<visualization_msgs::msg::Marker>(
         topic, qos, [this, topic](const visualization_msgs::msg::Marker::ConstSharedPtr msg) {
-          setTopicText(topic, markerText(*msg));
+          set_topic_text(topic, marker_text(*msg));
         });
       break;
     case TopicKind::MarkerArray:
       state.subscription = raw_node_->create_subscription<visualization_msgs::msg::MarkerArray>(
         topic, qos, [this, topic](const visualization_msgs::msg::MarkerArray::ConstSharedPtr msg) {
-          setMarkerArrayTextAndNamespaces(topic, *msg);
+          set_marker_array_text_and_namespaces(topic, *msg);
         });
       break;
   }
 }
 
-void TopicTextOverlayPanel::setMarkerArrayTextAndNamespaces(
+void TopicTextOverlayPanel::set_marker_array_text_and_namespaces(
   const std::string & topic, const visualization_msgs::msg::MarkerArray & msg)
 {
   std::set<std::string> namespaces;
   std::map<std::string, std::string> namespace_texts;
   for (const auto & marker : msg.markers) {
-    const auto text = markerText(marker);
+    const auto text = marker_text(marker);
     if (!text.empty()) {
       namespaces.insert(marker.ns);
       auto & namespace_text = namespace_texts[marker.ns];
@@ -799,18 +800,18 @@ void TopicTextOverlayPanel::setMarkerArrayTextAndNamespaces(
       }
     }
     it->second.marker_namespace_texts = std::move(namespace_texts);
-    it->second.text = composeMarkerArrayText(
+    it->second.text = compose_marker_array_text(
       it->second.marker_namespace_texts, it->second.selected_marker_namespaces);
     it->second.has_message = true;
   }
 
   if (namespaces_changed) {
-    QMetaObject::invokeMethod(this, "rebuildNamespaceList", Qt::QueuedConnection);
+    QMetaObject::invokeMethod(this, "rebuild_namespace_list", Qt::QueuedConnection);
   }
-  QMetaObject::invokeMethod(this, "renderOverlay", Qt::QueuedConnection);
+  QMetaObject::invokeMethod(this, "render_overlay", Qt::QueuedConnection);
 }
 
-void TopicTextOverlayPanel::setTopicText(const std::string & topic, const std::string & text)
+void TopicTextOverlayPanel::set_topic_text(const std::string & topic, const std::string & text)
 {
   {
     std::lock_guard<std::mutex> lock(mutex_);
@@ -822,11 +823,11 @@ void TopicTextOverlayPanel::setTopicText(const std::string & topic, const std::s
     it->second.text = text;
   }
 
-  QMetaObject::invokeMethod(this, "renderOverlay", Qt::QueuedConnection);
+  QMetaObject::invokeMethod(this, "render_overlay", Qt::QueuedConnection);
 }
 
 std::vector<std::pair<std::string, TopicTextOverlayPanel::TopicState>>
-TopicTextOverlayPanel::snapshotSelectedTopics() const
+TopicTextOverlayPanel::snapshot_selected_topics() const
 {
   std::vector<std::pair<std::string, TopicState>> selected_topics;
   std::lock_guard<std::mutex> lock(mutex_);
@@ -838,7 +839,7 @@ TopicTextOverlayPanel::snapshotSelectedTopics() const
   return selected_topics;
 }
 
-void TopicTextOverlayPanel::renderOverlay()
+void TopicTextOverlayPanel::render_overlay()
 {
   if (!overlay_) {
     return;
@@ -849,7 +850,7 @@ void TopicTextOverlayPanel::renderOverlay()
   }
   overlay_->show();
 
-  const auto selected_topics = snapshotSelectedTopics();
+  const auto selected_topics = snapshot_selected_topics();
   const int font_size = font_size_spin_->value();
   const int max_letters = max_letter_spin_->value();
   const int texture_width = std::max(320, font_size * 80);
@@ -857,9 +858,9 @@ void TopicTextOverlayPanel::renderOverlay()
   const int margin = 10;
   int texture_height = margin;
   for (const auto & [topic, state] : selected_topics) {
-    const auto text = state.has_message ? truncateText(state.text, max_letters)
+    const auto text = state.has_message ? truncate_text(state.text, max_letters)
                                         : std::string{"(waiting for message)"};
-    texture_height += static_cast<int>(countLines(text) + 1U) * line_height + margin;
+    texture_height += static_cast<int>(count_lines(text) + 1U) * line_height + margin;
   }
   texture_height = std::max(texture_height + margin, 80);
 
@@ -895,13 +896,13 @@ void TopicTextOverlayPanel::renderOverlay()
     painter.setPen(QPen(QColor(0, 255, 177), 2, Qt::SolidLine));
     painter.drawText(
       margin, y, texture_width - 2 * margin, line_height, Qt::AlignLeft | Qt::AlignVCenter,
-      QString::fromStdString("[" + displayTypeName(state.kind) + "] " + topic));
+      QString::fromStdString("[" + display_type_name(state.kind) + "] " + topic));
     y += line_height;
 
     painter.setPen(QColor(255, 255, 255));
-    const auto text = state.has_message ? truncateText(state.text, max_letters)
+    const auto text = state.has_message ? truncate_text(state.text, max_letters)
                                         : std::string{"(waiting for message)"};
-    const int text_height = static_cast<int>(countLines(text)) * line_height;
+    const int text_height = static_cast<int>(count_lines(text)) * line_height;
     painter.drawText(
       margin + 12, y, texture_width - 2 * margin - 12, std::max(text_height, line_height),
       Qt::AlignLeft | Qt::AlignTop, QString::fromStdString(text));
