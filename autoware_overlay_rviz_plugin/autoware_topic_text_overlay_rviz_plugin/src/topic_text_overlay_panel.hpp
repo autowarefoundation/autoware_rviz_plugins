@@ -12,13 +12,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#ifndef AUTOWARE_TOPIC_TEXT_OVERLAY_RVIZ_PLUGIN__TOPIC_TEXT_OVERLAY_PANEL_HPP_
-#define AUTOWARE_TOPIC_TEXT_OVERLAY_RVIZ_PLUGIN__TOPIC_TEXT_OVERLAY_PANEL_HPP_
-
-#include "jsk_overlay_utils.hpp"
+#ifndef TOPIC_TEXT_OVERLAY_PANEL_HPP_
+#define TOPIC_TEXT_OVERLAY_PANEL_HPP_
 
 #include <QColor>
 #include <rclcpp/rclcpp.hpp>
+#include <rviz_2d_overlay_plugins/overlay_utils.hpp>
 #include <rviz_common/config.hpp>
 #include <rviz_common/display_context.hpp>
 #include <rviz_common/panel.hpp>
@@ -107,7 +106,7 @@ private:
 
   rviz_common::ros_integration::RosNodeAbstractionIface::WeakPtr rviz_ros_node_;
   rclcpp::Node::SharedPtr raw_node_;
-  OverlayObject::Ptr overlay_;
+  rviz_2d_overlay_plugins::OverlayObject::SharedPtr overlay_;
 
   QCheckBox * enable_overlay_;
   QListWidget * topic_list_;
@@ -129,4 +128,4 @@ private:
 };
 }  // namespace autoware::topic_text_overlay_rviz_plugin
 
-#endif  // AUTOWARE_TOPIC_TEXT_OVERLAY_RVIZ_PLUGIN__TOPIC_TEXT_OVERLAY_PANEL_HPP_
+#endif  // TOPIC_TEXT_OVERLAY_PANEL_HPP_

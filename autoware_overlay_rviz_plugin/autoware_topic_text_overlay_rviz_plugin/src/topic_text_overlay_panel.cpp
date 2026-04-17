@@ -28,6 +28,7 @@
 #include <QTimer>
 #include <QVBoxLayout>
 #include <pluginlib/class_list_macros.hpp>
+#include <rviz_rendering/render_system.hpp>
 
 #include <autoware_internal_debug_msgs/msg/bool_stamped.hpp>
 #include <autoware_internal_debug_msgs/msg/float32_multi_array_stamped.hpp>
@@ -46,8 +47,13 @@
 #include <algorithm>
 #include <cmath>
 #include <iomanip>
+#include <map>
+#include <memory>
 #include <sstream>
+#include <set>
+#include <string>
 #include <utility>
+#include <vector>
 
 namespace autoware::topic_text_overlay_rviz_plugin
 {
@@ -240,8 +246,8 @@ void TopicTextOverlayPanel::onInitialize()
   static int count = 0;
   std::ostringstream overlay_name;
   overlay_name << "TopicTextOverlayPanelObject" << count++;
-  overlay_ = std::make_shared<OverlayObject>(
-    getDisplayContext()->getSceneManager(), raw_node_->get_logger(), overlay_name.str());
+  rviz_rendering::RenderSystem::get()->prepareOverlays(getDisplayContext()->getSceneManager());
+  overlay_ = std::make_shared<rviz_2d_overlay_plugins::OverlayObject>(overlay_name.str());
   overlay_->show();
 
   refreshTopics();
