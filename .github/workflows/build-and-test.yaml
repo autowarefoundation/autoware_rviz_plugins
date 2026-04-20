@@ -10,7 +10,7 @@ jobs:
     uses: ./.github/workflows/build-and-test-reusable.yaml
     with:
       runner: "['self-hosted', 'Linux', 'X64']"
-      container: ghcr.io/autowarefoundation/autoware:universe-devel
+      container: ghcr.io/autowarefoundation/autoware:core-devel-humble
       concurrency-group: ${{ github.workflow }}-${{ github.ref }}
       cancel-in-progress: false
       pull-ccache: true
