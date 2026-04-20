@@ -896,7 +896,7 @@ void TopicTextOverlayPanel::render_overlay()
     painter.setPen(QPen(QColor(0, 255, 177), 2, Qt::SolidLine));
     painter.drawText(
       margin, y, texture_width - 2 * margin, line_height, Qt::AlignLeft | Qt::AlignVCenter,
-      QString::fromStdString("[" + display_type_name(state.kind) + "] " + topic));
+      QString::fromStdString(topic));
     y += line_height;
 
     painter.setPen(QColor(255, 255, 255));
