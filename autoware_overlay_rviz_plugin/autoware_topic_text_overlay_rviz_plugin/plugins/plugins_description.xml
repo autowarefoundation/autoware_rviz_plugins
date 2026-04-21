@@ -1,0 +1,7 @@
+<library path="autoware_topic_text_overlay_rviz_plugin">
+  <class name="autoware_topic_text_overlay_rviz_plugin/TopicTextOverlayPanel"
+         type="autoware::topic_text_overlay_rviz_plugin::TopicTextOverlayPanel"
+         base_class_type="rviz_common::Panel">
+    <description>Panel for overlaying selected StringStamped, Marker, and MarkerArray text topics.</description>
+  </class>
+</library>
