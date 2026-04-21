@@ -40,7 +40,6 @@
 #include <autoware_internal_debug_msgs/msg/int64_multi_array_stamped.hpp>
 #include <autoware_internal_debug_msgs/msg/int64_stamped.hpp>
 #include <autoware_internal_debug_msgs/msg/string_stamped.hpp>
-#include <tier4_debug_msgs/msg/string_stamped.hpp>
 #include <visualization_msgs/msg/marker.hpp>
 #include <visualization_msgs/msg/marker_array.hpp>
 
@@ -74,7 +73,6 @@ constexpr const char * int32_multi_array_stamped_type =
   "autoware_internal_debug_msgs/msg/Int32MultiArrayStamped";
 constexpr const char * int64_multi_array_stamped_type =
   "autoware_internal_debug_msgs/msg/Int64MultiArrayStamped";
-constexpr const char * tier4_string_stamped_type = "tier4_debug_msgs/msg/StringStamped";
 constexpr const char * marker_type = "visualization_msgs/msg/Marker";
 constexpr const char * marker_array_type = "visualization_msgs/msg/MarkerArray";
 constexpr int namespace_role = Qt::UserRole + 1;
@@ -375,10 +373,6 @@ bool TopicTextOverlayPanel::is_supported_topic_type(const std::string & type_nam
     kind = TopicKind::AutowareStringStamped;
     return true;
   }
-  if (type_name == tier4_string_stamped_type) {
-    kind = TopicKind::Tier4StringStamped;
-    return true;
-  }
   if (type_name == bool_stamped_type) {
     kind = TopicKind::BoolStamped;
     return true;
@@ -431,8 +425,6 @@ std::string TopicTextOverlayPanel::display_type_name(const TopicKind kind)
   switch (kind) {
     case TopicKind::AutowareStringStamped:
       return "StringStamped";
-    case TopicKind::Tier4StringStamped:
-      return "StringStamped(tier4)";
     case TopicKind::BoolStamped:
       return "BoolStamped";
     case TopicKind::Float32Stamped:
@@ -667,12 +659,6 @@ void TopicTextOverlayPanel::subscribe_topic(const std::string & topic, TopicStat
            topic](const autoware_internal_debug_msgs::msg::StringStamped::ConstSharedPtr msg) {
             set_topic_text(topic, msg->data);
           });
-      break;
-    case TopicKind::Tier4StringStamped:
-      state.subscription = raw_node_->create_subscription<tier4_debug_msgs::msg::StringStamped>(
-        topic, qos, [this, topic](const tier4_debug_msgs::msg::StringStamped::ConstSharedPtr msg) {
-          set_topic_text(topic, msg->data);
-        });
       break;
     case TopicKind::BoolStamped:
       state.subscription =
