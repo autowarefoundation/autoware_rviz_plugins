@@ -24,7 +24,7 @@ jobs:
       - require-label
     uses: ./.github/workflows/build-and-test-differential.yaml
     with:
-      container: ghcr.io/autowarefoundation/autoware:core-devel
+      container: ghcr.io/autowarefoundation/autoware:core-devel-humble
       run-condition: ${{ needs.require-label.outputs.result == 'true' }}
     secrets:
       codecov-token: ${{ secrets.CODECOV_TOKEN }}
@@ -35,5 +35,5 @@ jobs:
       - build-and-test-differential
     uses: ./.github/workflows/clang-tidy-differential.yaml
     with:
-      container: ghcr.io/autowarefoundation/autoware:core-devel
+      container: ghcr.io/autowarefoundation/autoware:core-devel-humble
       run-condition: true

@@ -9,8 +9,7 @@ jobs:
   build-and-test-daily:
     uses: ./.github/workflows/build-and-test-reusable.yaml
     with:
-      container: ghcr.io/autowarefoundation/autoware:core-devel
-      container-suffix: ""
+      container: ghcr.io/autowarefoundation/autoware:core-devel-humble
       pull-ccache: true
       concurrency-group: build-and-test-daily-${{ github.ref }}-${{ github.run_id }}
       codecov-flag: daily
