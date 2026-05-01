@@ -2,6 +2,9 @@
 Changelog for package autoware_perception_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.4.0 (2026-02-14)
 ------------------
 * feat(autoware_perception_rviz_plugin): object mesh marker visualization (`#32 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/32>`_)
