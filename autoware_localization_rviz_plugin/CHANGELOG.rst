@@ -2,8 +2,8 @@
 Changelog for package autoware_localization_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.5.0 (2026-05-01)
+------------------
 * fix: call update_value_type in onInitialize (`#36 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/36>`_)
 * Contributors: GenkiOhtani-T4
 
