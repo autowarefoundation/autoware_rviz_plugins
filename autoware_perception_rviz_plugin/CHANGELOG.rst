@@ -2,6 +2,12 @@
 Changelog for package autoware_perception_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.5.0 (2026-05-01)
+------------------
+* refactor(autoware_rviz_plugins): use autoware_ament_auto_package (`#35 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/35>`_)
+  Co-authored-by: github-actions <github-actions@github.com>
+* Contributors: Vishal Chauhan
+
 0.4.0 (2026-02-14)
 ------------------
 * feat(autoware_perception_rviz_plugin): object mesh marker visualization (`#32 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/32>`_)
