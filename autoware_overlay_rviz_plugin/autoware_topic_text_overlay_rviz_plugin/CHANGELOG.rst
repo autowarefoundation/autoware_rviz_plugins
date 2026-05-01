@@ -2,8 +2,8 @@
 Changelog for package autoware_topic_text_overlay_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.5.0 (2026-05-01)
+------------------
 * fix: to be consistent version in all package.xml(s)
 * feat(rviz): add topic text overlay plugin (`#37 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/37>`_)
   * feat(rviz): add topic text overlay plugin
