@@ -618,6 +618,12 @@ visualization_msgs::msg::Marker::SharedPtr get_mesh_marker_ptr(
   const auto label = detail::get_best_label(classification, kLoggerName);
   std::string mesh_name;
   switch (label) {
+    case autoware_perception_msgs::msg::ObjectClassification::ANIMAL:
+      return nullptr;
+      break;
+    case autoware_perception_msgs::msg::ObjectClassification::HAZARD:
+      return nullptr;
+      break;
     case autoware_perception_msgs::msg::ObjectClassification::CAR:
       mesh_name = "car";
       if (shape_msg.dimensions.z * 2.8 > shape_msg.dimensions.x) {
@@ -688,6 +694,12 @@ visualization_msgs::msg::MarkerArray::SharedPtr get_indicator_marker_ptr(
   const auto label = detail::get_best_label(classification, kLoggerName);
   std::string mesh_name;
   switch (label) {
+    case autoware_perception_msgs::msg::ObjectClassification::ANIMAL:
+      return nullptr;
+      break;
+    case autoware_perception_msgs::msg::ObjectClassification::HAZARD:
+      return nullptr;
+      break;
     case autoware_perception_msgs::msg::ObjectClassification::CAR:
       mesh_name = "car";
       if (shape_msg.dimensions.z * 2.8 > shape_msg.dimensions.x) {

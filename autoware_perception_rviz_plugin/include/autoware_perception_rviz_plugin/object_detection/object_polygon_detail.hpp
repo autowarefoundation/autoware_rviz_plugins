@@ -67,10 +67,16 @@ const std::map<
   // Color map is based on cityscapes color
   kDefaultObjectPropertyValues = {
     {autoware_perception_msgs::msg::ObjectClassification::UNKNOWN, {"UNKNOWN", {255, 255, 255}}},
+    {autoware_perception_msgs::msg::ObjectClassification::ANIMAL, {"ANIMAL", {255, 255, 255}}},
+    {autoware_perception_msgs::msg::ObjectClassification::HAZARD, {"HAZARD", {255, 255, 255}}},
     {autoware_perception_msgs::msg::ObjectClassification::CAR, {"CAR", {30, 144, 255}}},
     {autoware_perception_msgs::msg::ObjectClassification::BUS, {"BUS", {30, 144, 255}}},
     {autoware_perception_msgs::msg::ObjectClassification::PEDESTRIAN,
      {"PEDESTRIAN", {255, 192, 203}}},
+    {autoware_perception_msgs::msg::ObjectClassification::ANIMAL,
+     {"ANIMAL", {255, 105, 180}}},
+    {autoware_perception_msgs::msg::ObjectClassification::HAZARD,
+     {"HAZARD", {255, 69, 0}}},
     {autoware_perception_msgs::msg::ObjectClassification::BICYCLE, {"CYCLIST", {119, 11, 32}}},
     {autoware_perception_msgs::msg::ObjectClassification::MOTORCYCLE,
      {"MOTORCYCLE", {119, 11, 32}}},
