@@ -519,6 +519,9 @@ visualization_msgs::msg::Marker::SharedPtr get_shape_marker_ptr(
     if (fill_type == ObjectFillType::Skeleton) {
       marker_ptr->type = visualization_msgs::msg::Marker::LINE_LIST;
       calc_bounding_box_line_list(shape_msg, marker_ptr->points);
+      if (!shape_msg.footprint.points.empty()) {
+        calc_polygon_line_list(shape_msg, marker_ptr->points);
+      }
     } else if (fill_type == ObjectFillType::Fill) {
       marker_ptr->type = visualization_msgs::msg::Marker::CUBE;
       marker_ptr->scale = shape_msg.dimensions;
@@ -564,6 +567,9 @@ visualization_msgs::msg::Marker::SharedPtr get_2d_shape_marker_ptr(
   if (shape_msg.type == Shape::BOUNDING_BOX) {
     marker_ptr->type = visualization_msgs::msg::Marker::LINE_LIST;
     calc_2d_bounding_box_bottom_line_list(shape_msg, marker_ptr->points);
+    if (!shape_msg.footprint.points.empty()) {
+      calc_2d_polygon_bottom_line_list(shape_msg, marker_ptr->points);
+    }
     if (is_orientation_available) {
       calc_2d_bounding_box_bottom_direction_line_list(shape_msg, marker_ptr->points);
     } else {
