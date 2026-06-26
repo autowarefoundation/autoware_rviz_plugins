@@ -262,6 +262,21 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
       }
     }
 
+    // Add bounding box footprint marker for each candidate path
+    path_count = 0;
+    for (const auto & predicted_path : object.kinematics.predicted_paths) {
+      auto predicted_path_footprint_marker = get_predicted_path_footprint_marker_ptr(
+        object.object_id, object.shape, predicted_path);
+      if (predicted_path_footprint_marker) {
+        auto predicted_path_footprint_marker_ptr = predicted_path_footprint_marker.value();
+        predicted_path_footprint_marker_ptr->header = msg->header;
+        predicted_path_footprint_marker_ptr->id =
+          uuid_to_marker_id(object.object_id) + path_count * PATH_ID_CONSTANT;
+        path_count++;
+        markers.push_back(predicted_path_footprint_marker_ptr);
+      }
+    }
+
     // Add confidence text marker for each candidate path
     path_count = 0;
     for (const auto & predicted_path : object.kinematics.predicted_paths) {

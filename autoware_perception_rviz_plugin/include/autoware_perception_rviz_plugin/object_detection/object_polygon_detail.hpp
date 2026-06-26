@@ -180,6 +180,12 @@ get_predicted_path_marker_ptr(
   const std_msgs::msg::ColorRGBA & predicted_path_color, const bool is_simple = false);
 
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC visualization_msgs::msg::Marker::SharedPtr
+get_predicted_path_footprint_marker_ptr(
+  const autoware_perception_msgs::msg::Shape & shape,
+  const autoware_perception_msgs::msg::PredictedPath & predicted_path,
+  const std_msgs::msg::ColorRGBA & predicted_path_color, const bool is_simple = false);
+
+AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC visualization_msgs::msg::Marker::SharedPtr
 get_path_confidence_marker_ptr(
   const autoware_perception_msgs::msg::PredictedPath & predicted_path,
   const std_msgs::msg::ColorRGBA & path_confidence_color);
@@ -241,6 +247,11 @@ AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_2d_polygon_bottom_line_list(
 
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_path_line_list(
   const autoware_perception_msgs::msg::PredictedPath & paths,
+  std::vector<geometry_msgs::msg::Point> & points, const bool is_simple = false);
+
+AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_path_box_line_list(
+  const autoware_perception_msgs::msg::Shape & shape,
+  const autoware_perception_msgs::msg::PredictedPath & path,
   std::vector<geometry_msgs::msg::Point> & points, const bool is_simple = false);
 
 /// \brief Convert Point32 to Point

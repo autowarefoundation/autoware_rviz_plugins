@@ -90,6 +90,9 @@ public:
     m_display_path_confidence_property{
       "Display Predicted Path Confidence", true, "Enable/disable predicted paths visualization",
       this},
+    m_display_predicted_path_footprint_property{
+      "Display Predicted Path Footprints", false,
+      "Enable/disable predicted path footprint (bounding box) visualization", this},
 
     m_display_existence_probability_property{
       "Display Existence Probability", false, "Enable/disable existence probability visualization",
@@ -413,6 +416,22 @@ protected:
     }
   }
 
+  std::optional<Marker::SharedPtr> get_predicted_path_footprint_marker_ptr(
+    const unique_identifier_msgs::msg::UUID & uuid,
+    const autoware_perception_msgs::msg::Shape & shape,
+    const autoware_perception_msgs::msg::PredictedPath & predicted_path) const
+  {
+    if (m_display_predicted_path_footprint_property.getBool()) {
+      const std::string uuid_str = uuid_to_string(uuid);
+      const std_msgs::msg::ColorRGBA predicted_path_color = get_color_from_uuid(uuid_str);
+      return detail::get_predicted_path_footprint_marker_ptr(
+        shape, predicted_path, predicted_path_color,
+        m_simple_visualize_mode_property->getOptionInt() == 1);
+    } else {
+      return std::nullopt;
+    }
+  }
+
   std::optional<Marker::SharedPtr> get_path_confidence_marker_ptr(
     const unique_identifier_msgs::msg::UUID & uuid,
     const autoware_perception_msgs::msg::PredictedPath & predicted_path) const
@@ -602,6 +621,8 @@ private:
   rviz_common::properties::BoolProperty m_display_predicted_paths_property;
   // Property to enable/disable predicted path confidence visualization
   rviz_common::properties::BoolProperty m_display_path_confidence_property;
+  // Property to enable/disable predicted path footprint (bounding box) visualization
+  rviz_common::properties::BoolProperty m_display_predicted_path_footprint_property;
 
   rviz_common::properties::BoolProperty m_display_existence_probability_property;
 

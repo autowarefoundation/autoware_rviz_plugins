@@ -99,6 +99,24 @@ visualization_msgs::msg::Marker::SharedPtr get_predicted_path_marker_ptr(
   return marker_ptr;
 }
 
+visualization_msgs::msg::Marker::SharedPtr get_predicted_path_footprint_marker_ptr(
+  const autoware_perception_msgs::msg::Shape & shape,
+  const autoware_perception_msgs::msg::PredictedPath & predicted_path,
+  const std_msgs::msg::ColorRGBA & predicted_path_color, const bool is_simple)
+{
+  auto marker_ptr = std::make_shared<Marker>();
+  marker_ptr->type = visualization_msgs::msg::Marker::LINE_LIST;
+  marker_ptr->ns = std::string("path footprint");
+  marker_ptr->action = visualization_msgs::msg::Marker::MODIFY;
+  marker_ptr->lifetime = rclcpp::Duration::from_seconds(0.15);
+  marker_ptr->pose = initPose();
+  marker_ptr->color = predicted_path_color;
+  marker_ptr->color.a = 0.5;
+  marker_ptr->scale.x = 0.015;
+  calc_path_box_line_list(shape, predicted_path, marker_ptr->points, is_simple);
+  return marker_ptr;
+}
+
 visualization_msgs::msg::Marker::SharedPtr get_twist_marker_ptr(
   const geometry_msgs::msg::PoseWithCovariance & pose_with_covariance,
   const geometry_msgs::msg::TwistWithCovariance & twist_with_covariance, const double & line_width)
@@ -1125,7 +1143,7 @@ void calc_path_line_list(
 
       // draw triangle
       constexpr double length = 0.5;
-      const double arrow_angle = M_PI * 5.0 / 6.0;
+      const double arrow_angle = M_PI * 5.5 / 6.0;
       const double point_list[3][3] = {
         {point.x, point.y, point.z},
         {point.x + length * std::cos(yaw + arrow_angle),
@@ -1139,6 +1157,59 @@ void calc_path_line_list(
         {2, 0},
       };
       calc_line_list_from_points(point_list, point_pairs, 3, points);
+    }
+  }
+}
+
+void calc_path_box_line_list(
+  const autoware_perception_msgs::msg::Shape & shape,
+  const autoware_perception_msgs::msg::PredictedPath & path,
+  std::vector<geometry_msgs::msg::Point> & points, const bool is_simple)
+{
+  // object shape outline in the object-local frame, reused for every path step
+  std::vector<geometry_msgs::msg::Point> shape_points;
+  using autoware_perception_msgs::msg::Shape;
+  if (shape.type == Shape::BOUNDING_BOX) {
+    calc_bounding_box_line_list(shape, shape_points);
+  } else if (shape.type == Shape::CYLINDER) {
+    calc_cylinder_line_list(shape, shape_points);
+  } else {  // including Shape::POLYGON
+    calc_polygon_line_list(shape, shape_points);
+  }
+
+  const int step = is_simple ? 2 : 1;
+  for (size_t i = 0; i < path.path.size(); i += step) {
+    const auto & pose = path.path.at(i);
+
+    // get yaw from the orientation if valid, otherwise from the path direction
+    tf2::Quaternion tf_quat;
+    tf2::fromMsg(pose.orientation, tf_quat);
+    const bool is_default_orientation =
+      tf_quat.x() == 0.0 && tf_quat.y() == 0.0 && tf_quat.z() == 0.0 && tf_quat.w() == 1.0;
+    const bool is_valid_orientation =
+      (tf_quat.length() > std::numeric_limits<double>::epsilon()) && !is_default_orientation;
+    double yaw = 0.0;
+    if (is_valid_orientation) {
+      yaw = tf2::getYaw(tf_quat.normalize());
+    } else if (i + 1 < path.path.size()) {
+      yaw = std::atan2(
+        path.path.at(i + 1).position.y - pose.position.y,
+        path.path.at(i + 1).position.x - pose.position.x);
+    } else if (i > 0) {
+      yaw = std::atan2(
+        pose.position.y - path.path.at(i - 1).position.y,
+        pose.position.x - path.path.at(i - 1).position.x);
+    }
+
+    // transform the local shape outline to the path pose (yaw rotation + translation)
+    const double cos_yaw = std::cos(yaw);
+    const double sin_yaw = std::sin(yaw);
+    for (const auto & shape_point : shape_points) {
+      geometry_msgs::msg::Point point;
+      point.x = pose.position.x + shape_point.x * cos_yaw - shape_point.y * sin_yaw;
+      point.y = pose.position.y + shape_point.x * sin_yaw + shape_point.y * cos_yaw;
+      point.z = pose.position.z + shape_point.z;
+      points.push_back(point);
     }
   }
 }
