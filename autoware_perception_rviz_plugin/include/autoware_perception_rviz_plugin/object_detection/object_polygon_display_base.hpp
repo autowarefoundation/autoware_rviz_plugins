@@ -74,12 +74,12 @@ public:
       "Per Class Color", false, "Enable to set a separate color per class below", this},
     m_alpha_property{
       "Alpha", 0.999F, "Opacity applied to all object colors (shared by every class)", this},
-    m_shape_group_property{"Show Shape", QVariant(), "Object shape visualizations", this},
-    m_text_group_property{"Show Text", QVariant(), "Text annotations on objects", this},
-    m_path_group_property{"Show Path", QVariant(), "Predicted path visualizations", this},
-    m_vector_group_property{"Show Vector", QVariant(), "Direction/rate vector visualizations", this},
+    m_shape_group_property{"Shape", QVariant(), "Object shape visualizations", this},
+    m_text_group_property{"Text", QVariant(), "Text annotations on objects", this},
+    m_path_group_property{"Path", QVariant(), "Predicted path visualizations", this},
+    m_vector_group_property{"Vector", QVariant(), "Direction/rate vector visualizations", this},
     m_covariance_group_property{
-      "Show Covariance", QVariant(), "Covariance ellipse visualizations", this},
+      "Covariance", QVariant(), "Covariance ellipse visualizations", this},
     m_shape_type_property{
       "Shape Type", "Skeleton 3D", "Shape rendering mode: polygon dimensionality and fill style",
       &m_shape_group_property},
@@ -93,9 +93,9 @@ public:
     m_display_uuid_property{
       "UUID", true, "Enable/disable uuid visualization", &m_text_group_property},
     m_display_velocity_text_property{
-      "Velocity", true, "Enable/disable velocity text visualization", &m_text_group_property},
+      "Velocity", false, "Enable/disable velocity text visualization", &m_text_group_property},
     m_display_acceleration_text_property{
-      "Acceleration", true, "Enable/disable acceleration text visualization",
+      "Acceleration", false, "Enable/disable acceleration text visualization",
       &m_text_group_property},
     m_display_pose_covariance_property{
       "Pose", true, "Enable/disable pose covariance visualization", &m_covariance_group_property},
