@@ -99,6 +99,10 @@ public:
       this},
 
     m_line_width_property{"Line Width", 0.03, "Line width of object-shape", this},
+    m_override_color_enable_property{
+      "Override Class Colors", false,
+      "Override the per-class colors below with a single color for all classes", this},
+    m_override_color_property{QColor{255, 255, 255}, 0.999F, &m_override_color_enable_property},
     m_default_topic{default_topic}
   {
     m_display_type_property = new rviz_common::properties::EnumProperty(
@@ -453,6 +457,9 @@ protected:
   template <typename ClassificationContainerT>
   std_msgs::msg::ColorRGBA get_color_rgba(const ClassificationContainerT & labels) const
   {
+    if (m_override_color_enable_property.getBool()) {
+      return m_override_color_property;
+    }
     static const std::string kLoggerName("ObjectPolygonDisplayBase");
     const auto label = detail::get_best_label(labels, kLoggerName);
     auto it = m_polygon_properties.find(label);
@@ -628,6 +635,10 @@ private:
 
   // Property to decide line width of object shape
   rviz_common::properties::FloatProperty m_line_width_property;
+  // Property to enable/disable overriding all per-class colors with a single color
+  rviz_common::properties::BoolProperty m_override_color_enable_property;
+  // Color and alpha applied to all classes when the override is enabled
+  common::ColorAlphaProperty m_override_color_property;
   // Default topic name to be visualized
   std::string m_default_topic;
 

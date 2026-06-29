@@ -27,6 +27,13 @@ Example:
 
 ![detected-object-visualization-description](./images/detected-object-visualization-description.jpg)
 
+#### Customizable Features
+
+These options are shared by the DetectedObjects, TrackedObjects and PredictedObjects displays.
+
+- Per-class color and alpha (one color group per class).
+- `Override Class Colors`: when enabled, every class is drawn with the single color and alpha set under this property, ignoring the per-class colors above. The per-class color groups remain visible but are not used while the override is active. Changes take effect on the next received message, the same as the per-class colors. The override does not affect predicted-path colors, which encode per-object identity from the UUID.
+
 ### TrackedObjects
 
 #### Input Types
