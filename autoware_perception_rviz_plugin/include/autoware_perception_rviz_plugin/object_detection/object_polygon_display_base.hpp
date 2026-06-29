@@ -27,7 +27,6 @@
 #include <autoware_perception_msgs/msg/object_classification.hpp>
 #include <unique_identifier_msgs/msg/uuid.hpp>
 
-#include <bitset>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -244,13 +243,6 @@ protected:
   }
 
   template <typename ClassificationContainerT>
-  visualization_msgs::msg::Marker::SharedPtr get_2d_shape_marker_ptr(
-    const autoware_perception_msgs::msg::Shape & shape_msg,
-    const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
-    const std_msgs::msg::ColorRGBA & color_rgba, const double & line_width,
-    const bool & is_orientation_available);
-
-  template <typename ClassificationContainerT>
   std::optional<Marker::SharedPtr> get_mesh_marker_ptr(
     const autoware_perception_msgs::msg::Shape & shape_msg,
     const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
@@ -272,7 +264,6 @@ protected:
     const ClassificationContainerT & labels) const
   {
     if (m_display_indicator_property.getBool()) {
-      static const std::string kLoggerName("ObjectPolygonDisplayBase");
       auto marker_ptr = detail::get_indicator_marker_ptr(shape_msg, centroid, orientation, labels);
       if (marker_ptr) {
         return marker_ptr;
@@ -480,8 +471,7 @@ protected:
   {
     QColor color = m_unified_color_property.getColor();
     if (m_per_class_color_property.getBool()) {
-      static const std::string kLoggerName("ObjectPolygonDisplayBase");
-      const auto label = detail::get_best_label(labels, kLoggerName);
+      const auto label = detail::get_best_label(labels, detail::kLoggerName);
       auto it = m_polygon_properties.find(label);
       if (it == m_polygon_properties.end()) {
         it = m_polygon_properties.find(ObjectClassificationMsg::UNKNOWN);
@@ -503,8 +493,7 @@ protected:
   template <typename ClassificationContainerT>
   std::string get_best_label(const ClassificationContainerT & labels) const
   {
-    static const std::string kLoggerName("ObjectPolygonDisplayBase");
-    const auto label = detail::get_best_label(labels, kLoggerName);
+    const auto label = detail::get_best_label(labels, detail::kLoggerName);
     auto it = detail::kDefaultObjectPropertyValues.find(label);
     if (it == detail::kDefaultObjectPropertyValues.end()) {
       it = detail::kDefaultObjectPropertyValues.find(ObjectClassificationMsg::UNKNOWN);
@@ -523,8 +512,13 @@ protected:
   std_msgs::msg::ColorRGBA AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC
   get_color_from_uuid(const std::string & uuid) const
   {
-    int i = (static_cast<int>(uuid.at(0)) * 4 + static_cast<int>(uuid.at(1))) %
-            static_cast<int>(predicted_path_colors.size());
+    // Hash the whole uuid so the palette index is well distributed across objects, rather than
+    // keying off only the first two characters.
+    std::size_t hash = 0;
+    for (const char c : uuid) {
+      hash = hash * 31 + static_cast<unsigned char>(c);
+    }
+    const auto i = static_cast<std::size_t>(hash % predicted_path_colors.size());
 
     std_msgs::msg::ColorRGBA color;
     color.r = predicted_path_colors.at(i).r;

@@ -61,6 +61,19 @@ struct ObjectPropertyValues
 // Control object marker visualization
 enum class ObjectFillType { Skeleton, Fill };
 
+// Logger name shared by all helpers and display classes in this plugin.
+constexpr char kLoggerName[] = "ObjectPolygonDisplayBase";
+
+// Classification labels >= kStatusLabelOffset are reserved for status information
+// (signal lights, RGB color overrides) rather than object-class probabilities.
+constexpr autoware_perception_msgs::msg::ObjectClassification::_label_type kStatusLabelOffset = 100;
+constexpr autoware_perception_msgs::msg::ObjectClassification::_label_type kBrakeLightLabel = 100;
+constexpr autoware_perception_msgs::msg::ObjectClassification::_label_type kLeftIndicatorLabel =
+  101;
+constexpr autoware_perception_msgs::msg::ObjectClassification::_label_type kRightIndicatorLabel =
+  102;
+constexpr autoware_perception_msgs::msg::ObjectClassification::_label_type kRgbColorLabel = 110;
+
 // Map defining colors according to value of label field in ObjectClassification msg
 const std::map<
   autoware_perception_msgs::msg::ObjectClassification::_label_type, ObjectPropertyValues>
@@ -305,8 +318,9 @@ AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC
 {
   const auto best_class_label =
     std::max_element(labels.begin(), labels.end(), [](const auto & a, const auto & b) -> bool {
-      return a.label >= 100 || (a.probability < b.probability && b.label < 100);
-    });  // label > 100 is reserved for status labels
+      return a.label >= kStatusLabelOffset ||
+             (a.probability < b.probability && b.label < kStatusLabelOffset);
+    });  // labels >= kStatusLabelOffset are reserved for status info, not object classes
   if (best_class_label == labels.end()) {
     RCLCPP_WARN(
       rclcpp::get_logger(logger_name),

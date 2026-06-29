@@ -132,7 +132,6 @@ private:
   rviz_common::properties::IntProperty m_offset_property;
 
   std::unordered_map<boost::uuids::uuid, int32_t, boost::hash<boost::uuids::uuid>> id_map;
-  // std::unordered_map<boost::uuids::uuid, int32_t> id_map;
   std::list<int32_t> unused_marker_ids;
   int32_t marker_id = 0;
   const int32_t PATH_ID_CONSTANT = 1e3;
@@ -146,7 +145,6 @@ private:
   std::queue<std::function<void()>> jobs;
 
   PredictedObjects::ConstSharedPtr msg;
-  bool consumed{false};
   std::mutex mutex;
   std::condition_variable condition;
   std::vector<visualization_msgs::msg::Marker::SharedPtr> markers;

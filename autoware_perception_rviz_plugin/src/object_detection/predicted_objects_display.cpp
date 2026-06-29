@@ -65,8 +65,6 @@ void PredictedObjectsDisplay::messageProcessorThreadJob()
 
   lock.lock();
   markers = tmp_markers;
-
-  consumed = true;
 }
 
 std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay::createMarkers(
@@ -235,7 +233,7 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
       markers.push_back(marker_ptr);
     }
 
-    // Get marker for twist covariance
+    // Get marker for yaw rate covariance
     auto yaw_rate_covariance_marker = get_yaw_rate_covariance_marker_ptr(
       object.kinematics.initial_pose_with_covariance,
       object.kinematics.initial_twist_with_covariance, get_line_width() * 0.3);

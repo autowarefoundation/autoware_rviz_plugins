@@ -496,7 +496,7 @@ visualization_msgs::msg::Marker::SharedPtr get_label_marker_ptr(
   marker_ptr->scale.z = 0.5;
   marker_ptr->text = label;
   marker_ptr->action = visualization_msgs::msg::Marker::MODIFY;
-  marker_ptr->pose = marker_ptr->pose = to_pose(centroid, orientation);
+  marker_ptr->pose = to_pose(centroid, orientation);
   marker_ptr->lifetime = rclcpp::Duration::from_seconds(0.15);
   marker_ptr->color = color_rgba;
   return marker_ptr;
@@ -515,7 +515,7 @@ visualization_msgs::msg::Marker::SharedPtr get_existence_probability_marker_ptr(
   oss << std::fixed << std::setprecision(3) << existence_probability;
   marker_ptr->text = oss.str();
   marker_ptr->action = visualization_msgs::msg::Marker::MODIFY;
-  marker_ptr->pose = marker_ptr->pose = to_pose(centroid, orientation);
+  marker_ptr->pose = to_pose(centroid, orientation);
   marker_ptr->lifetime = rclcpp::Duration::from_seconds(0.15);
   marker_ptr->color = color_rgba;
   return marker_ptr;
@@ -635,7 +635,6 @@ visualization_msgs::msg::Marker::SharedPtr get_mesh_marker_ptr(
   const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
   const std::vector<autoware_perception_msgs::msg::ObjectClassification> & classification)
 {
-  static const std::string kLoggerName("ObjectPolygonDisplayBase");
   const auto label = detail::get_best_label(classification, kLoggerName);
   std::string mesh_name;
   switch (label) {
@@ -692,7 +691,7 @@ visualization_msgs::msg::Marker::SharedPtr get_mesh_marker_ptr(
   marker_ptr->mesh_use_embedded_materials = true;
 
   for (const auto & indicator : classification) {
-    if (indicator.label == 110) {  // RGB
+    if (indicator.label == kRgbColorLabel) {  // RGB color override
       int rgb = static_cast<int>(indicator.probability);
       marker_ptr->color.r = ((rgb >> 16) & 0xFF) / 255.0f;
       marker_ptr->color.g = ((rgb >> 8) & 0xFF) / 255.0f;
@@ -711,7 +710,6 @@ visualization_msgs::msg::MarkerArray::SharedPtr get_indicator_marker_ptr(
   const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
   const std::vector<autoware_perception_msgs::msg::ObjectClassification> & classification)
 {
-  static const std::string kLoggerName("ObjectPolygonDisplayBase");
   const auto label = detail::get_best_label(classification, kLoggerName);
   std::string mesh_name;
   switch (label) {
@@ -752,22 +750,24 @@ visualization_msgs::msg::MarkerArray::SharedPtr get_indicator_marker_ptr(
 
   auto markers = std::make_shared<visualization_msgs::msg::MarkerArray>();
   for (const auto & indicator : classification) {
-    if (indicator.label == 100 || indicator.label == 101 || indicator.label == 102) {
+    if (
+      indicator.label == kBrakeLightLabel || indicator.label == kLeftIndicatorLabel ||
+      indicator.label == kRightIndicatorLabel) {
       Marker marker;
       marker.ns = std::string("indicator");
 
       marker.type = visualization_msgs::msg::Marker::MESH_RESOURCE;
-      if (indicator.label == 100) {
+      if (indicator.label == kBrakeLightLabel) {
         marker.mesh_resource =
           "package://autoware_perception_rviz_plugin/meshes/" + mesh_name + "-brake.dae";
         marker.color.r = 1.0;
         marker.color.g = 0.0;
         marker.color.b = 0.0;
       } else {
-        if (indicator.label == 101) {
+        if (indicator.label == kLeftIndicatorLabel) {
           marker.mesh_resource =
             "package://autoware_perception_rviz_plugin/meshes/" + mesh_name + "-indicator-left.dae";
-        } else if (indicator.label == 102) {
+        } else if (indicator.label == kRightIndicatorLabel) {
           marker.mesh_resource = "package://autoware_perception_rviz_plugin/meshes/" + mesh_name +
                                  "-indicator-right.dae";
         }
@@ -1037,52 +1037,36 @@ void calc_polygon_line_list(
   const autoware_perception_msgs::msg::Shape & shape,
   std::vector<geometry_msgs::msg::Point> & points)
 {
-  if (shape.footprint.points.size() < 2) {
+  const auto & footprint = shape.footprint.points;
+  if (footprint.size() < 2) {
     RCLCPP_WARN(
-      rclcpp::get_logger("ObjectPolygonDisplayBase"),
-      "there are no enough footprint to visualize polygon");
+      rclcpp::get_logger(kLoggerName), "there are no enough footprint to visualize polygon");
     return;
   }
-  for (size_t i = 0; i < shape.footprint.points.size(); ++i) {
+  const double top_z = shape.dimensions.z * 0.5;
+  const double bottom_z = -shape.dimensions.z * 0.5;
+
+  auto push_point = [&points](const double x, const double y, const double z) {
     geometry_msgs::msg::Point point;
-    point.x = shape.footprint.points.at(i).x;
-    point.y = shape.footprint.points.at(i).y;
-    point.z = shape.dimensions.z * 0.5;
+    point.x = x;
+    point.y = y;
+    point.z = z;
     points.push_back(point);
-    point.x = shape.footprint.points
-                .at(static_cast<int>(i + 1) % static_cast<int>(shape.footprint.points.size()))
-                .x;
-    point.y = shape.footprint.points
-                .at(static_cast<int>(i + 1) % static_cast<int>(shape.footprint.points.size()))
-                .y;
-    point.z = shape.dimensions.z * 0.5;
-    points.push_back(point);
+  };
+
+  // top and bottom outlines
+  for (const double z : {top_z, bottom_z}) {
+    for (size_t i = 0; i < footprint.size(); ++i) {
+      const auto & current = footprint.at(i);
+      const auto & next = footprint.at((i + 1) % footprint.size());
+      push_point(current.x, current.y, z);
+      push_point(next.x, next.y, z);
+    }
   }
-  for (size_t i = 0; i < shape.footprint.points.size(); ++i) {
-    geometry_msgs::msg::Point point;
-    point.x = shape.footprint.points.at(i).x;
-    point.y = shape.footprint.points.at(i).y;
-    point.z = -shape.dimensions.z * 0.5;
-    points.push_back(point);
-    point.x = shape.footprint.points
-                .at(static_cast<int>(i + 1) % static_cast<int>(shape.footprint.points.size()))
-                .x;
-    point.y = shape.footprint.points
-                .at(static_cast<int>(i + 1) % static_cast<int>(shape.footprint.points.size()))
-                .y;
-    point.z = -shape.dimensions.z * 0.5;
-    points.push_back(point);
-  }
-  for (size_t i = 0; i < shape.footprint.points.size(); ++i) {
-    geometry_msgs::msg::Point point;
-    point.x = shape.footprint.points.at(i).x;
-    point.y = shape.footprint.points.at(i).y;
-    point.z = shape.dimensions.z * 0.5;
-    points.push_back(point);
-    point.x = shape.footprint.points.at(i).x;
-    point.y = shape.footprint.points.at(i).y;
-    point.z = -shape.dimensions.z * 0.5;
-    points.push_back(point);
+  // vertical edges connecting the top and bottom outlines
+  for (const auto & corner : footprint) {
+    push_point(corner.x, corner.y, top_z);
+    push_point(corner.x, corner.y, bottom_z);
   }
 }
 
@@ -1090,25 +1074,23 @@ void calc_2d_polygon_bottom_line_list(
   const autoware_perception_msgs::msg::Shape & shape,
   std::vector<geometry_msgs::msg::Point> & points)
 {
-  if (shape.footprint.points.size() < 2) {
+  const auto & footprint = shape.footprint.points;
+  if (footprint.size() < 2) {
     RCLCPP_WARN(
-      rclcpp::get_logger("ObjectPolygonDisplayBase"),
-      "there are no enough footprint to visualize polygon");
+      rclcpp::get_logger(kLoggerName), "there are no enough footprint to visualize polygon");
     return;
   }
-  for (size_t i = 0; i < shape.footprint.points.size(); ++i) {
+  const double bottom_z = -shape.dimensions.z * 0.5;
+  for (size_t i = 0; i < footprint.size(); ++i) {
+    const auto & current = footprint.at(i);
+    const auto & next = footprint.at((i + 1) % footprint.size());
     geometry_msgs::msg::Point point;
-    point.x = shape.footprint.points.at(i).x;
-    point.y = shape.footprint.points.at(i).y;
-    point.z = -shape.dimensions.z * 0.5;
+    point.z = bottom_z;
+    point.x = current.x;
+    point.y = current.y;
     points.push_back(point);
-    point.x = shape.footprint.points
-                .at(static_cast<int>(i + 1) % static_cast<int>(shape.footprint.points.size()))
-                .x;
-    point.y = shape.footprint.points
-                .at(static_cast<int>(i + 1) % static_cast<int>(shape.footprint.points.size()))
-                .y;
-    point.z = -shape.dimensions.z * 0.5;
+    point.x = next.x;
+    point.y = next.y;
     points.push_back(point);
   }
 }

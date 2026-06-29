@@ -24,13 +24,11 @@ set(OD_PLUGIN_LIB_HEADERS_TO_WRAP
 )
 
 set(COMMON_HEADERS
-  include/autoware_perception_rviz_plugin/common/color_alpha_property.hpp
   include/autoware_perception_rviz_plugin/object_detection/object_polygon_detail.hpp
   include/autoware_perception_rviz_plugin/object_detection/object_polygon_display_base.hpp
 )
 
 set(COMMON_SRC
-  src/common/color_alpha_property.cpp
   src/object_detection/object_polygon_detail.cpp
 )
 
