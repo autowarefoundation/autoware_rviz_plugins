@@ -532,6 +532,9 @@ visualization_msgs::msg::Marker::SharedPtr get_shape_marker_ptr(
   marker_ptr->color = color_rgba;
   marker_ptr->scale.x = line_width;
 
+  // Filled shapes are opaque solids, so cap the user-selected alpha to keep them see-through.
+  constexpr float max_fill_alpha = 0.75f;
+
   using autoware_perception_msgs::msg::Shape;
   if (shape_msg.type == Shape::BOUNDING_BOX) {
     if (fill_type == ObjectFillType::Skeleton) {
@@ -543,7 +546,7 @@ visualization_msgs::msg::Marker::SharedPtr get_shape_marker_ptr(
     } else if (fill_type == ObjectFillType::Fill) {
       marker_ptr->type = visualization_msgs::msg::Marker::CUBE;
       marker_ptr->scale = shape_msg.dimensions;
-      marker_ptr->color.a = 0.75f;
+      marker_ptr->color.a = std::min(color_rgba.a, max_fill_alpha);
     }
     if (is_orientation_available) {
       calc_bounding_box_direction_line_list(shape_msg, marker_ptr->points);
@@ -557,7 +560,7 @@ visualization_msgs::msg::Marker::SharedPtr get_shape_marker_ptr(
     } else if (fill_type == ObjectFillType::Fill) {
       marker_ptr->type = visualization_msgs::msg::Marker::CYLINDER;
       marker_ptr->scale = shape_msg.dimensions;
-      marker_ptr->color.a = 0.75f;
+      marker_ptr->color.a = std::min(color_rgba.a, max_fill_alpha);
     }
   } else {  // including shape_msg.type == Shape::POLYGON
     marker_ptr->type = visualization_msgs::msg::Marker::LINE_LIST;
