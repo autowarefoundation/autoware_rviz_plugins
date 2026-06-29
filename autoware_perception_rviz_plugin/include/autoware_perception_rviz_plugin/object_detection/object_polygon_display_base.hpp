@@ -82,6 +82,10 @@ public:
     m_shape_type_property{
       "Shape Type", "Skeleton 3D", "Shape rendering mode: polygon dimensionality and fill style",
       &m_shape_group_property},
+    m_display_bbox_footprint_property{
+      "BBox Footprint", false,
+      "Enable/disable the object footprint polygon overlay on bounding-box shapes",
+      &m_shape_group_property},
     m_display_mesh_property{
       "Mesh", false, "Enable/disable mesh visualization of the object", &m_shape_group_property},
     m_display_indicator_property{
@@ -223,19 +227,21 @@ protected:
     const bool & is_orientation_available) const
   {
     const std_msgs::msg::ColorRGBA color_rgba = get_color_rgba(labels);
+    const bool display_footprint = m_display_bbox_footprint_property.getBool();
 
     switch (static_cast<ShapeType>(m_shape_type_property.getOptionInt())) {
       case ShapeType::SkeletonThreeD:
         return detail::get_shape_marker_ptr(
           shape_msg, centroid, orientation, color_rgba, line_width, is_orientation_available,
-          detail::ObjectFillType::Skeleton);
+          detail::ObjectFillType::Skeleton, display_footprint);
       case ShapeType::Fill:
         return detail::get_shape_marker_ptr(
           shape_msg, centroid, orientation, color_rgba, line_width, is_orientation_available,
-          detail::ObjectFillType::Fill);
+          detail::ObjectFillType::Fill, display_footprint);
       case ShapeType::SkeletonTwoD:
         return detail::get_2d_shape_marker_ptr(
-          shape_msg, centroid, orientation, color_rgba, line_width, is_orientation_available);
+          shape_msg, centroid, orientation, color_rgba, line_width, is_orientation_available,
+          display_footprint);
       case ShapeType::None:
       default:
         return std::nullopt;
@@ -636,6 +642,8 @@ private:
   PolygonPropertyMap m_polygon_properties;
   // Predicted-path/footprint sampling density (Normal/Simple); nested under Show Path
   rviz_common::properties::EnumProperty * m_simple_visualize_mode_property;
+  // Property to enable/disable the object footprint polygon overlay on bounding-box shapes
+  rviz_common::properties::BoolProperty m_display_bbox_footprint_property;
   // Property to enable/disable mesh visualization of the object
   rviz_common::properties::BoolProperty m_display_mesh_property;
   // Property to overlay turn/brake light meshes; nested under mesh as it requires the mesh

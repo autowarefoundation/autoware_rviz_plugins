@@ -105,14 +105,14 @@ get_shape_marker_ptr(
   const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
   const std_msgs::msg::ColorRGBA & color_rgba, const double & line_width,
   const bool & is_orientation_available = true,
-  const ObjectFillType fill_type = ObjectFillType::Skeleton);
+  const ObjectFillType fill_type = ObjectFillType::Skeleton, const bool & display_footprint = false);
 
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC visualization_msgs::msg::Marker::SharedPtr
 get_2d_shape_marker_ptr(
   const autoware_perception_msgs::msg::Shape & shape_msg,
   const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
   const std_msgs::msg::ColorRGBA & color_rgba, const double & line_width,
-  const bool & is_orientation_available = true);
+  const bool & is_orientation_available = true, const bool & display_footprint = false);
 
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC visualization_msgs::msg::Marker::SharedPtr
 get_mesh_marker_ptr(
