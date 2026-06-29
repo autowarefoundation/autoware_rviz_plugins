@@ -69,11 +69,13 @@ public:
     m_vector_group_property{"Show Vector", QVariant(), "Direction/rate vector visualizations", this},
     m_covariance_group_property{
       "Show Covariance", QVariant(), "Covariance ellipse visualizations", this},
+    m_color_group_property{
+      "Colors", QVariant(), "Object color settings (override and per-class colors)", this},
     m_display_mesh_property{
       "Mesh", false, "Enable/disable mesh visualization of the object", &m_shape_group_property},
     m_display_indicator_property{
-      "Indicator", false, "Enable/disable indicator visualization of the object",
-      &m_shape_group_property},
+      "Signal Lights", false, "Overlay turn/brake light meshes on the vehicle mesh",
+      &m_display_mesh_property},
     m_display_label_property{
       "Label", true, "Enable/disable label visualization", &m_text_group_property},
     m_display_uuid_property{
@@ -112,11 +114,14 @@ public:
       "Existence Probability", false, "Enable/disable existence probability visualization",
       &m_text_group_property},
 
-    m_line_width_property{"Line Width", 0.03, "Line width of object-shape", this},
+    m_line_width_property{
+      "Line Width", 0.03,
+      "Base line width for all line markers (shape, twist, yaw rate, covariance)", this},
     m_override_color_enable_property{
-      "Override Class Colors", false,
-      "Override the per-class colors below with a single color for all classes", this},
-    m_override_color_property{QColor{255, 255, 255}, 0.999F, &m_override_color_enable_property},
+      "Unified Color", false,
+      "Override the per-class colors below with a single color for all classes",
+      &m_color_group_property},
+    m_override_color_property{QColor{255, 255, 255}, 0.999F, &m_color_group_property},
     m_default_topic{default_topic}
   {
     m_display_type_property = new rviz_common::properties::EnumProperty(
@@ -151,7 +156,7 @@ public:
       // This is just a parent property to contain the necessary properties for the given class:
       m_class_group_properties.emplace_back(
         class_property_values.label.c_str(), QVariant(),
-        "Groups polygon properties for the given class", this);
+        "Groups polygon properties for the given class", &m_color_group_property);
       auto & parent_property = m_class_group_properties.back();
       // Associate a color and opacity property for the given class and attach them to the
       // parent property of the class so they can have a drop down view from the label property:
@@ -609,6 +614,7 @@ private:
   rviz_common::properties::Property m_path_group_property;
   rviz_common::properties::Property m_vector_group_property;
   rviz_common::properties::Property m_covariance_group_property;
+  rviz_common::properties::Property m_color_group_property;
   // List is used to store the properties for classification in case we need to access them:
   std::list<rviz_common::properties::Property> m_class_group_properties;
   // Map to store class labels and its corresponding properties
@@ -619,7 +625,7 @@ private:
   rviz_common::properties::EnumProperty * m_simple_visualize_mode_property;
   // Property to enable/disable mesh visualization of the object
   rviz_common::properties::BoolProperty m_display_mesh_property;
-  // Property to enable/disable mesh visualization of the object
+  // Property to overlay turn/brake light meshes; nested under mesh as it requires the mesh
   rviz_common::properties::BoolProperty m_display_indicator_property;
   // Property to set confidence interval of state estimations
   rviz_common::properties::EnumProperty * m_confidence_interval_property;
@@ -654,7 +660,7 @@ private:
 
   rviz_common::properties::BoolProperty m_display_existence_probability_property;
 
-  // Property to decide line width of object shape
+  // Base line width for all line markers (shape, twist, yaw rate, covariance)
   rviz_common::properties::FloatProperty m_line_width_property;
   // Property to enable/disable overriding all per-class colors with a single color
   rviz_common::properties::BoolProperty m_override_color_enable_property;
