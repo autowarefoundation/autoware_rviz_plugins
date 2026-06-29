@@ -63,40 +63,54 @@ public:
   explicit ObjectPolygonDisplayBase(const std::string & default_topic)
   : m_marker_common(this),
     // m_display_type_property{"Polygon Type", "3d", "Type of the polygon to display object", this},
+    m_shape_group_property{"Show Shape", QVariant(), "Object shape visualizations", this},
+    m_text_group_property{"Show Text", QVariant(), "Text annotations on objects", this},
+    m_path_group_property{"Show Path", QVariant(), "Predicted path visualizations", this},
+    m_vector_group_property{"Show Vector", QVariant(), "Direction/rate vector visualizations", this},
+    m_covariance_group_property{
+      "Show Covariance", QVariant(), "Covariance ellipse visualizations", this},
     m_display_mesh_property{
-      "Display Mesh", false, "Enable/disable mesh visualization of the object", this},
+      "Mesh", false, "Enable/disable mesh visualization of the object", &m_shape_group_property},
     m_display_indicator_property{
-      "Display Indicator", false, "Enable/disable indicator visualization of the object", this},
-    m_display_label_property{"Display Label", true, "Enable/disable label visualization", this},
-    m_display_uuid_property{"Display UUID", true, "Enable/disable uuid visualization", this},
+      "Indicator", false, "Enable/disable indicator visualization of the object",
+      &m_shape_group_property},
+    m_display_label_property{
+      "Label", true, "Enable/disable label visualization", &m_text_group_property},
+    m_display_uuid_property{
+      "UUID", true, "Enable/disable uuid visualization", &m_text_group_property},
     m_display_velocity_text_property{
-      "Display Velocity", true, "Enable/disable velocity text visualization", this},
+      "Velocity", true, "Enable/disable velocity text visualization", &m_text_group_property},
     m_display_acceleration_text_property{
-      "Display Acceleration", true, "Enable/disable acceleration text visualization", this},
+      "Acceleration", true, "Enable/disable acceleration text visualization",
+      &m_text_group_property},
     m_display_pose_covariance_property{
-      "Display Pose Covariance", true, "Enable/disable pose covariance visualization", this},
+      "Pose", true, "Enable/disable pose covariance visualization", &m_covariance_group_property},
     m_display_yaw_covariance_property{
-      "Display Yaw Covariance", false, "Enable/disable yaw covariance visualization", this},
-    m_display_twist_property{"Display Twist", true, "Enable/disable twist visualization", this},
+      "Yaw", false, "Enable/disable yaw covariance visualization", &m_covariance_group_property},
+    m_display_twist_property{
+      "Twist", true, "Enable/disable twist visualization", &m_vector_group_property},
     m_display_twist_covariance_property{
-      "Display Twist Covariance", false, "Enable/disable twist covariance visualization", this},
+      "Twist", false, "Enable/disable twist covariance visualization",
+      &m_covariance_group_property},
     m_display_yaw_rate_property{
-      "Display Yaw Rate", false, "Enable/disable yaw rate visualization", this},
+      "Yaw Rate", false, "Enable/disable yaw rate visualization", &m_vector_group_property},
     m_display_yaw_rate_covariance_property{
-      "Display Yaw Rate Covariance", false, "Enable/disable yaw rate covariance visualization",
-      this},
+      "Yaw Rate", false, "Enable/disable yaw rate covariance visualization",
+      &m_covariance_group_property},
     m_display_predicted_paths_property{
-      "Display Predicted Paths", true, "Enable/disable predicted paths visualization", this},
+      "Predicted Path", true, "Enable/disable predicted paths visualization",
+      &m_path_group_property},
     m_display_path_confidence_property{
-      "Display Predicted Path Confidence", true, "Enable/disable predicted paths visualization",
-      this},
+      "Path Confidence", true, "Enable/disable predicted path confidence visualization",
+      &m_path_group_property},
     m_display_predicted_path_footprint_property{
-      "Display Predicted Path Footprints", false,
-      "Enable/disable predicted path footprint (bounding box) visualization", this},
+      "Path Footprint", false,
+      "Enable/disable predicted path footprint (bounding box) visualization",
+      &m_path_group_property},
 
     m_display_existence_probability_property{
-      "Display Existence Probability", false, "Enable/disable existence probability visualization",
-      this},
+      "Existence Probability", false, "Enable/disable existence probability visualization",
+      &m_text_group_property},
 
     m_line_width_property{"Line Width", 0.03, "Line width of object-shape", this},
     m_override_color_enable_property{
@@ -588,6 +602,13 @@ protected:
 private:
   // All rviz plugins should have this. Should be initialized with pointer to this class
   MarkerCommon m_marker_common;
+  // Group headers that organize the visualization toggles below into categories in the RViz panel.
+  // Declared before the toggles so they are constructed first (each toggle parents to one of these).
+  rviz_common::properties::Property m_shape_group_property;
+  rviz_common::properties::Property m_text_group_property;
+  rviz_common::properties::Property m_path_group_property;
+  rviz_common::properties::Property m_vector_group_property;
+  rviz_common::properties::Property m_covariance_group_property;
   // List is used to store the properties for classification in case we need to access them:
   std::list<rviz_common::properties::Property> m_class_group_properties;
   // Map to store class labels and its corresponding properties
