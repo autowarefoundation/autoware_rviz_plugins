@@ -55,8 +55,8 @@ public:
   using ObjectClassificationMsg = autoware_perception_msgs::msg::ObjectClassification;
   using RosTopicDisplay = rviz_common::RosTopicDisplay<MsgT>;
 
-  using PolygonPropertyMap =
-    std::unordered_map<ObjectClassificationMsg::_label_type, rviz_common::properties::ColorProperty>;
+  using PolygonPropertyMap = std::unordered_map<
+    ObjectClassificationMsg::_label_type, rviz_common::properties::ColorProperty>;
 
   // Shape rendering mode: merges polygon dimensionality (3D/2D) and fill style into one selector.
   // 2D has no filled variant (get_2d_shape_marker_ptr draws a wireframe only).
@@ -125,7 +125,6 @@ public:
     m_display_existence_probability_property{
       "Existence Probability", false, "Enable/disable existence probability visualization",
       &m_text_group_property},
-
 
     m_default_topic{default_topic}
   {
@@ -621,21 +620,23 @@ private:
   rviz_common::properties::FloatProperty m_line_width_property;
   // General color applied to all classes unless per-class color is enabled
   rviz_common::properties::ColorProperty m_unified_color_property;
-  // When enabled, use per-class colors (m_polygon_properties); also the parent group of those colors
+  // When enabled, use per-class colors (m_polygon_properties); also the parent group of those
+  // colors
   rviz_common::properties::BoolProperty m_per_class_color_property;
   // Opacity shared by every object color (per-class and general)
   rviz_common::properties::FloatProperty m_alpha_property;
 
   // Group headers that organize the visualization toggles below into categories in the RViz panel.
-  // Declared before the toggles so they are constructed first (each toggle parents to one of these).
+  // Declared before the toggles so they are constructed first (each toggle parents to one of
+  // these).
   rviz_common::properties::Property m_shape_group_property;
   rviz_common::properties::Property m_text_group_property;
   rviz_common::properties::Property m_path_group_property;
   rviz_common::properties::Property m_vector_group_property;
   rviz_common::properties::Property m_covariance_group_property;
-  // Shape rendering mode (dimensionality + fill); nested under Show Shape, declared after the group.
-  // mutable because rviz's EnumProperty::getOptionInt() is not const-qualified but is read from the
-  // const get_shape_marker_ptr().
+  // Shape rendering mode (dimensionality + fill); nested under Show Shape, declared after the
+  // group. mutable because rviz's EnumProperty::getOptionInt() is not const-qualified but is read
+  // from the const get_shape_marker_ptr().
   mutable rviz_common::properties::EnumProperty m_shape_type_property;
   // Map to store the per-class color property keyed by classification label
   PolygonPropertyMap m_polygon_properties;
@@ -675,8 +676,6 @@ private:
   rviz_common::properties::BoolProperty m_display_predicted_path_footprint_property;
 
   rviz_common::properties::BoolProperty m_display_existence_probability_property;
-
-
 
   // Default topic name to be visualized
   std::string m_default_topic;
