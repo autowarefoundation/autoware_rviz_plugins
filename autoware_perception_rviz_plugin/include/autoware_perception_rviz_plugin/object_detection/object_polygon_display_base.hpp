@@ -14,7 +14,6 @@
 #ifndef AUTOWARE_PERCEPTION_RVIZ_PLUGIN__OBJECT_DETECTION__OBJECT_POLYGON_DISPLAY_BASE_HPP_
 #define AUTOWARE_PERCEPTION_RVIZ_PLUGIN__OBJECT_DETECTION__OBJECT_POLYGON_DISPLAY_BASE_HPP_
 
-#include "autoware_perception_rviz_plugin/common/color_alpha_property.hpp"
 #include "autoware_perception_rviz_plugin/object_detection/object_polygon_detail.hpp"
 #include "autoware_perception_rviz_plugin/visibility_control.hpp"
 
@@ -29,7 +28,6 @@
 #include <unique_identifier_msgs/msg/uuid.hpp>
 
 #include <bitset>
-#include <list>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -58,19 +56,33 @@ public:
   using RosTopicDisplay = rviz_common::RosTopicDisplay<MsgT>;
 
   using PolygonPropertyMap =
-    std::unordered_map<ObjectClassificationMsg::_label_type, common::ColorAlphaProperty>;
+    std::unordered_map<ObjectClassificationMsg::_label_type, rviz_common::properties::ColorProperty>;
+
+  // Shape rendering mode: merges polygon dimensionality (3D/2D) and fill style into one selector.
+  // 2D has no filled variant (get_2d_shape_marker_ptr draws a wireframe only).
+  enum class ShapeType { SkeletonThreeD = 0, SkeletonTwoD = 1, Fill = 2, None = 3 };
 
   explicit ObjectPolygonDisplayBase(const std::string & default_topic)
   : m_marker_common(this),
-    // m_display_type_property{"Polygon Type", "3d", "Type of the polygon to display object", this},
+    m_line_width_property{
+      "Line Width", 0.03,
+      "Base line width for all line markers (shape, twist, yaw rate, covariance)", this},
+    m_unified_color_property{
+      "Color", QColor{255, 255, 255},
+      "General color used for all classes unless per-class color is enabled", this},
+    m_per_class_color_property{
+      "Per Class Color", false, "Enable to set a separate color per class below", this},
+    m_alpha_property{
+      "Alpha", 0.999F, "Opacity applied to all object colors (shared by every class)", this},
     m_shape_group_property{"Show Shape", QVariant(), "Object shape visualizations", this},
     m_text_group_property{"Show Text", QVariant(), "Text annotations on objects", this},
     m_path_group_property{"Show Path", QVariant(), "Predicted path visualizations", this},
     m_vector_group_property{"Show Vector", QVariant(), "Direction/rate vector visualizations", this},
     m_covariance_group_property{
       "Show Covariance", QVariant(), "Covariance ellipse visualizations", this},
-    m_color_group_property{
-      "Colors", QVariant(), "Object color settings (override and per-class colors)", this},
+    m_shape_type_property{
+      "Shape Type", "Skeleton 3D", "Shape rendering mode: polygon dimensionality and fill style",
+      &m_shape_group_property},
     m_display_mesh_property{
       "Mesh", false, "Enable/disable mesh visualization of the object", &m_shape_group_property},
     m_display_indicator_property{
@@ -114,56 +126,43 @@ public:
       "Existence Probability", false, "Enable/disable existence probability visualization",
       &m_text_group_property},
 
-    m_line_width_property{
-      "Line Width", 0.03,
-      "Base line width for all line markers (shape, twist, yaw rate, covariance)", this},
-    m_override_color_enable_property{
-      "Unified Color", false,
-      "Override the per-class colors below with a single color for all classes",
-      &m_color_group_property},
-    m_override_color_property{QColor{255, 255, 255}, 0.999F, &m_color_group_property},
+
     m_default_topic{default_topic}
   {
-    m_display_type_property = new rviz_common::properties::EnumProperty(
-      "Polygon Type", "3d", "Type of the polygon to display object.", this);
-    // Option values here must correspond to indices in palette_textures_ array in onInitialize()
-    // below.
-    m_display_type_property->addOption("3d", 0);
-    m_display_type_property->addOption("2d", 1);
-    m_display_type_property->addOption("Disable", 2);
+    // Shape Type merges polygon dimensionality (3D/2D) and fill style into one selector.
+    m_shape_type_property.addOption("Skeleton 3D", static_cast<int>(ShapeType::SkeletonThreeD));
+    m_shape_type_property.addOption("Skeleton 2D", static_cast<int>(ShapeType::SkeletonTwoD));
+    m_shape_type_property.addOption("Fill", static_cast<int>(ShapeType::Fill));
+    m_shape_type_property.addOption("None", static_cast<int>(ShapeType::None));
+
     m_simple_visualize_mode_property = new rviz_common::properties::EnumProperty(
-      "Visualization Type", "Normal", "Simplicity of the polygon to display object.", this);
+      "Path Resolution", "Normal",
+      "Sampling density of predicted-path and footprint markers (Simple draws every other point).",
+      &m_path_group_property);
     m_simple_visualize_mode_property->addOption("Normal", 0);
     m_simple_visualize_mode_property->addOption("Simple", 1);
-    // Confidence interval property
+
     m_confidence_interval_property = new rviz_common::properties::EnumProperty(
-      "Confidence Interval", "95%", "Confidence interval of state estimations.", this);
+      "Confidence Interval", "95%", "Confidence interval of state estimations.",
+      &m_covariance_group_property);
     m_confidence_interval_property->addOption("70%", 0);
     m_confidence_interval_property->addOption("85%", 1);
     m_confidence_interval_property->addOption("95%", 2);
     m_confidence_interval_property->addOption("99%", 3);
 
-    m_object_fill_type_property = new rviz_common::properties::EnumProperty(
-      "Object Fill Type", "skeleton", "Change object fill type in visualization", this);
-    m_object_fill_type_property->addOption(
-      "skeleton", static_cast<int>(detail::ObjectFillType::Skeleton));
-    m_object_fill_type_property->addOption("Fill", static_cast<int>(detail::ObjectFillType::Fill));
+    m_alpha_property.setMin(0.0F);
+    m_alpha_property.setMax(1.0F);
 
-    // iterate over default values to create and initialize the properties.
+    // iterate over default values to create a color property per class, nested under the
+    // "Per Class Color" toggle. Opacity is shared across all classes via m_alpha_property.
     for (const auto & map_property_it : detail::kDefaultObjectPropertyValues) {
       const auto & class_property_values = map_property_it.second;
       const auto & color = class_property_values.color;
-      // This is just a parent property to contain the necessary properties for the given class:
-      m_class_group_properties.emplace_back(
-        class_property_values.label.c_str(), QVariant(),
-        "Groups polygon properties for the given class", &m_color_group_property);
-      auto & parent_property = m_class_group_properties.back();
-      // Associate a color and opacity property for the given class and attach them to the
-      // parent property of the class so they can have a drop down view from the label property:
       m_polygon_properties.emplace(
         std::piecewise_construct, std::forward_as_tuple(map_property_it.first),
         std::forward_as_tuple(
-          QColor{color[0], color[1], color[2]}, class_property_values.alpha, &parent_property));
+          class_property_values.label.c_str(), QColor{color[0], color[1], color[2]},
+          "Color for this class", &m_per_class_color_property));
     }
     init_color_list(predicted_path_colors);
   }
@@ -226,18 +225,22 @@ protected:
     const bool & is_orientation_available) const
   {
     const std_msgs::msg::ColorRGBA color_rgba = get_color_rgba(labels);
-    const auto fill_type =
-      static_cast<detail::ObjectFillType>(m_object_fill_type_property->getOptionInt());
 
-    if (m_display_type_property->getOptionInt() == 0) {
-      return detail::get_shape_marker_ptr(
-        shape_msg, centroid, orientation, color_rgba, line_width, is_orientation_available,
-        fill_type);
-    } else if (m_display_type_property->getOptionInt() == 1) {
-      return detail::get_2d_shape_marker_ptr(
-        shape_msg, centroid, orientation, color_rgba, line_width, is_orientation_available);
-    } else {
-      return std::nullopt;
+    switch (static_cast<ShapeType>(m_shape_type_property.getOptionInt())) {
+      case ShapeType::SkeletonThreeD:
+        return detail::get_shape_marker_ptr(
+          shape_msg, centroid, orientation, color_rgba, line_width, is_orientation_available,
+          detail::ObjectFillType::Skeleton);
+      case ShapeType::Fill:
+        return detail::get_shape_marker_ptr(
+          shape_msg, centroid, orientation, color_rgba, line_width, is_orientation_available,
+          detail::ObjectFillType::Fill);
+      case ShapeType::SkeletonTwoD:
+        return detail::get_2d_shape_marker_ptr(
+          shape_msg, centroid, orientation, color_rgba, line_width, is_orientation_available);
+      case ShapeType::None:
+      default:
+        return std::nullopt;
     }
   }
 
@@ -476,16 +479,22 @@ protected:
   template <typename ClassificationContainerT>
   std_msgs::msg::ColorRGBA get_color_rgba(const ClassificationContainerT & labels) const
   {
-    if (m_override_color_enable_property.getBool()) {
-      return m_override_color_property;
+    QColor color = m_unified_color_property.getColor();
+    if (m_per_class_color_property.getBool()) {
+      static const std::string kLoggerName("ObjectPolygonDisplayBase");
+      const auto label = detail::get_best_label(labels, kLoggerName);
+      auto it = m_polygon_properties.find(label);
+      if (it == m_polygon_properties.end()) {
+        it = m_polygon_properties.find(ObjectClassificationMsg::UNKNOWN);
+      }
+      color = it->second.getColor();
     }
-    static const std::string kLoggerName("ObjectPolygonDisplayBase");
-    const auto label = detail::get_best_label(labels, kLoggerName);
-    auto it = m_polygon_properties.find(label);
-    if (it == m_polygon_properties.end()) {
-      it = m_polygon_properties.find(ObjectClassificationMsg::UNKNOWN);
-    }
-    return it->second;
+    std_msgs::msg::ColorRGBA color_rgba;
+    color_rgba.r = static_cast<float>(color.redF());
+    color_rgba.g = static_cast<float>(color.greenF());
+    color_rgba.b = static_cast<float>(color.blueF());
+    color_rgba.a = m_alpha_property.getFloat();
+    return color_rgba;
   }
 
   /// \brief Get color and alpha values based on the given list of classification values
@@ -607,6 +616,16 @@ protected:
 private:
   // All rviz plugins should have this. Should be initialized with pointer to this class
   MarkerCommon m_marker_common;
+
+  // Base line width for all line markers (shape, twist, yaw rate, covariance)
+  rviz_common::properties::FloatProperty m_line_width_property;
+  // General color applied to all classes unless per-class color is enabled
+  rviz_common::properties::ColorProperty m_unified_color_property;
+  // When enabled, use per-class colors (m_polygon_properties); also the parent group of those colors
+  rviz_common::properties::BoolProperty m_per_class_color_property;
+  // Opacity shared by every object color (per-class and general)
+  rviz_common::properties::FloatProperty m_alpha_property;
+
   // Group headers that organize the visualization toggles below into categories in the RViz panel.
   // Declared before the toggles so they are constructed first (each toggle parents to one of these).
   rviz_common::properties::Property m_shape_group_property;
@@ -614,23 +633,20 @@ private:
   rviz_common::properties::Property m_path_group_property;
   rviz_common::properties::Property m_vector_group_property;
   rviz_common::properties::Property m_covariance_group_property;
-  rviz_common::properties::Property m_color_group_property;
-  // List is used to store the properties for classification in case we need to access them:
-  std::list<rviz_common::properties::Property> m_class_group_properties;
-  // Map to store class labels and its corresponding properties
+  // Shape rendering mode (dimensionality + fill); nested under Show Shape, declared after the group.
+  // mutable because rviz's EnumProperty::getOptionInt() is not const-qualified but is read from the
+  // const get_shape_marker_ptr().
+  mutable rviz_common::properties::EnumProperty m_shape_type_property;
+  // Map to store the per-class color property keyed by classification label
   PolygonPropertyMap m_polygon_properties;
-  // Property to choose type of visualization polygon
-  rviz_common::properties::EnumProperty * m_display_type_property;
-  // Property to choose simplicity of visualization polygon
+  // Predicted-path/footprint sampling density (Normal/Simple); nested under Show Path
   rviz_common::properties::EnumProperty * m_simple_visualize_mode_property;
   // Property to enable/disable mesh visualization of the object
   rviz_common::properties::BoolProperty m_display_mesh_property;
   // Property to overlay turn/brake light meshes; nested under mesh as it requires the mesh
   rviz_common::properties::BoolProperty m_display_indicator_property;
-  // Property to set confidence interval of state estimations
+  // Property to set confidence interval of state estimations; nested under Show Covariance
   rviz_common::properties::EnumProperty * m_confidence_interval_property;
-  // Property to set visualization type
-  rviz_common::properties::EnumProperty * m_object_fill_type_property;
   // Property to enable/disable label visualization
   rviz_common::properties::BoolProperty m_display_label_property;
   // Property to enable/disable uuid visualization
@@ -660,12 +676,8 @@ private:
 
   rviz_common::properties::BoolProperty m_display_existence_probability_property;
 
-  // Base line width for all line markers (shape, twist, yaw rate, covariance)
-  rviz_common::properties::FloatProperty m_line_width_property;
-  // Property to enable/disable overriding all per-class colors with a single color
-  rviz_common::properties::BoolProperty m_override_color_enable_property;
-  // Color and alpha applied to all classes when the override is enabled
-  common::ColorAlphaProperty m_override_color_property;
+
+
   // Default topic name to be visualized
   std::string m_default_topic;
 
