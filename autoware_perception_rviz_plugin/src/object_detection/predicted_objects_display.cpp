@@ -29,42 +29,31 @@ PredictedObjectsDisplay::PredictedObjectsDisplay()
 : ObjectPolygonDisplayBase("predicted_objects"),
   m_offset_property{"Display Offset", 0, "Visualize steps in predicted path", this}
 {
-  max_num_threads = 1;  // hard code the number of threads to be created
-
-  for (int ii = 0; ii < max_num_threads; ++ii) {
-    threads.emplace_back(std::thread(&PredictedObjectsDisplay::workerThread, this));
-  }
+  // A single background thread builds the markers off the RViz render thread.
+  worker_thread_ = std::thread(&PredictedObjectsDisplay::workerThread, this);
 }
 
 void PredictedObjectsDisplay::workerThread()
-{  // A standard working thread that waiting for jobs
+{
+  // Wait for the latest message, build its markers off the render thread, and hand them back to
+  // update(). Only the most recent message is kept, so bursts collapse to the newest frame.
   while (true) {
-    std::function<void()> job;
+    PredictedObjects::ConstSharedPtr current_msg;
     {
-      std::unique_lock<std::mutex> lock(queue_mutex);
-      condition.wait(lock, [this] { return !jobs.empty() || should_terminate; });
+      std::unique_lock<std::mutex> lock(mutex);
+      condition.wait(lock, [this] { return msg != nullptr || should_terminate; });
       if (should_terminate) {
         return;
       }
-      job = jobs.front();
-      jobs.pop();
+      current_msg = msg;
+      msg.reset();
     }
-    job();
+
+    auto tmp_markers = createMarkers(current_msg);
+
+    std::unique_lock<std::mutex> lock(mutex);
+    markers = tmp_markers;
   }
-}
-
-void PredictedObjectsDisplay::messageProcessorThreadJob()
-{
-  // Receiving
-  std::unique_lock<std::mutex> lock(mutex);
-  auto tmp_msg = this->msg;
-  this->msg.reset();
-  lock.unlock();
-
-  auto tmp_markers = createMarkers(tmp_msg);
-
-  lock.lock();
-  markers = tmp_markers;
 }
 
 std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay::createMarkers(
@@ -106,7 +95,7 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
       auto mesh_marker_ptr = mesh_marker.value();
       mesh_marker_ptr->header = msg->header;
       mesh_marker_ptr->id = uuid_to_marker_id(object.object_id);
-      add_marker(mesh_marker_ptr);
+      markers.push_back(mesh_marker_ptr);
     }
 
     // Get marker for label
@@ -299,10 +288,11 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
 
 void PredictedObjectsDisplay::processMessage(PredictedObjects::ConstSharedPtr msg)
 {
-  std::unique_lock<std::mutex> lock(mutex);
-
-  this->msg = msg;
-  queueJob(std::bind(&PredictedObjectsDisplay::messageProcessorThreadJob, this));
+  {
+    std::unique_lock<std::mutex> lock(mutex);
+    this->msg = msg;
+  }
+  condition.notify_one();
 }
 
 void PredictedObjectsDisplay::update(float wall_dt, float ros_dt)

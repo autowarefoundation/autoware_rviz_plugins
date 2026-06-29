@@ -26,11 +26,11 @@
 
 #include <condition_variable>
 #include <list>
-#include <queue>
+#include <mutex>
 #include <set>
 #include <string>
+#include <thread>
 #include <unordered_map>
-#include <utility>
 #include <vector>
 
 namespace autoware
@@ -52,27 +52,17 @@ public:
   ~PredictedObjectsDisplay()
   {
     {
-      std::unique_lock<std::mutex> lock(queue_mutex);
+      std::unique_lock<std::mutex> lock(mutex);
       should_terminate = true;
     }
     condition.notify_all();
-    for (std::thread & active_thread : threads) {
-      active_thread.join();
+    if (worker_thread_.joinable()) {
+      worker_thread_.join();
     }
-    threads.clear();
   }
 
 private:
   void processMessage(PredictedObjects::ConstSharedPtr msg) override;
-
-  void queueJob(std::function<void()> job)
-  {
-    {
-      std::unique_lock<std::mutex> lock(queue_mutex);
-      jobs.push(std::move(job));
-    }
-    condition.notify_one();
-  }
 
   boost::uuids::uuid to_boost_uuid(const unique_identifier_msgs::msg::UUID & uuid_msg)
   {
@@ -125,8 +115,6 @@ private:
     PredictedObjects::ConstSharedPtr msg);
   void workerThread();
 
-  void messageProcessorThreadJob();
-
   void update(float wall_dt, float ros_dt) override;
 
   rviz_common::properties::IntProperty m_offset_property;
@@ -136,13 +124,10 @@ private:
   int32_t marker_id = 0;
   const int32_t PATH_ID_CONSTANT = 1e3;
 
-  // max_num_threads: number of threads created in the thread pool, hard-coded to be 1;
-  int max_num_threads;
-
+  // A single background thread builds markers off the RViz render thread. mutex/condition guard
+  // the handoff of the latest msg to the worker and the resulting markers back to update().
   bool should_terminate{false};
-  std::mutex queue_mutex;
-  std::vector<std::thread> threads;
-  std::queue<std::function<void()>> jobs;
+  std::thread worker_thread_;
 
   PredictedObjects::ConstSharedPtr msg;
   std::mutex mutex;
