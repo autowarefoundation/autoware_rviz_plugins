@@ -2,6 +2,9 @@
 Changelog for package autoware_planning_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.6.0 (2026-06-30)
+------------------
+
 0.5.0 (2026-05-01)
 ------------------
 * refactor(autoware_rviz_plugins): use autoware_ament_auto_package (`#35 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/35>`_)

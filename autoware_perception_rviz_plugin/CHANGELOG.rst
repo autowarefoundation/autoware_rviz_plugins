@@ -2,6 +2,32 @@
 Changelog for package autoware_perception_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.6.0 (2026-06-30)
+------------------
+* feat(perception): add predicted path footprint visualization and reorganize display properties (`#45 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/45>`_)
+  * feat(perception): add predicted path footprint visualization
+  * add override color
+  * group options
+  * group shapes
+  * reorder color options
+  * apply alpha for filled object
+  * rename options
+  * style(pre-commit): autofix
+  * refactoring
+  * bug fix
+  * make footprint optional
+  * style(pre-commit): autofix
+  ---------
+  Co-authored-by: pre-commit-ci[bot] <66853113+pre-commit-ci[bot]@users.noreply.github.com>
+* feat: add visualization for 2 new classes (`#42 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/42>`_)
+  * feat: add visualization for 2 new classes
+  * style(pre-commit): autofix
+  ---------
+  Co-authored-by: pre-commit-ci[bot] <66853113+pre-commit-ci[bot]@users.noreply.github.com>
+* feat(perception): show bbox footprint (`#43 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/43>`_)
+  feat(object_polygon_detail): add footprint polygon visualization to shape markers
+* Contributors: Taekjin LEE, badai nguyen
+
 0.5.0 (2026-05-01)
 ------------------
 * refactor(autoware_rviz_plugins): use autoware_ament_auto_package (`#35 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/35>`_)

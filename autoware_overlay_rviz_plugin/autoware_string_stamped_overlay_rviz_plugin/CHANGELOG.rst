@@ -2,6 +2,9 @@
 Changelog for package autoware_string_stamped_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.6.0 (2026-06-30)
+------------------
+
 0.5.0 (2026-05-01)
 ------------------
 * fix(autoware_string_stamped_overlay_rviz_plugin): clear overlay if message timestamp is old (`#22 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/22>`_)
