@@ -202,7 +202,7 @@ void TrackedObjectsDisplay::processMessage(TrackedObjects::ConstSharedPtr msg)
       add_marker(marker_ptr);
     }
 
-    // Get marker for twist covariance
+    // Get marker for yaw rate covariance
     auto yaw_rate_covariance_marker = get_yaw_rate_covariance_marker_ptr(
       object.kinematics.pose_with_covariance, object.kinematics.twist_with_covariance,
       get_line_width() * 0.5);

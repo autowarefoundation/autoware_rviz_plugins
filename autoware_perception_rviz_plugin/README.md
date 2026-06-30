@@ -27,6 +27,14 @@ Example:
 
 ![detected-object-visualization-description](./images/detected-object-visualization-description.jpg)
 
+#### Customizable Features
+
+These options are shared by the DetectedObjects, TrackedObjects and PredictedObjects displays.
+
+- `Color`: a single color applied to every class by default.
+- `Per Class Color`: when enabled, each class is drawn with its own color from the per-class color groups nested under this toggle, instead of the single `Color` above. When disabled (the default), the single `Color` is used for all classes. Changes take effect on the next received message. Per-class colors do not affect predicted-path colors, which encode per-object identity from the UUID.
+- `Alpha`: opacity shared by all object colors (both the single `Color` and the per-class colors).
+
 ### TrackedObjects
 
 #### Input Types

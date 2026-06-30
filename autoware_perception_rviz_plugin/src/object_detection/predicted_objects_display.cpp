@@ -29,44 +29,31 @@ PredictedObjectsDisplay::PredictedObjectsDisplay()
 : ObjectPolygonDisplayBase("predicted_objects"),
   m_offset_property{"Display Offset", 0, "Visualize steps in predicted path", this}
 {
-  max_num_threads = 1;  // hard code the number of threads to be created
-
-  for (int ii = 0; ii < max_num_threads; ++ii) {
-    threads.emplace_back(std::thread(&PredictedObjectsDisplay::workerThread, this));
-  }
+  // A single background thread builds the markers off the RViz render thread.
+  worker_thread_ = std::thread(&PredictedObjectsDisplay::workerThread, this);
 }
 
 void PredictedObjectsDisplay::workerThread()
-{  // A standard working thread that waiting for jobs
+{
+  // Wait for the latest message, build its markers off the render thread, and hand them back to
+  // update(). Only the most recent message is kept, so bursts collapse to the newest frame.
   while (true) {
-    std::function<void()> job;
+    PredictedObjects::ConstSharedPtr current_msg;
     {
-      std::unique_lock<std::mutex> lock(queue_mutex);
-      condition.wait(lock, [this] { return !jobs.empty() || should_terminate; });
+      std::unique_lock<std::mutex> lock(mutex);
+      condition.wait(lock, [this] { return msg != nullptr || should_terminate; });
       if (should_terminate) {
         return;
       }
-      job = jobs.front();
-      jobs.pop();
+      current_msg = msg;
+      msg.reset();
     }
-    job();
+
+    auto tmp_markers = createMarkers(current_msg);
+
+    std::unique_lock<std::mutex> lock(mutex);
+    markers = tmp_markers;
   }
-}
-
-void PredictedObjectsDisplay::messageProcessorThreadJob()
-{
-  // Receiving
-  std::unique_lock<std::mutex> lock(mutex);
-  auto tmp_msg = this->msg;
-  this->msg.reset();
-  lock.unlock();
-
-  auto tmp_markers = createMarkers(tmp_msg);
-
-  lock.lock();
-  markers = tmp_markers;
-
-  consumed = true;
 }
 
 std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay::createMarkers(
@@ -108,7 +95,7 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
       auto mesh_marker_ptr = mesh_marker.value();
       mesh_marker_ptr->header = msg->header;
       mesh_marker_ptr->id = uuid_to_marker_id(object.object_id);
-      add_marker(mesh_marker_ptr);
+      markers.push_back(mesh_marker_ptr);
     }
 
     // Get marker for label
@@ -235,7 +222,7 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
       markers.push_back(marker_ptr);
     }
 
-    // Get marker for twist covariance
+    // Get marker for yaw rate covariance
     auto yaw_rate_covariance_marker = get_yaw_rate_covariance_marker_ptr(
       object.kinematics.initial_pose_with_covariance,
       object.kinematics.initial_twist_with_covariance, get_line_width() * 0.3);
@@ -259,6 +246,21 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
           uuid_to_marker_id(object.object_id) + path_count * PATH_ID_CONSTANT;
         path_count++;
         markers.push_back(predicted_path_marker_ptr);
+      }
+    }
+
+    // Add bounding box footprint marker for each candidate path
+    path_count = 0;
+    for (const auto & predicted_path : object.kinematics.predicted_paths) {
+      auto predicted_path_footprint_marker =
+        get_predicted_path_footprint_marker_ptr(object.object_id, object.shape, predicted_path);
+      if (predicted_path_footprint_marker) {
+        auto predicted_path_footprint_marker_ptr = predicted_path_footprint_marker.value();
+        predicted_path_footprint_marker_ptr->header = msg->header;
+        predicted_path_footprint_marker_ptr->id =
+          uuid_to_marker_id(object.object_id) + path_count * PATH_ID_CONSTANT;
+        path_count++;
+        markers.push_back(predicted_path_footprint_marker_ptr);
       }
     }
 
@@ -286,10 +288,11 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
 
 void PredictedObjectsDisplay::processMessage(PredictedObjects::ConstSharedPtr msg)
 {
-  std::unique_lock<std::mutex> lock(mutex);
-
-  this->msg = msg;
-  queueJob(std::bind(&PredictedObjectsDisplay::messageProcessorThreadJob, this));
+  {
+    std::unique_lock<std::mutex> lock(mutex);
+    this->msg = msg;
+  }
+  condition.notify_one();
 }
 
 void PredictedObjectsDisplay::update(float wall_dt, float ros_dt)
