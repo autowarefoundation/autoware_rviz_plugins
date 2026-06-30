@@ -2,8 +2,8 @@
 Changelog for package autoware_perception_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.6.0 (2026-06-30)
+------------------
 * feat(perception): add predicted path footprint visualization and reorganize display properties (`#45 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/45>`_)
   * feat(perception): add predicted path footprint visualization
   * add override color
