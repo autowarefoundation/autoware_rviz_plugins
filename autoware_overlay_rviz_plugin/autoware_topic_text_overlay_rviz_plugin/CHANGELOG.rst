@@ -2,6 +2,9 @@
 Changelog for package autoware_topic_text_overlay_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+Forthcoming
+-----------
+
 0.5.0 (2026-05-01)
 ------------------
 * fix: to be consistent version in all package.xml(s)
