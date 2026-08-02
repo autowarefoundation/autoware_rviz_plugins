@@ -45,15 +45,19 @@ public:
   void updateHazardLightsData(
     const autoware_vehicle_msgs::msg::HazardLightsReport::ConstSharedPtr & msg);
   void setBlinkingMode(std::string_view mode);
+  void setPriority(std::string_view mode);
 
 private:
   QImage arrowImage;
   QColor gray = QColor(79, 79, 79);
 
   std::string blinking_mode_ = "Static";
+  std::string priority_ = "Hazard";
 
   int current_turn_signal_;    // Internal variable to store turn signal state
   int current_hazard_lights_;  // Internal variable to store hazard lights state
+  double turn_signal_time_;    // Internal variable to store time when hazard lights on
+  double hazard_lights_time_;  // Internal variable to store time when hazard lights on
   QImage coloredImage(const QImage & source, const QColor & color);
 };
 

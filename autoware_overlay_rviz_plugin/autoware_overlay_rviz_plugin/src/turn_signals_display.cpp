@@ -36,7 +36,8 @@
 namespace autoware_overlay_rviz_plugin
 {
 
-TurnSignalsDisplay::TurnSignalsDisplay() : current_turn_signal_(0)
+TurnSignalsDisplay::TurnSignalsDisplay()
+: current_turn_signal_(0), current_hazard_lights_(0), turn_signal_time_(0), hazard_lights_time_(0)
 {
   // Load the arrow image
   std::string package_path =
@@ -50,7 +51,16 @@ void TurnSignalsDisplay::updateTurnSignalsData(
 {
   try {
     // Assuming msg->report is the field you're interested in
-    current_turn_signal_ = msg->report;
+    int turn_signal = msg->report;
+    if (current_turn_signal_ != turn_signal) {
+      if (
+        turn_signal == autoware_vehicle_msgs::msg::TurnIndicatorsReport::ENABLE_LEFT ||
+        turn_signal == autoware_vehicle_msgs::msg::TurnIndicatorsReport::ENABLE_RIGHT) {
+        auto now = std::chrono::steady_clock::now().time_since_epoch();
+        turn_signal_time_ = std::chrono::duration_cast<std::chrono::milliseconds>(now).count();
+      }
+    }
+    current_turn_signal_ = turn_signal;
   } catch (const std::exception & e) {
     // Log the error
     std::cerr << "Error in processMessage: " << e.what() << std::endl;
@@ -62,7 +72,14 @@ void TurnSignalsDisplay::updateHazardLightsData(
 {
   try {
     // Assuming msg->report is the field you're interested in
-    current_hazard_lights_ = msg->report;
+    int hazard_lights = msg->report;
+    if (current_hazard_lights_ != hazard_lights) {
+      if (hazard_lights == autoware_vehicle_msgs::msg::HazardLightsReport::ENABLE) {
+        auto now = std::chrono::steady_clock::now().time_since_epoch();
+        hazard_lights_time_ = std::chrono::duration_cast<std::chrono::milliseconds>(now).count();
+      }
+    }
+    current_hazard_lights_ = hazard_lights;
   } catch (const std::exception & e) {
     // Log the error
     std::cerr << "Error in processMessage: " << e.what() << std::endl;
@@ -72,6 +89,10 @@ void TurnSignalsDisplay::updateHazardLightsData(
 void TurnSignalsDisplay::setBlinkingMode(std::string_view mode)
 {
   blinking_mode_ = mode;
+}
+void TurnSignalsDisplay::setPriority(std::string_view mode)
+{
+  priority_ = mode;
 }
 
 void TurnSignalsDisplay::drawArrows(
@@ -84,13 +105,26 @@ void TurnSignalsDisplay::drawArrows(
   int leftArrowXPos = backgroundRect.left() + scaledLeftArrow.width() * 2 + 180;
   int rightArrowXPos = backgroundRect.right() - scaledRightArrow.width() * 3 - 175;
 
-  bool leftActive =
-    (current_turn_signal_ == autoware_vehicle_msgs::msg::TurnIndicatorsReport::ENABLE_LEFT ||
-     current_hazard_lights_ == autoware_vehicle_msgs::msg::HazardLightsReport::ENABLE);
-  bool rightActive =
-    (current_turn_signal_ == autoware_vehicle_msgs::msg::TurnIndicatorsReport::ENABLE_RIGHT ||
-     current_hazard_lights_ == autoware_vehicle_msgs::msg::HazardLightsReport::ENABLE);
-
+  bool leftActive, rightActive;
+  if (priority_ == "Last-in") {
+    leftActive =
+      current_turn_signal_ == autoware_vehicle_msgs::msg::TurnIndicatorsReport::ENABLE_LEFT ||
+      (current_hazard_lights_ == autoware_vehicle_msgs::msg::HazardLightsReport::ENABLE &&
+       (current_turn_signal_ != autoware_vehicle_msgs::msg::TurnIndicatorsReport::ENABLE_RIGHT ||
+        hazard_lights_time_ > turn_signal_time_));
+    rightActive =
+      current_turn_signal_ == autoware_vehicle_msgs::msg::TurnIndicatorsReport::ENABLE_RIGHT ||
+      (current_hazard_lights_ == autoware_vehicle_msgs::msg::HazardLightsReport::ENABLE &&
+       (current_turn_signal_ != autoware_vehicle_msgs::msg::TurnIndicatorsReport::ENABLE_LEFT ||
+        hazard_lights_time_ > turn_signal_time_));
+  } else {
+    leftActive =
+      current_turn_signal_ == autoware_vehicle_msgs::msg::TurnIndicatorsReport::ENABLE_LEFT ||
+      current_hazard_lights_ == autoware_vehicle_msgs::msg::HazardLightsReport::ENABLE;
+    rightActive =
+      current_turn_signal_ == autoware_vehicle_msgs::msg::TurnIndicatorsReport::ENABLE_RIGHT ||
+      current_hazard_lights_ == autoware_vehicle_msgs::msg::HazardLightsReport::ENABLE;
+  }
   auto now = std::chrono::steady_clock::now().time_since_epoch();
   auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now).count();
 

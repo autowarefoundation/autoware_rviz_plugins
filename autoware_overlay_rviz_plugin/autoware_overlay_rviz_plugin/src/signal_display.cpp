@@ -72,6 +72,11 @@ SignalDisplay::SignalDisplay()
     SLOT(updateTurnSignalBlinkingMode()));
   property_turn_signal_blinking_mode_->addOption("Static", 0);
   property_turn_signal_blinking_mode_->addOption("Blinking", 1);
+  property_turn_signal_priority_ = new rviz_common::properties::EnumProperty(
+    "Signal Priority Mode", "Hazard", "Priority of the signal light", this,
+    SLOT(updateTurnSignalPriority()));
+  property_turn_signal_priority_->addOption("Hazard", 0);
+  property_turn_signal_priority_->addOption("Last-in", 1);
 
   // Initialize the component displays
   steering_wheel_display_ = std::make_unique<SteeringWheelDisplay>();
@@ -404,6 +409,15 @@ void SignalDisplay::updateTurnSignalBlinkingMode()
   std::lock_guard<std::mutex> lock(mutex_);
   if (turn_signals_display_) {
     turn_signals_display_->setBlinkingMode(property_turn_signal_blinking_mode_->getStdString());
+  }
+  queueRender();
+}
+
+void SignalDisplay::updateTurnSignalPriority()
+{
+  std::lock_guard<std::mutex> lock(mutex_);
+  if (turn_signals_display_) {
+    turn_signals_display_->setPriority(property_turn_signal_priority_->getStdString());
   }
   queueRender();
 }
