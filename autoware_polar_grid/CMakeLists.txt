@@ -19,13 +19,6 @@ target_link_libraries(${PROJECT_NAME}
   ${QT_LIBRARIES}
 )
 
-install(TARGETS
-  ${PROJECT_NAME}
-  ARCHIVE DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  LIBRARY DESTINATION ${CATKIN_PACKAGE_LIB_DESTINATION}
-  RUNTIME DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
-)
-
 pluginlib_export_plugin_description_file(rviz_common plugins/plugin_description.xml)
 
 ament_auto_package(

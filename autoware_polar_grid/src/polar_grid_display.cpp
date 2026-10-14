@@ -47,7 +47,6 @@
 #include <rviz_common/interaction/selection_manager.hpp>
 #include <rviz_common/properties/parse_color.hpp>
 #include <rviz_common/properties/property.hpp>
-#include <rviz_rendering/objects/grid.hpp>
 
 #include <OgreSceneManager.h>
 #include <OgreSceneNode.h>
@@ -137,17 +136,15 @@ void PolarGridDisplay::update(float /*dt*/, float ros_dt)
 
   Ogre::Vector3 position;
   Ogre::Quaternion orientation;
-  if (
-    context_->getFrameManager()->getTransform(
-      frame, rclcpp::Time(0, 0, context_->getClock()->get_clock_type()), position, orientation)) {
+  if (context_->getFrameManager()->getTransform(
+        frame, rclcpp::Time(0, 0, context_->getClock()->get_clock_type()), position, orientation)) {
     scene_node_->setPosition(position);
     scene_node_->setOrientation(orientation);
     setStatus(rviz_common::properties::StatusProperty::Ok, "Transform", "Transform OK");
   } else {
     std::string error;
-    if (
-      context_->getFrameManager()->transformHasProblems(
-        frame, rclcpp::Time(0, 0, context_->getClock()->get_clock_type()), error)) {
+    if (context_->getFrameManager()->transformHasProblems(
+          frame, rclcpp::Time(0, 0, context_->getClock()->get_clock_type()), error)) {
       setStatus(
         rviz_common::properties::StatusProperty::Error, "Transform", QString::fromStdString(error));
     } else {
