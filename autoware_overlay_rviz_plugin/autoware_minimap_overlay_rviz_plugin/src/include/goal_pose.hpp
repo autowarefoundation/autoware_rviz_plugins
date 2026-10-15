@@ -23,6 +23,7 @@ class GoalPose
 public:
   GoalPose();
   void setGoalPosition(double lat, double lon);
+  void clear();
   void setVehiclePosition(double lat, double lon);
   void draw(QPainter & painter, const QRectF & backgroundRect, int zoom) const;
   // Getter methods for the goal latitude and longitude
@@ -34,6 +35,7 @@ private:
   double goal_lon_;
   double vehicle_lat_;
   double vehicle_lon_;
+  bool has_goal_ = false;
   QImage goal_image_;
 };
 

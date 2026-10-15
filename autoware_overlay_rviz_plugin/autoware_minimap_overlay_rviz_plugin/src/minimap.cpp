@@ -13,6 +13,9 @@
 // limitations under the License.
 #include "include/minimap.hpp"
 
+#include "include/web_mercator.hpp"
+
+#include <QFontMetricsF>
 #include <QPainter>
 #include <QPainterPath>
 #include <QPixmap>
@@ -20,13 +23,12 @@
 #include <autoware/geography_utils/projection.hpp>
 #include <rviz_rendering/render_system.hpp>
 
-#include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
-
 #include <qimage.h>
 #include <tf2/LinearMath/Matrix3x3.h>
 #include <tf2/LinearMath/Quaternion.h>
 #include <tf2/utils.h>
 
+#include <algorithm>
 #include <cmath>
 #include <memory>
 #include <string>
@@ -37,23 +39,19 @@ namespace autoware_minimap_overlay_rviz_plugin
 {
 
 VehicleMapDisplay::VehicleMapDisplay()
-: rviz_common::Display(),
-  overlay_(nullptr),
-  prev_latitude_(0.0),
-  prev_longitude_(0.0),
-  target_latitude_(0.0),
-  target_longitude_(0.0),
-  current_tile_provider_(TileProvider::OpenStreetMap)
+: rviz_common::Display(), overlay_(nullptr), current_tile_provider_(TileProvider::OpenStreetMap)
 {
   property_width_ = new rviz_common::properties::IntProperty(
     "Width", 256, "Width of the overlay max:500", this, SLOT(updateOverlaySize()));
 
+  property_width_->setMin(1);
   property_width_->setMax(500);
   property_width_->setShouldBeSaved(true);
 
   property_height_ = new rviz_common::properties::IntProperty(
     "Height", 256, "Height of the overlay max:500", this, SLOT(updateOverlaySize()));
 
+  property_height_->setMin(1);
   property_height_->setMax(500);
   property_height_->setShouldBeSaved(true);
 
@@ -105,28 +103,25 @@ VehicleMapDisplay::VehicleMapDisplay()
   property_zoom_->setMax(18);
   property_zoom_->setShouldBeSaved(true);
 
-  property_latitude_ = new rviz_common::properties::FloatProperty(
-    "Latitude", 0.0, "Latitude of the ego", this, SLOT(updateLatitude()));
-
-  property_longitude_ = new rviz_common::properties::FloatProperty(
-    "Longitude", 0.0, "Longitude of the ego", this, SLOT(updateLongitude()));
-
+  // Read-only properties that show the received positions
+  property_latitude_ =
+    new rviz_common::properties::FloatProperty("Latitude", 0.0, "Latitude of the ego", this);
+  property_longitude_ =
+    new rviz_common::properties::FloatProperty("Longitude", 0.0, "Longitude of the ego", this);
   property_goal_lat =
     new rviz_common::properties::FloatProperty("Goal Latitude", 0.0, "Goal pose Latitude", this);
-  property_goal_lat->setReadOnly(true);
-
   property_goal_lon =
     new rviz_common::properties::FloatProperty("Goal Longitude", 0.0, "Goal pose Longitude", this);
-  property_goal_lon->setReadOnly(true);
+  for (auto * property :
+       {property_latitude_, property_longitude_, property_goal_lat, property_goal_lon}) {
+    property->setReadOnly(true);
+    property->setShouldBeSaved(false);
+  }
 
   zoom_ = property_zoom_->getInt();
 
-  latitude_ = property_latitude_->getFloat();
-  longitude_ = property_longitude_->getFloat();
-
   tile_field_ = std::make_unique<TileField>(this);
-  tile_field_->setUrlTemplate(
-    TileProvider::getUrlTemplate(current_tile_provider_));  // Set the URL template
+  tile_field_->setUrlTemplate(TileProvider::getUrlTemplate(current_tile_provider_));
 
   connect(tile_field_.get(), &TileField::tilesUpdated, this, &VehicleMapDisplay::onTilesUpdated);
 }
@@ -145,6 +140,11 @@ void VehicleMapDisplay::onInitialize()
   overlay_->show();
   updateOverlaySize();
   updateOverlayPosition();
+
+  const std::string package_path =
+    ament_index_cpp::get_package_share_directory("autoware_minimap_overlay_rviz_plugin");
+  pos_pixmap_ = QPixmap(QString::fromStdString(package_path + "/icons/pos.png"))
+                  .scaled(25, 25, Qt::KeepAspectRatio, Qt::SmoothTransformation);
 
   node_ = context_->getRosNodeAbstraction().lock()->get_raw_node();
 
@@ -170,10 +170,6 @@ void VehicleMapDisplay::onInitialize()
   map_projector_info_sub_ = node_->create_subscription<autoware_map_msgs::msg::MapProjectorInfo>(
     "/map/map_projector_info", qos_settings,
     std::bind(&VehicleMapDisplay::mapProjectorInfoCallback, this, std::placeholders::_1));
-
-  // Timer for smooth update
-  node_->create_wall_timer(
-    std::chrono::milliseconds(16), std::bind(&VehicleMapDisplay::smoothUpdate, this));
 }
 
 void VehicleMapDisplay::mapProjectorInfoCallback(
@@ -184,9 +180,9 @@ void VehicleMapDisplay::mapProjectorInfoCallback(
       node_->get_logger(),
       "Minimap plugin cannot show the goal pose and the path with a Local map projector");
     map_projector_info_msg_ = nullptr;
-    return;
+  } else {
+    map_projector_info_msg_ = msg;
   }
-  map_projector_info_msg_ = msg;
 
   updateGoalPose();
   updatePath();
@@ -219,6 +215,7 @@ void VehicleMapDisplay::onEnable()
   if (overlay_) {
     overlay_->show();
   }
+  updateMapPosition();
 }
 
 void VehicleMapDisplay::onDisable()
@@ -230,9 +227,10 @@ void VehicleMapDisplay::onDisable()
 
 void VehicleMapDisplay::update(float, float)
 {
-  if (!overlay_) {
+  if (!overlay_ || !needs_redraw_) {
     return;
   }
+  needs_redraw_ = false;
 
   autoware_minimap_overlay_rviz_plugin::ScopedPixelBuffer buffer = overlay_->getBuffer();
   QImage hud = buffer.getQImage(*overlay_);
@@ -240,19 +238,18 @@ void VehicleMapDisplay::update(float, float)
   drawWidget(hud);
 }
 
+void VehicleMapDisplay::requestRedraw()
+{
+  needs_redraw_ = true;
+  queueRender();
+}
+
 void VehicleMapDisplay::updateTileProvider()
 {
-  // Update the current tile provider based on the selected option
   current_tile_provider_ =
     static_cast<TileProvider::Provider>(property_tile_provider_->getOptionInt());
-
-  // Get the URL template based on the selected tile provider
-  std::string url_template = TileProvider::getUrlTemplate(current_tile_provider_);
-
-  tile_field_->setUrlTemplate(url_template);
-
+  tile_field_->setUrlTemplate(TileProvider::getUrlTemplate(current_tile_provider_));
   updateMapPosition();
-  queueRender();
 }
 
 void VehicleMapDisplay::updateOverlaySize()
@@ -264,7 +261,7 @@ void VehicleMapDisplay::updateOverlaySize()
   std::lock_guard<std::mutex> lock(mutex_);
   overlay_->updateTextureSize(property_width_->getInt(), property_height_->getInt());
   overlay_->setDimensions(overlay_->getTextureWidth(), overlay_->getTextureHeight());
-  queueRender();
+  requestRedraw();
 }
 
 void VehicleMapDisplay::updateOverlayPosition()
@@ -278,7 +275,7 @@ void VehicleMapDisplay::updateOverlayPosition()
     property_horizontal_margin_->getInt(), property_vertical_margin_->getInt(),
     static_cast<HorizontalAlignment>(property_anchor_horizontal_->getOptionInt()),
     static_cast<VerticalAlignment>(property_anchor_vertical_->getOptionInt()));
-  queueRender();
+  requestRedraw();
 }
 
 void VehicleMapDisplay::drawWidget(QImage & hud)
@@ -303,188 +300,120 @@ void VehicleMapDisplay::drawCircle(QPainter & painter, const QRectF & background
   painter.setRenderHint(QPainter::Antialiasing, true);
   painter.setOpacity(alpha_property_->getFloat());
 
-  // Define the visible rectangle
-  QRectF visibleRect(
-    backgroundRect.width() / 2 - property_width_->getInt() / 2,
-    backgroundRect.height() / 2 - property_height_->getInt() / 2, property_width_->getInt(),
-    property_height_->getInt());
-
-  // Define the circular clipping path
+  // Clip everything to a rounded rectangle
   QPainterPath path;
   path.setFillRule(Qt::WindingFill);
-
-  // Define the rectangle dimensions and radius for the bottom-left corner
-  QRectF rect = backgroundRect;
-  qreal radius = property_border_radius_->getInt();
-
-  // Add a rounded rectangle covering the entire area with all corners rounded
-  path.addRoundedRect(rect, radius, radius);
+  const qreal radius = property_border_radius_->getInt();
+  path.addRoundedRect(backgroundRect, radius, radius);
   painter.setClipPath(path.simplified());
 
-  // Draw the background
-  painter.setPen(Qt::NoPen);
-  painter.drawRect(backgroundRect);
-
-  // Get the tile field image
-  QImage tile_field_image = tile_field_->getTileFieldImage();
-
-  // Calculate the target rectangle for the tile field image
-  auto [x_pixel, y_pixel] = tile_field_->getTileOffsets(latitude_, longitude_);
-
-  // Adjust the target rectangle such that the position icon is centered in the
-  // visible rect
-  QRectF target(
-    backgroundRect.width() / 2 - x_pixel - 128, backgroundRect.height() / 2 - y_pixel - 128,
-    tile_field_image.width(), tile_field_image.height());
-
-  QRectF source(0, 0, tile_field_image.width(), tile_field_image.height());
-
-  // Draw the tile field image
-  painter.drawImage(target, tile_field_image, source);
-
-  // Draw the position icon
-  std::string package_path =
-    ament_index_cpp::get_package_share_directory("autoware_minimap_overlay_rviz_plugin");
-  std::string image_path = package_path + "/icons/pos.png";
-  QPixmap pos_pixmap(image_path.c_str());
-  pos_pixmap = pos_pixmap.scaled(25, 25, Qt::KeepAspectRatio);
-
-  QPointF positionInOverlay =
-    backgroundRect.center() - QPointF(pos_pixmap.width() / 2.0, pos_pixmap.height() / 2.0);
+  // Place the tile field so that the vehicle position is at the center of the overlay
+  const QImage tile_field_image = tile_field_->getTileFieldImage();
+  const QPointF vehicle_world_pixel =
+    autoware_minimap_overlay_rviz_plugin::lat_lon_to_world_pixel(latitude_, longitude_, zoom_);
+  painter.drawImage(
+    backgroundRect.center() + tile_field_->getTileFieldOrigin() - vehicle_world_pixel,
+    tile_field_image);
 
   if (route_state_msg_ && route_state_msg_->state == autoware_adapi_v1_msgs::msg::RouteState::SET) {
     path_overlay_.draw(painter, backgroundRect, zoom_);
     goal_pose_.draw(painter, backgroundRect, zoom_);
   }
-  if (pose_msg_) {  // Assuming pose_msg_ is your pose message
-    tf2::Quaternion q(
-      pose_msg_->pose.pose.pose.orientation.x, pose_msg_->pose.pose.pose.orientation.y,
-      pose_msg_->pose.pose.pose.orientation.z, pose_msg_->pose.pose.pose.orientation.w);
-    tf2::Matrix3x3 m(q);
+
+  // Draw the position icon at the center, rotated to the heading of the vehicle
+  painter.save();
+  painter.translate(backgroundRect.center());
+  if (pose_msg_) {
+    const auto & orientation = pose_msg_->pose.pose.pose.orientation;
+    tf2::Quaternion q(orientation.x, orientation.y, orientation.z, orientation.w);
     double roll, pitch, yaw;
-    m.getRPY(roll, pitch, yaw);
-
-    yaw = -yaw + M_PI / 2;  // Adjust the yaw to match the image orientation
-
-    // Save the painter state
-    painter.save();
-
-    // Translate the painter to the center of the position icon
-    painter.translate(
-      positionInOverlay.x() + pos_pixmap.width() / 2,
-      positionInOverlay.y() + pos_pixmap.height() / 2);
-
-    // Rotate the painter around the center of the position icon
-    painter.rotate(yaw * 180.0 / M_PI);  // Convert radians to degrees
-
-    // Translate the painter back
-    painter.translate(-pos_pixmap.width() / 2, -pos_pixmap.height() / 2);
-
-    // Draw the pixmap
-    painter.drawPixmap(0, 0, pos_pixmap);
-
-    // Restore the painter state
-    painter.restore();
-
-  } else {
-    painter.drawPixmap(positionInOverlay, pos_pixmap);
+    tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+    // The icon points up, which is north; the yaw is counterclockwise from east
+    painter.rotate((M_PI / 2 - yaw) * 180.0 / M_PI);
   }
+  painter.drawPixmap(QPointF(-pos_pixmap_.width() / 2.0, -pos_pixmap_.height() / 2.0), pos_pixmap_);
+  painter.restore();
 
-  queueRender();
+  drawAttribution(painter, backgroundRect);
 }
 
-void VehicleMapDisplay::smoothUpdate()
+void VehicleMapDisplay::drawAttribution(QPainter & painter, const QRectF & backgroundRect)
 {
-  const double smoothing_factor = 0.08;
+  // Required by the OpenStreetMap tile usage policy and the ODbL
+  const QString text = QString::fromUtf8("© OpenStreetMap contributors");
+  QFont font = painter.font();
+  font.setPixelSize(9);
+  painter.setFont(font);
 
-  latitude_ = prev_latitude_ + smoothing_factor * (target_latitude_ - prev_latitude_);
-  longitude_ = prev_longitude_ + smoothing_factor * (target_longitude_ - prev_longitude_);
+  const QFontMetricsF metrics(font);
+  const QSizeF size(metrics.horizontalAdvance(text) + 6.0, metrics.height() + 2.0);
+  // Keep the text inside the rounded corners
+  const qreal bottom_offset = std::min(property_border_radius_->getInt() * 0.3, 40.0) + 4.0;
+  const QRectF text_rect(
+    backgroundRect.center().x() - size.width() / 2.0,
+    backgroundRect.bottom() - bottom_offset - size.height(), size.width(), size.height());
 
-  prev_latitude_ = latitude_;
-  prev_longitude_ = longitude_;
-
-  updateMapPosition();
+  painter.save();
+  painter.setPen(Qt::NoPen);
+  painter.setBrush(QColor(255, 255, 255, 180));
+  painter.drawRoundedRect(text_rect, 2.0, 2.0);
+  painter.setPen(QColor(60, 60, 60));
+  painter.drawText(text_rect, Qt::AlignCenter, text);
+  painter.restore();
 }
 
 void VehicleMapDisplay::onTilesUpdated()
 {
-  queueRender();
+  requestRedraw();
 }
 
 void VehicleMapDisplay::updateZoomLevel()
 {
-  zoom_ = property_zoom_->getInt();  // Update the zoom level
-
-  tile_field_->fetchTiles(zoom_, center_x_tile_, center_y_tile_);
+  zoom_ = property_zoom_->getInt();
   updateMapPosition();
-  queueRender();  // Request re-rendering
-}
-
-void VehicleMapDisplay::updateLatitude()
-{
-  latitude_ = property_latitude_->getFloat();
-  target_latitude_ = latitude_;
-  int new_center_x_tile = tile_field_->long_to_tile_x(longitude_, zoom_);
-  int new_center_y_tile = tile_field_->lat_to_tile_y(latitude_, zoom_);
-  center_x_tile_ = new_center_x_tile;
-  center_y_tile_ = new_center_y_tile;
-  tile_field_->fetchTiles(zoom_, center_x_tile_, center_y_tile_);
-  queueRender();
-}
-
-void VehicleMapDisplay::updateLongitude()
-{
-  longitude_ = property_longitude_->getFloat();
-  target_longitude_ = longitude_;
-  int new_center_x_tile = tile_field_->long_to_tile_x(longitude_, zoom_);
-  int new_center_y_tile = tile_field_->lat_to_tile_y(latitude_, zoom_);
-  center_x_tile_ = new_center_x_tile;
-  center_y_tile_ = new_center_y_tile;
-  tile_field_->fetchTiles(zoom_, center_x_tile_, center_y_tile_);
-  queueRender();
 }
 
 void VehicleMapDisplay::updateMapPosition()
 {
-  int new_center_x_tile = tile_field_->long_to_tile_x(longitude_, zoom_);
-  int new_center_y_tile = tile_field_->lat_to_tile_y(latitude_, zoom_);
-  center_x_tile_ = new_center_x_tile;
-  center_y_tile_ = new_center_y_tile;
-  tile_field_->fetchTiles(zoom_, new_center_x_tile, new_center_y_tile);
-  queueRender();
+  if (!has_vehicle_position_ || !isEnabled()) {
+    return;
+  }
+  tile_field_->setCenter(latitude_, longitude_, zoom_);
+  requestRedraw();
 }
 
 void VehicleMapDisplay::updateGoalPose()
 {
-  if (!route_msg_ || route_msg_->data.empty()) {
-    return;
-  }
-  const auto goal = localToLatLon(route_msg_->data.front().goal.position);
+  const auto goal = (route_msg_ && !route_msg_->data.empty())
+                      ? localToLatLon(route_msg_->data.front().goal.position)
+                      : std::nullopt;
   if (!goal) {
+    goal_pose_.clear();
+    requestRedraw();
     return;
   }
   goal_pose_.setGoalPosition(goal->first, goal->second);
   property_goal_lat->setFloat(goal->first);
   property_goal_lon->setFloat(goal->second);
-  queueRender();
+  requestRedraw();
 }
 
 void VehicleMapDisplay::updatePath()
 {
-  if (!route_points_msg_ || !map_projector_info_msg_) {
-    return;
-  }
   std::vector<std::pair<double, double>> path_points_geo;
-  path_points_geo.reserve(route_points_msg_->points.size());
-  for (const auto & point : route_points_msg_->points) {
-    const auto geo_point = localToLatLon(point.pose.position);
-    if (!geo_point) {
-      return;
+  if (route_points_msg_ && map_projector_info_msg_) {
+    path_points_geo.reserve(route_points_msg_->points.size());
+    for (const auto & point : route_points_msg_->points) {
+      const auto geo_point = localToLatLon(point.pose.position);
+      if (!geo_point) {
+        path_points_geo.clear();
+        break;
+      }
+      path_points_geo.push_back(*geo_point);
     }
-    path_points_geo.push_back(*geo_point);
   }
   path_overlay_.setPathPoints(std::move(path_points_geo));
-  queueRender();
+  requestRedraw();
 }
 
 void VehicleMapDisplay::routePointsCallback(
@@ -498,28 +427,33 @@ void VehicleMapDisplay::routeStateCallback(
   const autoware_adapi_v1_msgs::msg::RouteState::SharedPtr msg)
 {
   route_state_msg_ = msg;
-
-  queueRender();
+  requestRedraw();
 }
 
-// void VehicleMapDisplay::poseCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
 void VehicleMapDisplay::poseCallback(
   const autoware_adapi_v1_msgs::msg::VehicleKinematics::SharedPtr msg)
 {
+  const double lat = msg->geographic_pose.position.latitude;
+  const double lon = msg->geographic_pose.position.longitude;
+  if (!std::isfinite(lat) || !std::isfinite(lon)) {
+    RCLCPP_WARN_THROTTLE(
+      node_->get_logger(), *node_->get_clock(), 5000,
+      "Minimap plugin received a vehicle position that is not finite");
+    return;
+  }
+
   pose_msg_ = msg;
+  latitude_ = clamp_latitude(lat);
+  longitude_ = lon;
+  has_vehicle_position_ = true;
 
-  latitude_ = msg->geographic_pose.position.latitude;
-  longitude_ = msg->geographic_pose.position.longitude;
-  target_latitude_ = latitude_;
-  target_longitude_ = longitude_;
+  property_latitude_->setFloat(latitude_);
+  property_longitude_->setFloat(longitude_);
 
-  property_longitude_->setFloat(target_longitude_);
-  property_latitude_->setFloat(target_latitude_);
+  goal_pose_.setVehiclePosition(latitude_, longitude_);
+  path_overlay_.setVehiclePosition(latitude_, longitude_);
 
-  goal_pose_.setVehiclePosition(target_latitude_, target_longitude_);
-  path_overlay_.setVehiclePosition(target_latitude_, target_longitude_);
-
-  updateMapPosition();  // Method to update map position based on new latitude and longitude
+  updateMapPosition();
 }
 
 void VehicleMapDisplay::routeCallback(const autoware_adapi_v1_msgs::msg::Route::SharedPtr msg)

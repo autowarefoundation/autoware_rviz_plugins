@@ -14,58 +14,67 @@
 #ifndef TILE_FIELD_HPP_
 #define TILE_FIELD_HPP_
 
-#include "tile.hpp"
-#include "tile_provider.hpp"
-
 #include <QImage>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
 #include <QObject>
+#include <QPointF>
+#include <QPointer>
 
-#include <cmath>
+#include <chrono>
 #include <map>
-#include <memory>
-#include <mutex>
 #include <string>
-#include <utility>
+#include <tuple>
 
+// Downloads the 3 x 3 map tiles around a center tile and keeps them in memory
 class TileField : public QObject
 {
   Q_OBJECT
 
 public:
   explicit TileField(QObject * parent = nullptr);
-  ~TileField();
+  ~TileField() override;
 
-  void clearTiles();
-  void resetTileImages();
   void setUrlTemplate(const std::string & url_template);
-  void initializeTiles(int center_x_tile, int center_y_tile);
-  void fetchTiles(int zoom, int center_x_tile, int center_y_tile);
-  void updateTiles(int new_center_x_tile, int new_center_y_tile);
+  // Make the tile under the given position the center tile, and fetch the missing tiles
+  void setCenter(double lat, double lon, int zoom);
+  // Image of the 3 x 3 tiles; tiles that did not arrive yet are transparent
   QImage getTileFieldImage();
-  std::string getTileKey(int zoom, int x, int y, const std::string & url_template) const;
-
-  std::pair<int, int> getTileOffsets(double lat, double lon);
-  std::pair<double, double> latLonToTile(double lat, double lon, int zoom);
-
-  int long_to_tile_x(double lon, int z);
-  int lat_to_tile_y(double lat, int z);
-  double tile_x_to_long(int x, int z);
-  double tile_y_to_lat(int y, int z);
+  // Position of the top left corner of the tile field image in Web Mercator world pixels
+  QPointF getTileFieldOrigin() const;
 
 Q_SIGNALS:
   void tilesUpdated();
 
 private Q_SLOTS:
-  void onTileFetched();
+  void onReplyFinished(QNetworkReply * reply);
 
 private:
-  int zoom_ = 15;
-  int center_x_tile_;
-  int center_y_tile_;
-  std::map<std::string, std::unique_ptr<Tile>> tiles_;
-  QImage tile_field_image_;
-  std::mutex tile_mutex_;
+  using TileKey = std::tuple<int, int, int>;  // zoom, x, y
+
+  struct Tile
+  {
+    QImage image;
+    QPointer<QNetworkReply> reply;
+    int failures = 0;
+    std::chrono::steady_clock::time_point next_retry{};
+  };
+
+  void fetchMissingTiles();
+  void evictFarTiles();
+  void requestTile(const TileKey & key, Tile & tile);
+  void abortAll();
+
+  QNetworkAccessManager * network_manager_;
+  std::map<TileKey, Tile> tiles_;
   std::string url_template_;
+  int zoom_ = 0;
+  int center_x_tile_ = 0;
+  int center_y_tile_ = 0;
+  bool has_center_ = false;
+
+  QImage tile_field_image_;
+  bool image_dirty_ = true;
 };
 
 #endif  // TILE_FIELD_HPP_

@@ -26,33 +26,33 @@ This plugin provides a visual representation of the vehicle's position, the goal
 
 #### VehicleMapDisplay
 
-| Name               | Type   | Default Value   | Description                         |
-| ------------------ | ------ | --------------- | ----------------------------------- |
-| `Width`            | int    | 256             | Width of the overlay (max: 500 px)  |
-| `Height`           | int    | 256             | Height of the overlay (max: 500 px) |
-| `Left`             | int    | 10              | Left position of the overlay        |
-| `Top`              | int    | 10              | Top position of the overlay         |
-| `Alpha`            | float  | 0.0             | Transparency of the overlay         |
-| `Background Color` | QColor | QColor(0, 0, 0) | Background color of the overlay     |
-| `Zoom`             | int    | 15              | Zoom level of the map (15-18)       |
-| `Latitude`         | float  | 0.0             | Latitude of the ego vehicle         |
-| `Longitude`        | float  | 0.0             | Longitude of the ego vehicle        |
-| `Goal Latitude`    | float  | 0.0             | Latitude of the goal pose           |
-| `Goal Longitude`   | float  | 0.0             | Longitude of the goal pose          |
+| Name                | Type  | Default Value | Description                                                  |
+| ------------------- | ----- | ------------- | ------------------------------------------------------------ |
+| `Width`             | int   | 256           | Width of the overlay in pixels (1 to 500)                    |
+| `Height`            | int   | 256           | Height of the overlay in pixels (1 to 500)                   |
+| `Vertical Margin`   | int   | 10            | Vertical distance from the anchor in pixels                  |
+| `Horizontal Margin` | int   | 10            | Horizontal distance from the anchor in pixels                |
+| `Vertical Anchor`   | enum  | Bottom        | Top, Center, or Bottom of the RViz view                      |
+| `Horizontal Anchor` | enum  | Left          | Left, Center, or Right of the RViz view                      |
+| `Border Radius`     | int   | 128           | Corner radius of the overlay; half the height makes a circle |
+| `Alpha`             | float | 1.0           | Opacity of the overlay                                       |
+| `Tile Provider`     | enum  | OpenStreetMap | Source of the map tiles                                      |
+| `Zoom`              | int   | 15            | Zoom level of the map (15 to 18)                             |
+| `Latitude`          | float | (read-only)   | Latitude of the ego vehicle                                  |
+| `Longitude`         | float | (read-only)   | Longitude of the ego vehicle                                 |
+| `Goal Latitude`     | float | (read-only)   | Latitude of the goal pose                                    |
+| `Goal Longitude`    | float | (read-only)   | Longitude of the goal pose                                   |
 
 ## Important Note
 
+- The plugin needs internet access to download the map tiles. It keeps the downloaded tiles in a disk cache under `~/.cache/autoware_minimap_overlay_rviz_plugin`, and it shows "© OpenStreetMap contributors" on the map, as the [OpenStreetMap tile usage policy](https://operations.osmfoundation.org/policies/tiles/) asks.
 - The goal pose and the path are converted to geographic coordinates with the map projector info of the loaded map. All projector types except `Local` are supported.
-- The Zoom parameter should be set according to the map tiles available for the specified zoom levels between 15-18.
-- The Latitude, Longitude, Goal Latitude and Goal Longitude parameters update automatically from the vehicle's position and the route, and are there for debug purposes.
-- The Width and Height parameters should be set according to the desired size of the overlay, the maximum value is 500 px.
-- The Left and Top parameters should be set according to the desired position of the overlay, considering it is relative to the bottom-left corner of the RViz2 window.
+- The Latitude, Longitude, Goal Latitude and Goal Longitude properties show the received positions and cannot be edited.
 
 ## Assumptions / Known Limits
 
-- The plugin assumes that the vehicle position and goal pose topics are being published.
-- Map tiles must be fetched and available for the specified zoom levels.
-- The position icon should rotate correctly according to the vehicle's orientation.
+- The plugin assumes that the vehicle position and route topics are being published.
+- A tile that fails to download is tried again later, with a growing delay up to 60 seconds.
 
 ## Usage
 
@@ -74,19 +74,18 @@ Here is an example configuration for the VehicleMapDisplay:
 VehicleMapDisplay:
   Width: 256
   Height: 256
-  Left: 10
-  Top: 10
-  Alpha: 0.5
-  Background Color: [0, 0, 0]
+  Vertical Margin: 10
+  Horizontal Margin: 10
+  Vertical Anchor: Bottom
+  Horizontal Anchor: Left
+  Border Radius: 128
+  Alpha: 1.0
+  Tile Provider: OpenStreetMap
   Zoom: 16
-  Latitude: 35.0
-  Longitude: 139.0
-  Goal Latitude: 35.1
-  Goal Longitude: 139.1
 ```
 
 ## License
 
-This project is licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.
+The package is licensed under the Apache License, Version 2.0, except `src/overlay_utils.cpp` and `src/include/overlay_utils.hpp`. These files are based on [jsk_visualization](https://github.com/jsk-ros-pkg/jsk_visualization) and [rviz_2d_overlay_plugins](https://github.com/teamspatzenhirn/rviz_2d_overlay_plugins) and are under the 3-Clause BSD license in the [LICENSE](LICENSE) file.
 
 The `goal.png` and `pos.png` icons are derived from [Material Symbols](https://fonts.google.com/icons), which are available under the [Apache License Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).

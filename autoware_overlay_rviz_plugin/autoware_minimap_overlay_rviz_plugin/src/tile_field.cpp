@@ -13,225 +13,221 @@
 // limitations under the License.
 #include "include/tile_field.hpp"
 
+#include "include/tile_provider.hpp"
+#include "include/web_mercator.hpp"
+
+#include <QDir>
+#include <QImageReader>
+#include <QNetworkDiskCache>
+#include <QNetworkRequest>
 #include <QPainter>
-#include <QTimer>
+#include <QStandardPaths>
 #include <QUrl>
 
+#include <algorithm>
+#include <chrono>
 #include <cmath>
-#include <memory>
+#include <cstdlib>
 #include <string>
-#include <utility>
 
-TileField::TileField(QObject * parent) : QObject(parent), center_x_tile_(0), center_y_tile_(0)
+namespace
 {
-  url_template_ =
-    TileProvider::getUrlTemplate(TileProvider::OpenStreetMap);  // Default URL template
+constexpr int tile_size = 256;
+constexpr int keep_radius_tiles = 2;
+constexpr int max_retry_delay_s = 60;
+constexpr qint64 disk_cache_size_bytes = 100 * 1024 * 1024;
+constexpr char user_agent[] =
+  "autoware_minimap_overlay_rviz_plugin (+https://github.com/autowarefoundation/"
+  "autoware_rviz_plugins)";
+}  // namespace
+
+TileField::TileField(QObject * parent)
+: QObject(parent),
+  network_manager_(new QNetworkAccessManager(this)),
+  url_template_(TileProvider::getUrlTemplate(TileProvider::OpenStreetMap))
+{
+  // The OpenStreetMap tile usage policy asks clients to cache tiles
+  auto * disk_cache = new QNetworkDiskCache(this);
+  disk_cache->setCacheDirectory(
+    QDir(QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation))
+      .filePath("autoware_minimap_overlay_rviz_plugin"));
+  disk_cache->setMaximumCacheSize(disk_cache_size_bytes);
+  network_manager_->setCache(disk_cache);
+
+  connect(network_manager_, &QNetworkAccessManager::finished, this, &TileField::onReplyFinished);
 }
 
 TileField::~TileField()
 {
-  std::lock_guard<std::mutex> lock(tile_mutex_);
-  clearTiles();
+  abortAll();
 }
 
-void TileField::clearTiles()
+void TileField::abortAll()
 {
-  std::lock_guard<std::mutex> lock(tile_mutex_);
-  for (auto & tile : tiles_) {
-    if (tile.second) {
-      disconnect(tile.second.get(), &Tile::tileFetched, this, &TileField::onTileFetched);
-      tile.second.reset();
-    }
-  }
-  tiles_.clear();
-}
-
-void TileField::fetchTiles(int zoom, int center_x_tile, int center_y_tile)
-{
-  std::lock_guard<std::mutex> lock(tile_mutex_);
-  zoom_ = zoom != 0 ? zoom : zoom_;
-  center_x_tile_ = center_x_tile;
-  center_y_tile_ = center_y_tile;
-
-  for (int dx = -1; dx <= 1; ++dx) {
-    for (int dy = -1; dy <= 1; ++dy) {
-      int x_tile = center_x_tile_ + dx;
-      int y_tile = center_y_tile_ + dy;
-      // std::string tile_key =
-      //   std::to_string(zoom) + "/" + std::to_string(x_tile) + "/" + std::to_string(y_tile) +
-      //   ".png";
-      std::string tile_key = getTileKey(zoom_, x_tile, y_tile, url_template_);
-
-      if (tiles_.find(tile_key) == tiles_.end()) {
-        // Tile * tile = new Tile(zoom, x_tile, y_tile);
-        // tiles_[tile_key] = tile;
-        auto tile = std::make_unique<Tile>(zoom, x_tile, y_tile);
-
-        connect(tile.get(), &Tile::tileFetched, this, &TileField::onTileFetched);
-        tile->setUrlTemplate(url_template_);
-
-        tile->fetch();
-        tiles_[tile_key] = std::move(tile);
-      }
-    }
-  }
-}
-
-void TileField::initializeTiles(int center_x_tile, int center_y_tile)
-{
-  std::lock_guard<std::mutex> lock(tile_mutex_);
-  center_x_tile_ = center_x_tile;
-  center_y_tile_ = center_y_tile;
-  updateTiles(center_x_tile_, center_y_tile_);
-}
-
-void TileField::updateTiles(int new_center_x_tile, int new_center_y_tile)
-{
-  std::lock_guard<std::mutex> lock(tile_mutex_);
-  if (new_center_x_tile == center_x_tile_ && new_center_y_tile == center_y_tile_) {
-    return;
-  }
-
-  center_x_tile_ = new_center_x_tile;
-  center_y_tile_ = new_center_y_tile;
-
-  for (int dx = -1; dx <= 1; ++dx) {
-    for (int dy = -1; dy <= 1; ++dy) {
-      int x_tile = center_x_tile_ + dx;
-      int y_tile = center_y_tile_ + dy;
-
-      // auto tile_key = QString("%1/%2/%3.png").arg(zoom_).arg(x_tile).arg(y_tile).toStdString();
-      std::string tile_key = getTileKey(zoom_, x_tile, y_tile, url_template_);
-
-      if (tiles_.find(tile_key) == tiles_.end()) {
-        // Tile * tile = new Tile(zoom_, x_tile, y_tile);
-        // tiles_[tile_key] = tile;
-        auto tile = std::make_unique<Tile>(zoom_, x_tile, y_tile);
-
-        connect(tile.get(), &Tile::tileFetched, this, &TileField::onTileFetched);
-        tile->setUrlTemplate(url_template_);
-
-        tile->fetch();
-        tiles_[tile_key] = std::move(tile);
-      }
+  for (auto & [key, tile] : tiles_) {
+    if (tile.reply) {
+      tile.reply->abort();
     }
   }
 }
 
 void TileField::setUrlTemplate(const std::string & url_template)
 {
-  std::lock_guard<std::mutex> lock(tile_mutex_);
-
   if (url_template_ == url_template) {
     return;
   }
-
-  // Clear existing tiles before fetching new ones, this crashes rviz
-  // clearTiles();
-
   url_template_ = url_template;
-
-  // Re-fetch tiles with the new URL template after a short delay
-  QTimer::singleShot(100, this, [this]() { fetchTiles(zoom_, center_x_tile_, center_y_tile_); });
+  abortAll();
+  tiles_.clear();
+  image_dirty_ = true;
+  fetchMissingTiles();
 }
 
-std::string TileField::getTileKey(int zoom, int x, int y, const std::string & url_template) const
+void TileField::setCenter(double lat, double lon, int zoom)
 {
-  return url_template + "/" + std::to_string(zoom) + "/" + std::to_string(x) + "/" +
-         std::to_string(y) + ".png";
+  const QPointF world_pixel = autoware_minimap_overlay_rviz_plugin::lat_lon_to_world_pixel(
+    autoware_minimap_overlay_rviz_plugin::clamp_latitude(lat), lon, zoom);
+  const int center_x_tile = static_cast<int>(std::floor(world_pixel.x() / tile_size));
+  const int center_y_tile = static_cast<int>(std::floor(world_pixel.y() / tile_size));
+
+  const bool changed = !has_center_ || zoom != zoom_ || center_x_tile != center_x_tile_ ||
+                       center_y_tile != center_y_tile_;
+  zoom_ = zoom;
+  center_x_tile_ = center_x_tile;
+  center_y_tile_ = center_y_tile;
+  has_center_ = true;
+
+  if (changed) {
+    image_dirty_ = true;
+    evictFarTiles();
+  }
+  // Also called when the center did not change, to retry the tiles that failed
+  fetchMissingTiles();
+}
+
+void TileField::evictFarTiles()
+{
+  for (auto it = tiles_.begin(); it != tiles_.end();) {
+    const auto & [zoom, x, y] = it->first;
+    const bool far = zoom != zoom_ || std::abs(x - center_x_tile_) > keep_radius_tiles ||
+                     std::abs(y - center_y_tile_) > keep_radius_tiles;
+    if (far) {
+      if (it->second.reply) {
+        it->second.reply->abort();
+      }
+      it = tiles_.erase(it);
+    } else {
+      ++it;
+    }
+  }
+}
+
+void TileField::fetchMissingTiles()
+{
+  if (!has_center_) {
+    return;
+  }
+  const int tile_count = 1 << zoom_;
+  const auto now = std::chrono::steady_clock::now();
+  for (int dx = -1; dx <= 1; ++dx) {
+    for (int dy = -1; dy <= 1; ++dy) {
+      const int x = center_x_tile_ + dx;
+      const int y = center_y_tile_ + dy;
+      if (x < 0 || x >= tile_count || y < 0 || y >= tile_count) {
+        continue;
+      }
+      const TileKey key{zoom_, x, y};
+      Tile & tile = tiles_[key];
+      if (tile.image.isNull() && !tile.reply && now >= tile.next_retry) {
+        requestTile(key, tile);
+      }
+    }
+  }
+}
+
+void TileField::requestTile(const TileKey & key, Tile & tile)
+{
+  const auto & [zoom, x, y] = key;
+  const QString url = QString::fromStdString(url_template_)
+                        .replace("{z}", QString::number(zoom))
+                        .replace("{x}", QString::number(x))
+                        .replace("{y}", QString::number(y));
+  QNetworkRequest request{QUrl(url)};
+  request.setHeader(QNetworkRequest::UserAgentHeader, user_agent);
+  request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
+
+  QNetworkReply * reply = network_manager_->get(request);
+  reply->setProperty("tile_zoom", zoom);
+  reply->setProperty("tile_x", x);
+  reply->setProperty("tile_y", y);
+  tile.reply = reply;
+}
+
+void TileField::onReplyFinished(QNetworkReply * reply)
+{
+  reply->deleteLater();
+
+  const TileKey key{
+    reply->property("tile_zoom").toInt(), reply->property("tile_x").toInt(),
+    reply->property("tile_y").toInt()};
+  const auto it = tiles_.find(key);
+  if (it == tiles_.end() || it->second.reply != reply) {
+    // The tile was evicted or requested again
+    return;
+  }
+  Tile & tile = it->second;
+  tile.reply = nullptr;
+
+  QImage image;
+  if (reply->error() == QNetworkReply::NoError) {
+    QImageReader reader(reply);
+    image = reader.read();
+  }
+
+  if (image.isNull()) {
+    // Retry with an exponential backoff, for example when offline or rate limited
+    ++tile.failures;
+    const int delay_s = std::min(max_retry_delay_s, 1 << std::min(tile.failures, 6));
+    tile.next_retry = std::chrono::steady_clock::now() + std::chrono::seconds(delay_s);
+    return;
+  }
+
+  tile.image = image;
+  tile.failures = 0;
+  image_dirty_ = true;
+  Q_EMIT tilesUpdated();
 }
 
 QImage TileField::getTileFieldImage()
 {
-  std::lock_guard<std::mutex> lock(tile_mutex_);
-  if (tile_field_image_.isNull()) {
-    int tile_size = 256;  // Assuming tile size is 256x256 pixels
-    tile_field_image_ = QImage(tile_size * 3, tile_size * 3, QImage::Format_ARGB32);
+  if (!image_dirty_) {
+    return tile_field_image_;
   }
+  if (tile_field_image_.isNull()) {
+    tile_field_image_ = QImage(tile_size * 3, tile_size * 3, QImage::Format_ARGB32_Premultiplied);
+  }
+  tile_field_image_.fill(Qt::transparent);
 
   QPainter painter(&tile_field_image_);
-  painter.fillRect(tile_field_image_.rect(), Qt::transparent);
-
   for (int dx = -1; dx <= 1; ++dx) {
     for (int dy = -1; dy <= 1; ++dy) {
-      int x_tile = center_x_tile_ + dx;
-      int y_tile = center_y_tile_ + dy;
-
-      // auto tile_key = QString("%1/%2/%3.png").arg(zoom_).arg(x_tile).arg(y_tile).toStdString();
-      std::string tile_key = getTileKey(zoom_, x_tile, y_tile, url_template_);
-
-      float lon = tile_x_to_long(x_tile, zoom_);
-      // Round the longitude to 2 decimal places
-      lon = std::round(lon * 100) / 100;
-      float lat = tile_y_to_lat(y_tile, zoom_);
-      // Round the latitude to 2 decimal places
-      lat = std::round(lat * 100) / 100;
-
-      QString tile_text = QString("Lat: %1\nLon: %2").arg(lat).arg(lon);
-
-      auto tile_it = tiles_.find(tile_key);
-      if (tile_it != tiles_.end() && !tile_it->second->getImage().isNull()) {
-        QRectF target((dx + 1) * 256, (dy + 1) * 256, 256, 256);
-        QRectF source(0, 0, 256, 256);
-        painter.drawImage(target, tile_it->second->getImage(), source);
-        // Draw the latitude and longitude on the tile
-        // painter.drawText(target, Qt::AlignCenter, tile_text);
+      const auto it = tiles_.find(TileKey{zoom_, center_x_tile_ + dx, center_y_tile_ + dy});
+      if (it != tiles_.end() && !it->second.image.isNull()) {
+        painter.drawImage(
+          QRectF((dx + 1) * tile_size, (dy + 1) * tile_size, tile_size, tile_size),
+          it->second.image);
       }
     }
   }
+  painter.end();
 
+  image_dirty_ = false;
   return tile_field_image_;
 }
 
-void TileField::onTileFetched()
+QPointF TileField::getTileFieldOrigin() const
 {
-  Q_EMIT tilesUpdated();
-}
-
-int TileField::long_to_tile_x(double lon, int z)
-{
-  return static_cast<int>(floor((lon + 180.0) / 360.0 * (1 << z)));
-}
-
-int TileField::lat_to_tile_y(double lat, int z)
-{
-  double lat_radius = lat * M_PI / 180.0;
-  return static_cast<int>(floor((1.0 - asinh(tan(lat_radius)) / M_PI) / 2.0 * (1 << z)));
-}
-
-double TileField::tile_x_to_long(int x, int z)
-{
-  return x / static_cast<double>(1 << z) * 360.0 - 180;
-}
-
-double TileField::tile_y_to_lat(int y, int z)
-{
-  double n = M_PI - 2.0 * M_PI * y / static_cast<double>(1 << z);
-  return 180.0 / M_PI * atan(0.5 * (exp(n) - exp(-n)));
-}
-
-std::pair<int, int> TileField::getTileOffsets(double lat, double lon)
-{
-  double x = (lon + 180.0) / 360.0 * std::pow(2.0, zoom_);
-  double y =
-    (1.0 - std::log(std::tan(lat * M_PI / 180.0) + 1.0 / std::cos(lat * M_PI / 180.0)) / M_PI) /
-    2.0 * std::pow(2.0, zoom_);
-
-  int x_tile = static_cast<int>(std::floor(x));
-  int y_tile = static_cast<int>(std::floor(y));
-
-  int x_offset = static_cast<int>((x - x_tile) * 256);
-  int y_offset = static_cast<int>((y - y_tile) * 256);
-
-  return {128 + x_offset, 128 + y_offset};
-}
-
-std::pair<double, double> TileField::latLonToTile(double lat, double lon, int zoom)
-{
-  double x = (lon + 180.0) / 360.0 * std::pow(2.0, zoom);
-  double y =
-    (1.0 - std::log(std::tan(lat * M_PI / 180.0) + 1.0 / std::cos(lat * M_PI / 180.0)) / M_PI) /
-    2.0 * std::pow(2.0, zoom);
-
-  return {x, y};
+  return {
+    static_cast<double>((center_x_tile_ - 1) * tile_size),
+    static_cast<double>((center_y_tile_ - 1) * tile_size)};
 }

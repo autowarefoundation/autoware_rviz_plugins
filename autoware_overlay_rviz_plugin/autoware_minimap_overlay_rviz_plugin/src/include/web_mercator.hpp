@@ -17,12 +17,20 @@
 #include <QPointF>
 #include <QRectF>
 
+#include <algorithm>
 #include <cmath>
 
 namespace autoware_minimap_overlay_rviz_plugin
 {
 
 constexpr double tile_size_px = 256.0;
+// The Web Mercator projection is defined up to this latitude
+constexpr double max_latitude = 85.0511287798;
+
+inline double clamp_latitude(double lat)
+{
+  return std::clamp(lat, -max_latitude, max_latitude);
+}
 
 // Position in pixels on the whole Web Mercator map at the given zoom level
 inline QPointF lat_lon_to_world_pixel(double lat, double lon, int zoom)

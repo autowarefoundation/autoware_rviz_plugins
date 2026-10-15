@@ -21,12 +21,12 @@
 #include "rviz_common/properties/enum_property.hpp"
 #include "rviz_common/properties/float_property.hpp"
 #include "rviz_common/properties/int_property.hpp"
-#include "rviz_common/properties/ros_topic_property.hpp"
 #include "rviz_common/properties/string_property.hpp"
 #include "tile_field.hpp"
 #include "tile_provider.hpp"  // Include the TileProvider header
 
 #include <QImage>
+#include <QPixmap>
 #include <QVBoxLayout>
 #include <rclcpp/rclcpp.hpp>
 #include <rviz_common/display.hpp>
@@ -78,10 +78,8 @@ protected Q_SLOTS:
   void updateOverlayPosition();
   void onTilesUpdated();
   void updateZoomLevel();
-  void updateLatitude();
-  void updateLongitude();
   void updateMapPosition();
-  void updateTileProvider();  // Add this slot
+  void updateTileProvider();
 
 protected:
   void onEnable() override;
@@ -90,6 +88,8 @@ protected:
 private:
   void drawWidget(QImage & hud);
   void drawCircle(QPainter & painter, const QRectF & backgroundRect);
+  void drawAttribution(QPainter & painter, const QRectF & backgroundRect);
+  void requestRedraw();
   void routeCallback(const autoware_adapi_v1_msgs::msg::Route::SharedPtr msg);
   void poseCallback(const autoware_adapi_v1_msgs::msg::VehicleKinematics::SharedPtr msg);
   void routeStateCallback(const autoware_adapi_v1_msgs::msg::RouteState::SharedPtr msg);
@@ -99,13 +99,11 @@ private:
   void updatePath();
 
   std::optional<std::pair<double, double>> localToLatLon(const geometry_msgs::msg::Point & point);
-  void smoothUpdate();
 
   autoware_minimap_overlay_rviz_plugin::OverlayObject::SharedPtr overlay_;
 
   std::mutex mutex_;
   std::mutex property_mutex_;
-  std::mutex tile_mutex_;
 
   rviz_common::properties::IntProperty * property_width_;
   rviz_common::properties::IntProperty * property_height_;
@@ -130,11 +128,11 @@ private:
   std::unique_ptr<TileField> tile_field_;
   rclcpp::Node::SharedPtr node_;
 
-  int center_x_tile_;
-  int center_y_tile_;
-
-  double latitude_;
-  double longitude_;
+  double latitude_ = 0.0;
+  double longitude_ = 0.0;
+  bool has_vehicle_position_ = false;
+  bool needs_redraw_ = true;
+  QPixmap pos_pixmap_;
 
   // subscription ptr and msg ptr
   rclcpp::Subscription<autoware_adapi_v1_msgs::msg::Route>::SharedPtr route_sub_;
@@ -159,13 +157,7 @@ private:
   GoalPose goal_pose_;
   PathOverlay path_overlay_;
 
-  // Previous and target positions
-  double prev_latitude_;
-  double prev_longitude_;
-  double target_latitude_;
-  double target_longitude_;
-
-  TileProvider::Provider current_tile_provider_;  // Add this line
+  TileProvider::Provider current_tile_provider_;
 };
 
 }  // namespace autoware_minimap_overlay_rviz_plugin

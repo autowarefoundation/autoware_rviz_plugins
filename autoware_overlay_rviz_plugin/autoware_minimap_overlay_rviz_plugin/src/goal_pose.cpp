@@ -32,10 +32,19 @@ void GoalPose::setGoalPosition(double lat, double lon)
 {
   goal_lat_ = lat;
   goal_lon_ = lon;
+  has_goal_ = true;
+}
+
+void GoalPose::clear()
+{
+  has_goal_ = false;
 }
 
 void GoalPose::draw(QPainter & painter, const QRectF & backgroundRect, int zoom) const
 {
+  if (!has_goal_) {
+    return;
+  }
   const QPointF goal_pixel = autoware_minimap_overlay_rviz_plugin::lat_lon_to_overlay_pixel(
     goal_lat_, goal_lon_, vehicle_lat_, vehicle_lon_, zoom, backgroundRect);
 
