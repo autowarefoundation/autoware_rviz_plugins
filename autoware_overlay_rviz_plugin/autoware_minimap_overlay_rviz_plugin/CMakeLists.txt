@@ -42,6 +42,8 @@ target_compile_definitions(${PROJECT_NAME} PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNC
 
 if(BUILD_TESTING)
   list(APPEND AMENT_LINT_AUTO_EXCLUDE ament_cmake_uncrustify)
+  ament_auto_add_gtest(test_web_mercator test/test_web_mercator.cpp)
+  target_link_libraries(test_web_mercator Qt5::Core)
 endif()
 
 pluginlib_export_plugin_description_file(rviz_common plugins/plugin_description.xml)
