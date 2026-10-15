@@ -12,12 +12,13 @@ This plugin provides a visual representation of the vehicle's position, the goal
 
 ### Input
 
-| Name                                             | Type                                             | Description                           |
-| ------------------------------------------------ | ------------------------------------------------ | ------------------------------------- |
-| `/api/vehicle/kinematics`                        | `autoware_adapi_v1_msgs::msg::VehicleKinematics` | The topic is the vehicle's kinematics |
-| `/planning/mission_planning/echo_back_goal_pose` | `geometry_msgs::msg::PoseStamped`                | The topic is the goal pose            |
-| `/api/routing/state`                             | `autoware_adapi_v1_msgs::msg::RouteState`        | The topic is the routing state        |
-| `/planning/scenario_planning/trajectory`         | `autoware_planning_msgs::msg::Trajectory`        | The topic is the planned trajectory   |
+| Name                      | Type                                             | Description                                              |
+| ------------------------- | ------------------------------------------------ | -------------------------------------------------------- |
+| `/api/vehicle/kinematics` | `autoware_adapi_v1_msgs::msg::VehicleKinematics` | The geographic pose of the vehicle                       |
+| `/api/routing/route`      | `autoware_adapi_v1_msgs::msg::Route`             | The route, the goal pose is taken from it                |
+| `/api/routing/state`      | `autoware_adapi_v1_msgs::msg::RouteState`        | The routing state, goal and path show when it's SET      |
+| `/planning/trajectory`    | `autoware_planning_msgs::msg::Trajectory`        | The planned trajectory, drawn as the path                |
+| `/map/map_projector_info` | `autoware_map_msgs::msg::MapProjectorInfo`       | Converts the goal and the path to latitude and longitude |
 
 ## Parameters
 
@@ -25,27 +26,25 @@ This plugin provides a visual representation of the vehicle's position, the goal
 
 #### VehicleMapDisplay
 
-| Name                   | Type   | Default Value     | Description                         |
-| ---------------------- | ------ | ----------------- | ----------------------------------- |
-| `Width`                | int    | 256               | Width of the overlay (max: 500 px)  |
-| `Height`               | int    | 256               | Height of the overlay (max: 500 px) |
-| `Left`                 | int    | 10                | Left position of the overlay        |
-| `Top`                  | int    | 10                | Top position of the overlay         |
-| `Alpha`                | float  | 0.0               | Transparency of the overlay         |
-| `Background Color`     | QColor | QColor(0, 0, 0)   | Background color of the overlay     |
-| `Zoom`                 | int    | 15                | Zoom level of the map (15-18)       |
-| `Latitude`             | float  | 0.0               | Latitude of the ego vehicle         |
-| `Longitude`            | float  | 0.0               | Longitude of the ego vehicle        |
-| `Goal Latitude`        | float  | 0.0               | Latitude of the goal pose           |
-| `Goal Longitude`       | float  | 0.0               | Longitude of the goal pose          |
-| `Map Origin Latitude`  | float  | 35.23808753540768 | Latitude of the map origin          |
-| `Map Origin Longitude` | float  | 139.9009591876285 | Longitude of the map origin         |
+| Name               | Type   | Default Value   | Description                         |
+| ------------------ | ------ | --------------- | ----------------------------------- |
+| `Width`            | int    | 256             | Width of the overlay (max: 500 px)  |
+| `Height`           | int    | 256             | Height of the overlay (max: 500 px) |
+| `Left`             | int    | 10              | Left position of the overlay        |
+| `Top`              | int    | 10              | Top position of the overlay         |
+| `Alpha`            | float  | 0.0             | Transparency of the overlay         |
+| `Background Color` | QColor | QColor(0, 0, 0) | Background color of the overlay     |
+| `Zoom`             | int    | 15              | Zoom level of the map (15-18)       |
+| `Latitude`         | float  | 0.0             | Latitude of the ego vehicle         |
+| `Longitude`        | float  | 0.0             | Longitude of the ego vehicle        |
+| `Goal Latitude`    | float  | 0.0             | Latitude of the goal pose           |
+| `Goal Longitude`   | float  | 0.0             | Longitude of the goal pose          |
 
 ## Important Note
 
-- The Map Origin Latitude and Map Origin Longitude parameters should be updated according to the specific map being used. These values define the reference point for converting local coordinates to geographic coordinates and vice versa, the default values are for the `sample-map-planning` from the Autoware planning tutorial.
+- The goal pose and the path are converted to geographic coordinates with the map projector info of the loaded map. All projector types except `Local` are supported.
 - The Zoom parameter should be set according to the map tiles available for the specified zoom levels between 15-18.
-- The Latitude and Longitude parameters should automatically update based on the vehicle's position and the goal pose topics, and are there for debug purposes.
+- The Latitude, Longitude, Goal Latitude and Goal Longitude parameters update automatically from the vehicle's position and the route, and are there for debug purposes.
 - The Width and Height parameters should be set according to the desired size of the overlay, the maximum value is 500 px.
 - The Left and Top parameters should be set according to the desired position of the overlay, considering it is relative to the bottom-left corner of the RViz2 window.
 
@@ -63,7 +62,7 @@ This plugin provides a visual representation of the vehicle's position, the goal
 
 2. Under the `By display type` tab, select `autoware_minimap_overlay_rviz_plugin/VehicleMapDisplay` and press OK.
 
-3. Edit size, position, zoom or map origin parameters as needed.
+3. Edit size, position or zoom parameters as needed.
 
    ![select_topic_name](./icons/params.png)
 
@@ -84,10 +83,10 @@ VehicleMapDisplay:
   Longitude: 139.0
   Goal Latitude: 35.1
   Goal Longitude: 139.1
-  Map Origin Latitude: 35.23808753540768
-  Map Origin Longitude: 139.9009591876285
 ```
 
 ## License
 
 This project is licensed under the Apache License, Version 2.0. See the [LICENSE](LICENSE) file for details.
+
+The `goal.png` and `pos.png` icons are derived from [Material Symbols](https://fonts.google.com/icons), which are available under the [Apache License Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).
