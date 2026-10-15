@@ -17,6 +17,7 @@
 #include <QPainterPath>
 #include <QPixmap>
 #include <ament_index_cpp/get_package_share_directory.hpp>
+#include <autoware/geography_utils/projection.hpp>
 #include <rviz_rendering/render_system.hpp>
 
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
@@ -110,19 +111,13 @@ VehicleMapDisplay::VehicleMapDisplay()
   property_longitude_ = new rviz_common::properties::FloatProperty(
     "Longitude", 0.0, "Longitude of the ego", this, SLOT(updateLongitude()));
 
-  property_goal_lat = new rviz_common::properties::FloatProperty(
-    "Goal Latitude", 0.0, "Goal pose Latitude", this, SLOT(updateGoalPose()));
+  property_goal_lat =
+    new rviz_common::properties::FloatProperty("Goal Latitude", 0.0, "Goal pose Latitude", this);
+  property_goal_lat->setReadOnly(true);
 
-  property_goal_lon = new rviz_common::properties::FloatProperty(
-    "Goal Longitude", 0.0, "Goal pose Longitude", this, SLOT(updateGoalPose()));
-
-  property_origin_lat_ = new rviz_common::properties::FloatProperty(
-    "Map Origin Latitude", 35.23808753540768, "Latitude of the map origin position", this,
-    SLOT(updateLatitude()));
-
-  property_origin_lon_ = new rviz_common::properties::FloatProperty(
-    "Map Origin Longitude", 139.9009591876285, "Longitude of the map origin position", this,
-    SLOT(updateLongitude()));
+  property_goal_lon =
+    new rviz_common::properties::FloatProperty("Goal Longitude", 0.0, "Goal pose Longitude", this);
+  property_goal_lon->setReadOnly(true);
 
   zoom_ = property_zoom_->getInt();
 
@@ -153,31 +148,26 @@ void VehicleMapDisplay::onInitialize()
 
   node_ = context_->getRosNodeAbstraction().lock()->get_raw_node();
 
-  // Initialize the goal pose subscriber
-  goal_pose_sub_ = node_->create_subscription<geometry_msgs::msg::PoseStamped>(
-    "/planning/mission_planning/echo_back_goal_pose", 10,
-    std::bind(&VehicleMapDisplay::goalPoseCallback, this, std::placeholders::_1));
+  // Route and route state are published with transient local durability
+  rclcpp::QoS qos_settings = rclcpp::QoS(1).reliable().transient_local();
 
-  // pose_sub_ = node_->create_subscription<nav_msgs::msg::Odometry>(
-  //   "/localization/kinematic_state", 10,
-  //   std::bind(&VehicleMapDisplay::poseCallback, this, std::placeholders::_1));
+  route_sub_ = node_->create_subscription<autoware_adapi_v1_msgs::msg::Route>(
+    "/api/routing/route", qos_settings,
+    std::bind(&VehicleMapDisplay::routeCallback, this, std::placeholders::_1));
 
   pose_sub_ = node_->create_subscription<autoware_adapi_v1_msgs::msg::VehicleKinematics>(
     "/api/vehicle/kinematics", rclcpp::QoS(10).best_effort(),
     std::bind(&VehicleMapDisplay::poseCallback, this, std::placeholders::_1));
 
   route_state_sub_ = node_->create_subscription<autoware_adapi_v1_msgs::msg::RouteState>(
-    "/api/routing/state", 10,
+    "/api/routing/state", qos_settings,
     std::bind(&VehicleMapDisplay::routeStateCallback, this, std::placeholders::_1));
 
   route_points_sub_ = node_->create_subscription<autoware_planning_msgs::msg::Trajectory>(
-    "/planning/scenario_planning/trajectory", 10,
+    "/planning/trajectory", 10,
     std::bind(&VehicleMapDisplay::routePointsCallback, this, std::placeholders::_1));
 
-  // Subscribe to the map projector info topic
-  rclcpp::QoS qos_settings = rclcpp::QoS(1).reliable().transient_local();
-
-  map_projector_info_sub_ = node_->create_subscription<tier4_map_msgs::msg::MapProjectorInfo>(
+  map_projector_info_sub_ = node_->create_subscription<autoware_map_msgs::msg::MapProjectorInfo>(
     "/map/map_projector_info", qos_settings,
     std::bind(&VehicleMapDisplay::mapProjectorInfoCallback, this, std::placeholders::_1));
 
@@ -187,29 +177,37 @@ void VehicleMapDisplay::onInitialize()
 }
 
 void VehicleMapDisplay::mapProjectorInfoCallback(
-  const tier4_map_msgs::msg::MapProjectorInfo::SharedPtr msg)
+  const autoware_map_msgs::msg::MapProjectorInfo::SharedPtr msg)
 {
+  if (msg->projector_type == autoware_map_msgs::msg::MapProjectorInfo::LOCAL) {
+    RCLCPP_ERROR_STREAM(
+      node_->get_logger(),
+      "Minimap plugin cannot show the goal pose and the path with a Local map projector");
+    map_projector_info_msg_ = nullptr;
+    return;
+  }
   map_projector_info_msg_ = msg;
 
-  if (
-    msg->projector_type != tier4_map_msgs::msg::MapProjectorInfo::MGRS &&
-    msg->projector_type != tier4_map_msgs::msg::MapProjectorInfo::LOCAL_CARTESIAN_UTM) {
-    RCLCPP_ERROR_STREAM(
-      node_->get_logger(), "Minimap plugin only supports MGRS and UTM for projector type");
-  }
-  projector_type_ = msg->projector_type;
-  mgrs_grid_ = msg->mgrs_grid;
-
-  // For some reason this always returns 0,0 so we need to set it manually in the properties
-  // according to the map used
-  // property_origin_lat_->setFloat(msg->map_origin.latitude);
-  // property_origin_lon_->setFloat(msg->map_origin.longitude);
-
-  goal_pose_.setProjectionInfo(projector_type_, mgrs_grid_);
-  path_overlay_.setProjectionInfo(projector_type_, mgrs_grid_);
-
   updateGoalPose();
-  updateMapPosition();
+  updatePath();
+}
+
+std::optional<std::pair<double, double>> VehicleMapDisplay::localToLatLon(
+  const geometry_msgs::msg::Point & point)
+{
+  if (!map_projector_info_msg_) {
+    return std::nullopt;
+  }
+  try {
+    const auto geo_point =
+      autoware::geography_utils::project_reverse(point, *map_projector_info_msg_);
+    return std::make_pair(geo_point.latitude, geo_point.longitude);
+  } catch (const std::exception & e) {
+    RCLCPP_ERROR_STREAM_THROTTLE(
+      node_->get_logger(), *node_->get_clock(), 5000,
+      "Minimap plugin failed to project a local point: " << e.what());
+    return std::nullopt;
+  }
 }
 
 void VehicleMapDisplay::reset()
@@ -352,11 +350,11 @@ void VehicleMapDisplay::drawCircle(QPainter & painter, const QRectF & background
   pos_pixmap = pos_pixmap.scaled(25, 25, Qt::KeepAspectRatio);
 
   QPointF positionInOverlay =
-    backgroundRect.center() - QPointF(pos_pixmap.width() / 4, pos_pixmap.height() / 4);
+    backgroundRect.center() - QPointF(pos_pixmap.width() / 2.0, pos_pixmap.height() / 2.0);
 
   if (route_state_msg_ && route_state_msg_->state == autoware_adapi_v1_msgs::msg::RouteState::SET) {
-    goal_pose_.draw(painter, backgroundRect, zoom_);
     path_overlay_.draw(painter, backgroundRect, zoom_);
+    goal_pose_.draw(painter, backgroundRect, zoom_);
   }
   if (pose_msg_) {  // Assuming pose_msg_ is your pose message
     tf2::Quaternion q(
@@ -417,19 +415,6 @@ void VehicleMapDisplay::updateZoomLevel()
 {
   zoom_ = property_zoom_->getInt();  // Update the zoom level
 
-  // Update the map position based on the new zoom level
-  if (pose_msg_) {
-    poseCallback(pose_msg_);
-  }
-
-  if (goal_pose_msg_) {
-    goalPoseCallback(goal_pose_msg_);
-  }
-
-  if (route_points_msg_) {
-    routePointsCallback(route_points_msg_);
-  }
-
   tile_field_->fetchTiles(zoom_, center_x_tile_, center_y_tile_);
   updateMapPosition();
   queueRender();  // Request re-rendering
@@ -471,19 +456,34 @@ void VehicleMapDisplay::updateMapPosition()
 
 void VehicleMapDisplay::updateGoalPose()
 {
-  double goal_x = property_goal_lat->getFloat();
-  double goal_y = property_goal_lon->getFloat();
-  double origin_lat = property_origin_lat_->getFloat();
-  double origin_lon = property_origin_lon_->getFloat();
-  goal_pose_.setGoalPosition(goal_x, goal_y, origin_lat, origin_lon);
-  if (!goal_pose_msg_) {
+  if (!route_msg_ || route_msg_->data.empty()) {
     return;
   }
-  goalPoseCallback(goal_pose_msg_);
-
-  if (route_points_msg_) {
-    routePointsCallback(route_points_msg_);
+  const auto goal = localToLatLon(route_msg_->data.front().goal.position);
+  if (!goal) {
+    return;
   }
+  goal_pose_.setGoalPosition(goal->first, goal->second);
+  property_goal_lat->setFloat(goal->first);
+  property_goal_lon->setFloat(goal->second);
+  queueRender();
+}
+
+void VehicleMapDisplay::updatePath()
+{
+  if (!route_points_msg_ || !map_projector_info_msg_) {
+    return;
+  }
+  std::vector<std::pair<double, double>> path_points_geo;
+  path_points_geo.reserve(route_points_msg_->points.size());
+  for (const auto & point : route_points_msg_->points) {
+    const auto geo_point = localToLatLon(point.pose.position);
+    if (!geo_point) {
+      return;
+    }
+    path_points_geo.push_back(*geo_point);
+  }
+  path_overlay_.setPathPoints(std::move(path_points_geo));
   queueRender();
 }
 
@@ -491,22 +491,7 @@ void VehicleMapDisplay::routePointsCallback(
   const autoware_planning_msgs::msg::Trajectory::SharedPtr msg)
 {
   route_points_msg_ = msg;
-
-  // Convert the route points to local coordinates and set them in the RouteOverlay
-  std::vector<PathPoint> path_points;
-  for (const auto & pose : msg->points) {
-    PathPoint point;
-    point.x = pose.pose.position.x;
-    point.y = pose.pose.position.y;
-    path_points.push_back(point);
-  }
-
-  double origin_lat = property_origin_lat_->getFloat();
-  double origin_lon = property_origin_lon_->getFloat();
-  path_overlay_.setPathPoints(path_points, origin_lat, origin_lon);
-  path_overlay_.setVehiclePosition(latitude_, longitude_);
-
-  queueRender();
+  updatePath();
 }
 
 void VehicleMapDisplay::routeStateCallback(
@@ -537,81 +522,10 @@ void VehicleMapDisplay::poseCallback(
   updateMapPosition();  // Method to update map position based on new latitude and longitude
 }
 
-void VehicleMapDisplay::goalPoseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg)
+void VehicleMapDisplay::routeCallback(const autoware_adapi_v1_msgs::msg::Route::SharedPtr msg)
 {
-  goal_pose_msg_ = msg;
-
-  double origin_lat = property_origin_lat_->getFloat();
-  double origin_lon = property_origin_lon_->getFloat();
-  goal_pose_.setGoalPosition(msg->pose.position.x, msg->pose.position.y, origin_lat, origin_lon);
-
-  // Set the vehicle position in the goal pose (in case it was not set yet)
-  goal_pose_.setVehiclePosition(target_latitude_, target_longitude_);
-  path_overlay_.setVehiclePosition(target_latitude_, target_longitude_);
-
-  property_goal_lat->setFloat(goal_pose_.getGoalLatitude());
-  property_goal_lon->setFloat(goal_pose_.getGoalLongitude());
-  queueRender();
-}
-
-std::pair<double, double> VehicleMapDisplay::localXYZToLatLon(double local_x, double local_y)
-{
-  if (projector_type_ == "MGRS") {
-    return localXYZToLatLonMGRS(local_x, local_y);
-  }
-  return localXYZToLatLonUTM(local_x, local_y);
-}
-
-std::pair<double, double> VehicleMapDisplay::localXYZToLatLonUTM(double x, double y)
-{
-  int zone;
-  bool north_p;
-  double origin_lat = property_origin_lat_->getFloat();
-  double origin_lon = property_origin_lon_->getFloat();
-  double origin_x, origin_y, gamma, k;
-
-  // Convert origin to UTM coordinates
-  GeographicLib::UTMUPS::Forward(
-    origin_lat, origin_lon, zone, north_p, origin_x, origin_y, gamma, k);
-
-  // Calculate global UTM coordinates by adding local offsets
-  double global_x = origin_x + x;
-  double global_y = origin_y + y;
-
-  // Convert back to geographic coordinates
-  double lat, lon;
-  GeographicLib::UTMUPS::Reverse(zone, north_p, global_x, global_y, lat, lon);
-
-  return {lat, lon};
-}
-
-std::pair<double, double> VehicleMapDisplay::localXYZToLatLonMGRS(double x, double y)
-{
-  // Assuming we have the origin_lat_ and origin_lon_ set
-  int zone;
-  bool north_p;
-  double origin_x, origin_y, gamma, k;
-
-  // Convert origin to UTM coordinates
-  GeographicLib::UTMUPS::Forward(
-    property_origin_lat_->getFloat(), property_origin_lon_->getFloat(), zone, north_p, origin_x,
-    origin_y, gamma, k);
-
-  // Calculate global UTM coordinates by adding local offsets
-  double global_x = origin_x + x;
-  double global_y = origin_y + y;
-
-  // Convert global UTM coordinates to MGRS
-  std::string mgrs;
-  GeographicLib::MGRS::Forward(zone, north_p, global_x, global_y, 5, mgrs);
-
-  // Convert MGRS coordinates to geographic coordinates
-  double lat, lon;
-  int prec;
-  bool northp;
-  GeographicLib::MGRS::Reverse(mgrs, zone, northp, lat, lon, prec);
-
-  return {lat, lon};
+  route_msg_ = msg;
+  updateGoalPose();
 }
 
 }  // namespace autoware_minimap_overlay_rviz_plugin

@@ -4,7 +4,6 @@ project(autoware_minimap_overlay_rviz_plugin)
 find_package(autoware_cmake REQUIRED)
 autoware_package()
 
-set(CMAKE_MODULE_PATH "${CMAKE_MODULE_PATH};/usr/share/cmake/geographiclib")
 find_package(Qt5 REQUIRED COMPONENTS Network)
 
 set(CMAKE_AUTOMOC ON)
@@ -25,6 +24,7 @@ ament_auto_add_library(
   src/include/tile.hpp
   src/include/tile_field.hpp
   src/include/tile_provider.hpp
+  src/include/web_mercator.hpp
 )
 
 target_link_libraries(${PROJECT_NAME}

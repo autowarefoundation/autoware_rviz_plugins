@@ -26,8 +26,6 @@
 #include "tile_field.hpp"
 #include "tile_provider.hpp"  // Include the TileProvider header
 
-#include <GeographicLib/MGRS.hpp>
-#include <GeographicLib/UTMUPS.hpp>
 #include <QImage>
 #include <QVBoxLayout>
 #include <rclcpp/rclcpp.hpp>
@@ -40,14 +38,12 @@
 #include <rviz_common/window_manager_interface.hpp>
 #include <rviz_rendering/render_window.hpp>
 
+#include <autoware_adapi_v1_msgs/msg/route.hpp>
 #include <autoware_adapi_v1_msgs/msg/route_state.hpp>
 #include <autoware_adapi_v1_msgs/msg/vehicle_kinematics.hpp>
+#include <autoware_map_msgs/msg/map_projector_info.hpp>
 #include <autoware_planning_msgs/msg/trajectory.hpp>
-#include <geometry_msgs/msg/pose_stamped.hpp>
-#include <geometry_msgs/msg/pose_with_covariance_stamped.hpp>
-#include <geometry_msgs/msg/quaternion.hpp>
-#include <sensor_msgs/msg/nav_sat_fix.hpp>
-#include <tier4_map_msgs/msg/map_projector_info.hpp>
+#include <geometry_msgs/msg/point.hpp>
 
 #include <OgreColourValue.h>
 #include <OgreMaterial.h>
@@ -58,6 +54,7 @@
 #include <map>
 #include <memory>
 #include <mutex>
+#include <optional>
 #include <string>
 #include <utility>
 
@@ -83,7 +80,6 @@ protected Q_SLOTS:
   void updateZoomLevel();
   void updateLatitude();
   void updateLongitude();
-  void updateGoalPose();
   void updateMapPosition();
   void updateTileProvider();  // Add this slot
 
@@ -94,13 +90,15 @@ protected:
 private:
   void drawWidget(QImage & hud);
   void drawCircle(QPainter & painter, const QRectF & backgroundRect);
-  void goalPoseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
+  void routeCallback(const autoware_adapi_v1_msgs::msg::Route::SharedPtr msg);
   void poseCallback(const autoware_adapi_v1_msgs::msg::VehicleKinematics::SharedPtr msg);
   void routeStateCallback(const autoware_adapi_v1_msgs::msg::RouteState::SharedPtr msg);
   void routePointsCallback(const autoware_planning_msgs::msg::Trajectory::SharedPtr msg);
-  void mapProjectorInfoCallback(const tier4_map_msgs::msg::MapProjectorInfo::SharedPtr msg);
+  void mapProjectorInfoCallback(const autoware_map_msgs::msg::MapProjectorInfo::SharedPtr msg);
+  void updateGoalPose();
+  void updatePath();
 
-  std::pair<double, double> localXYZToLatLon(double local_x, double local_y);
+  std::optional<std::pair<double, double>> localToLatLon(const geometry_msgs::msg::Point & point);
   void smoothUpdate();
 
   autoware_minimap_overlay_rviz_plugin::OverlayObject::SharedPtr overlay_;
@@ -126,8 +124,6 @@ private:
   rviz_common::properties::FloatProperty * property_longitude_;
   rviz_common::properties::FloatProperty * property_goal_lat;
   rviz_common::properties::FloatProperty * property_goal_lon;
-  rviz_common::properties::FloatProperty * property_origin_lat_;
-  rviz_common::properties::FloatProperty * property_origin_lon_;
 
   int zoom_;
 
@@ -141,8 +137,8 @@ private:
   double longitude_;
 
   // subscription ptr and msg ptr
-  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr goal_pose_sub_;
-  geometry_msgs::msg::PoseStamped::SharedPtr goal_pose_msg_;
+  rclcpp::Subscription<autoware_adapi_v1_msgs::msg::Route>::SharedPtr route_sub_;
+  autoware_adapi_v1_msgs::msg::Route::SharedPtr route_msg_;
 
   // subscription ptr and msg ptr
   rclcpp::Subscription<autoware_adapi_v1_msgs::msg::VehicleKinematics>::SharedPtr pose_sub_;
@@ -157,8 +153,8 @@ private:
   autoware_planning_msgs::msg::Trajectory::SharedPtr route_points_msg_;
 
   // subscription ptr and msg ptr
-  rclcpp::Subscription<tier4_map_msgs::msg::MapProjectorInfo>::SharedPtr map_projector_info_sub_;
-  tier4_map_msgs::msg::MapProjectorInfo::SharedPtr map_projector_info_msg_;
+  rclcpp::Subscription<autoware_map_msgs::msg::MapProjectorInfo>::SharedPtr map_projector_info_sub_;
+  autoware_map_msgs::msg::MapProjectorInfo::SharedPtr map_projector_info_msg_;
 
   GoalPose goal_pose_;
   PathOverlay path_overlay_;
@@ -168,13 +164,6 @@ private:
   double prev_longitude_;
   double target_latitude_;
   double target_longitude_;
-
-  void drawGoalPose(QPainter & painter, const QRectF & backgroundRect);
-  std::pair<double, double> localXYZToLatLonUTM(double x, double y);
-  std::pair<double, double> localXYZToLatLonMGRS(double x, double y);
-
-  std::string projector_type_;
-  std::string mgrs_grid_;
 
   TileProvider::Provider current_tile_provider_;  // Add this line
 };
