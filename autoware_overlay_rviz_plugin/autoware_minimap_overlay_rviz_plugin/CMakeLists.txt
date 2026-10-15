@@ -32,6 +32,12 @@ target_link_libraries(${PROJECT_NAME}
   Qt5::Widgets
 )
 
+# Treat OGRE headers as system headers to suppress warnings
+if(TARGET rviz_ogre_vendor::OgreMain)
+  get_target_property(OGRE_INCLUDE_DIRS rviz_ogre_vendor::OgreMain INTERFACE_INCLUDE_DIRECTORIES)
+  target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${OGRE_INCLUDE_DIRS})
+endif()
+
 target_compile_definitions(${PROJECT_NAME} PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
 
 if(BUILD_TESTING)
