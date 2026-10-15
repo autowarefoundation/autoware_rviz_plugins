@@ -1,5 +1,9 @@
 <library path="autoware_minimap_overlay_rviz_plugin">
-  <class type="autoware_minimap_overlay_rviz_plugin::VehicleMapDisplay"
-         base_class_type="rviz_common::Display">
+  <class
+    name="autoware_minimap_overlay_rviz_plugin/VehicleMapDisplay"
+    type="autoware_minimap_overlay_rviz_plugin::VehicleMapDisplay"
+    base_class_type="rviz_common::Display"
+  >
+    <description>Minimap overlay with map tiles, the vehicle position, the goal pose, and the planned path.</description>
   </class>
 </library>

@@ -24,9 +24,6 @@
 #include <rviz_rendering/render_system.hpp>
 
 #include <qimage.h>
-#include <tf2/LinearMath/Matrix3x3.h>
-#include <tf2/LinearMath/Quaternion.h>
-#include <tf2/utils.h>
 
 #include <algorithm>
 #include <cmath>
@@ -120,7 +117,7 @@ VehicleMapDisplay::VehicleMapDisplay()
 
   zoom_ = property_zoom_->getInt();
 
-  tile_field_ = std::make_unique<TileField>(this);
+  tile_field_ = std::make_unique<TileField>();
   tile_field_->setUrlTemplate(TileProvider::getUrlTemplate(current_tile_provider_));
 
   connect(tile_field_.get(), &TileField::tilesUpdated, this, &VehicleMapDisplay::onTilesUpdated);
@@ -208,6 +205,12 @@ std::optional<std::pair<double, double>> VehicleMapDisplay::localToLatLon(
 
 void VehicleMapDisplay::reset()
 {
+  rviz_common::Display::reset();
+  route_msg_ = nullptr;
+  route_points_msg_ = nullptr;
+  route_state_msg_ = nullptr;
+  updateGoalPose();
+  updatePath();
 }
 
 void VehicleMapDisplay::onEnable()
@@ -273,8 +276,10 @@ void VehicleMapDisplay::updateOverlayPosition()
   std::lock_guard<std::mutex> lock(mutex_);
   overlay_->setPosition(
     property_horizontal_margin_->getInt(), property_vertical_margin_->getInt(),
-    static_cast<rviz_2d_overlay_plugins::HorizontalAlignment>(property_anchor_horizontal_->getOptionInt()),
-    static_cast<rviz_2d_overlay_plugins::VerticalAlignment>(property_anchor_vertical_->getOptionInt()));
+    static_cast<rviz_2d_overlay_plugins::HorizontalAlignment>(
+      property_anchor_horizontal_->getOptionInt()),
+    static_cast<rviz_2d_overlay_plugins::VerticalAlignment>(
+      property_anchor_vertical_->getOptionInt()));
   requestRedraw();
 }
 
@@ -324,10 +329,10 @@ void VehicleMapDisplay::drawCircle(QPainter & painter, const QRectF & background
   painter.save();
   painter.translate(backgroundRect.center());
   if (pose_msg_) {
-    const auto & orientation = pose_msg_->pose.pose.pose.orientation;
-    tf2::Quaternion q(orientation.x, orientation.y, orientation.z, orientation.w);
-    double roll, pitch, yaw;
-    tf2::Matrix3x3(q).getRPY(roll, pitch, yaw);
+    // Yaw from the quaternion; a zero quaternion gives 0 instead of NaN
+    const auto & q = pose_msg_->pose.pose.pose.orientation;
+    const double yaw =
+      std::atan2(2.0 * (q.w * q.z + q.x * q.y), 1.0 - 2.0 * (q.y * q.y + q.z * q.z));
     // The icon points up, which is north; the yaw is counterclockwise from east
     painter.rotate((M_PI / 2 - yaw) * 180.0 / M_PI);
   }
@@ -389,6 +394,8 @@ void VehicleMapDisplay::updateGoalPose()
                       : std::nullopt;
   if (!goal) {
     goal_pose_.clear();
+    property_goal_lat->setFloat(0.0);
+    property_goal_lon->setFloat(0.0);
     requestRedraw();
     return;
   }
