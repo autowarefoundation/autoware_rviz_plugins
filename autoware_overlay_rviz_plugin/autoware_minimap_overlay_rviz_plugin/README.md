@@ -2,8 +2,6 @@
 
 Plugin for displaying a minimap overlay in RViz2 with vehicle position, goal pose, and route information.
 
-Based on the [jsk_visualization](https://github.com/jsk-ros-pkg/jsk_visualization) package, under the 3-Clause BSD license.
-
 ## Purpose
 
 This plugin provides a visual representation of the vehicle's position, the goal pose, and the planned route on a minimap overlay within RViz2. It is designed to enhance situational awareness by displaying relevant navigation information.
@@ -86,6 +84,6 @@ VehicleMapDisplay:
 
 ## License
 
-The package is licensed under the Apache License, Version 2.0, except `src/overlay_utils.cpp` and `src/include/overlay_utils.hpp`. These files are based on [jsk_visualization](https://github.com/jsk-ros-pkg/jsk_visualization) and [rviz_2d_overlay_plugins](https://github.com/teamspatzenhirn/rviz_2d_overlay_plugins) and are under the 3-Clause BSD license in the [LICENSE](LICENSE) file.
+This package is licensed under the Apache License, Version 2.0.
 
 The `goal.png` and `pos.png` icons are derived from [Material Symbols](https://fonts.google.com/icons), which are available under the [Apache License Version 2.0](https://www.apache.org/licenses/LICENSE-2.0).

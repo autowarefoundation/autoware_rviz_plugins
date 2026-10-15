@@ -66,22 +66,22 @@ VehicleMapDisplay::VehicleMapDisplay()
     SLOT(updateOverlayPosition()));
 
   property_anchor_vertical_->addOption(
-    "Top", static_cast<int>(autoware_minimap_overlay_rviz_plugin::VerticalAlignment::TOP));
+    "Top", static_cast<int>(rviz_2d_overlay_plugins::VerticalAlignment::TOP));
   property_anchor_vertical_->addOption(
-    "Center", static_cast<int>(autoware_minimap_overlay_rviz_plugin::VerticalAlignment::CENTER));
+    "Center", static_cast<int>(rviz_2d_overlay_plugins::VerticalAlignment::CENTER));
   property_anchor_vertical_->addOption(
-    "Bottom", static_cast<int>(autoware_minimap_overlay_rviz_plugin::VerticalAlignment::BOTTOM));
+    "Bottom", static_cast<int>(rviz_2d_overlay_plugins::VerticalAlignment::BOTTOM));
 
   property_anchor_horizontal_ = new rviz_common::properties::EnumProperty(
     "Horizontal Anchor", "Left", "Horizontal anchor of the overlay", this,
     SLOT(updateOverlayPosition()));
 
   property_anchor_horizontal_->addOption(
-    "Left", static_cast<int>(autoware_minimap_overlay_rviz_plugin::HorizontalAlignment::LEFT));
+    "Left", static_cast<int>(rviz_2d_overlay_plugins::HorizontalAlignment::LEFT));
   property_anchor_horizontal_->addOption(
-    "Center", static_cast<int>(autoware_minimap_overlay_rviz_plugin::HorizontalAlignment::CENTER));
+    "Center", static_cast<int>(rviz_2d_overlay_plugins::HorizontalAlignment::CENTER));
   property_anchor_horizontal_->addOption(
-    "Right", static_cast<int>(autoware_minimap_overlay_rviz_plugin::HorizontalAlignment::RIGHT));
+    "Right", static_cast<int>(rviz_2d_overlay_plugins::HorizontalAlignment::RIGHT));
 
   property_border_radius_ = new rviz_common::properties::IntProperty(
     "Border Radius", property_height_->getInt() / 2.0, "Border radius of the overlay", this,
@@ -136,7 +136,7 @@ void VehicleMapDisplay::onInitialize()
   static int count = 0;
   std::stringstream ss;
   ss << "AerialMapDisplayObject" << count++;
-  overlay_.reset(new autoware_minimap_overlay_rviz_plugin::OverlayObject(ss.str()));
+  overlay_ = std::make_shared<rviz_2d_overlay_plugins::OverlayObject>(ss.str());
   overlay_->show();
   updateOverlaySize();
   updateOverlayPosition();
@@ -232,7 +232,7 @@ void VehicleMapDisplay::update(float, float)
   }
   needs_redraw_ = false;
 
-  autoware_minimap_overlay_rviz_plugin::ScopedPixelBuffer buffer = overlay_->getBuffer();
+  rviz_2d_overlay_plugins::ScopedPixelBuffer buffer = overlay_->getBuffer();
   QImage hud = buffer.getQImage(*overlay_);
   hud.fill(Qt::transparent);
   drawWidget(hud);
@@ -273,8 +273,8 @@ void VehicleMapDisplay::updateOverlayPosition()
   std::lock_guard<std::mutex> lock(mutex_);
   overlay_->setPosition(
     property_horizontal_margin_->getInt(), property_vertical_margin_->getInt(),
-    static_cast<HorizontalAlignment>(property_anchor_horizontal_->getOptionInt()),
-    static_cast<VerticalAlignment>(property_anchor_vertical_->getOptionInt()));
+    static_cast<rviz_2d_overlay_plugins::HorizontalAlignment>(property_anchor_horizontal_->getOptionInt()),
+    static_cast<rviz_2d_overlay_plugins::VerticalAlignment>(property_anchor_vertical_->getOptionInt()));
   requestRedraw();
 }
 

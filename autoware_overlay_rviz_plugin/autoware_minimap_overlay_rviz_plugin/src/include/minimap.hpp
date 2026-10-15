@@ -15,28 +15,20 @@
 #define MINIMAP_HPP_
 
 #include "goal_pose.hpp"
-#include "overlay_utils.hpp"
 #include "path_overlay.hpp"
-#include "rviz_common/properties/color_property.hpp"
 #include "rviz_common/properties/enum_property.hpp"
 #include "rviz_common/properties/float_property.hpp"
 #include "rviz_common/properties/int_property.hpp"
-#include "rviz_common/properties/string_property.hpp"
 #include "tile_field.hpp"
-#include "tile_provider.hpp"  // Include the TileProvider header
+#include "tile_provider.hpp"
 
 #include <QImage>
 #include <QPixmap>
-#include <QVBoxLayout>
 #include <rclcpp/rclcpp.hpp>
+#include <rviz_2d_overlay_plugins/overlay_utils.hpp>
 #include <rviz_common/display.hpp>
 #include <rviz_common/display_context.hpp>
 #include <rviz_common/logging.hpp>
-#include <rviz_common/render_panel.hpp>
-#include <rviz_common/ros_topic_display.hpp>
-#include <rviz_common/view_manager.hpp>
-#include <rviz_common/window_manager_interface.hpp>
-#include <rviz_rendering/render_window.hpp>
 
 #include <autoware_adapi_v1_msgs/msg/route.hpp>
 #include <autoware_adapi_v1_msgs/msg/route_state.hpp>
@@ -45,13 +37,7 @@
 #include <autoware_planning_msgs/msg/trajectory.hpp>
 #include <geometry_msgs/msg/point.hpp>
 
-#include <OgreColourValue.h>
-#include <OgreMaterial.h>
-#include <OgreTexture.h>
-#include <OgreTextureManager.h>
-
 #include <cmath>
-#include <map>
 #include <memory>
 #include <mutex>
 #include <optional>
@@ -100,7 +86,7 @@ private:
 
   std::optional<std::pair<double, double>> localToLatLon(const geometry_msgs::msg::Point & point);
 
-  autoware_minimap_overlay_rviz_plugin::OverlayObject::SharedPtr overlay_;
+  rviz_2d_overlay_plugins::OverlayObject::SharedPtr overlay_;
 
   std::mutex mutex_;
   std::mutex property_mutex_;

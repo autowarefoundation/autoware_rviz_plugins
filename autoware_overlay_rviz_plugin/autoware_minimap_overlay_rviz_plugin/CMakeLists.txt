@@ -12,13 +12,11 @@ ament_auto_add_library(
   ${PROJECT_NAME} SHARED
   src/goal_pose.cpp
   src/minimap.cpp
-  src/overlay_utils.cpp
   src/path_overlay.cpp
   src/tile_field.cpp
   src/tile_provider.cpp
   src/include/goal_pose.hpp
   src/include/minimap.hpp
-  src/include/overlay_utils.hpp
   src/include/path_overlay.hpp
   src/include/tile_field.hpp
   src/include/tile_provider.hpp
