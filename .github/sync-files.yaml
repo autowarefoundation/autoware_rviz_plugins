@@ -45,14 +45,10 @@
     - source: mkdocs-base.yaml
       dest: mkdocs.yaml
       pre-commands: |
-        sd "Autoware Documentation" "Autoware Core Documentation" {source}
-        sd "autoware-documentation" "autoware_core" {source}
-        sd "repo_url: .*" "repo_url: https://github.com/autowarefoundation/autoware_core" {source}
+        sd "Autoware Documentation" "Autoware RViz Plugins Documentation" {source}
+        sd "autoware-documentation" "autoware_rviz_plugins" {source}
+        sd "repo_url: .*" "repo_url: https://github.com/autowarefoundation/autoware_rviz_plugins" {source}
         sd "/edit/main/docs/" "/edit/main/" {source}
         sd "docs_dir: .*" "docs_dir: ." {source}
         sd "assets/(\w+)" "docs/assets/\$1" {source}
-        sd -- \
-        "  - macros" \
-        "  - macros:
-              module_name: mkdocs_macros" {source}
     - source: setup.cfg
