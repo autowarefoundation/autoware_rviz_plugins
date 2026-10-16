@@ -1,0 +1,35 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>autoware_minimap_overlay_rviz_plugin</name>
+  <version>0.6.0</version>
+  <description>Plugin for displaying a minimap overlay in RViz2 with vehicle position, goal pose, and route information.</description>
+  <maintainer email="khalil@leodrive.ai">khalil</maintainer>
+  <license>Apache License 2.0</license>
+
+  <depend>ament_index_cpp</depend>
+  <depend>autoware_adapi_v1_msgs</depend>
+  <depend>autoware_geography_utils</depend>
+  <depend>autoware_map_msgs</depend>
+  <depend>autoware_planning_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>pluginlib</depend>
+  <depend>rclcpp</depend>
+  <depend>rviz_2d_overlay_msgs</depend>
+  <depend>rviz_2d_overlay_plugins</depend>
+  <depend>rviz_common</depend>
+  <depend>rviz_ogre_vendor</depend>
+  <depend>rviz_rendering</depend>
+
+  <build_depend>qtbase5-dev</build_depend>
+  <buildtool_depend>ament_cmake_auto</buildtool_depend>
+  <buildtool_depend>autoware_cmake</buildtool_depend>
+
+  <test_depend>ament_cmake_gtest</test_depend>
+  <test_depend>ament_lint_auto</test_depend>
+  <test_depend>autoware_lint_common</test_depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>
