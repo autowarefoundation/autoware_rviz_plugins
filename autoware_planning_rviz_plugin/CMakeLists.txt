@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.14)
 project(autoware_planning_rviz_plugin)
 
 find_package(autoware_cmake REQUIRED)
+find_package(Boost REQUIRED COMPONENTS date_time)
 autoware_package()
 
 find_package(Qt5 REQUIRED Core Widgets)
