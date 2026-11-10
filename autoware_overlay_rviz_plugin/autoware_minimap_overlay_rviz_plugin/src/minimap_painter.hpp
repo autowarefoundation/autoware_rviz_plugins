@@ -118,7 +118,6 @@ private:
 
   struct Colors
   {
-    QColor border;
     QColor route;
     QColor route_casing;
     QColor label_background;

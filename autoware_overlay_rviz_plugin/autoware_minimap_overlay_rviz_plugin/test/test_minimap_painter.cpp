@@ -156,8 +156,8 @@ TEST_F(MinimapPainterTest, ShapeGivesTheOutline)
   const QImage circle = paint();
   EXPECT_EQ(circle.pixelColor(near_corner).alpha(), 0);
   EXPECT_EQ(circle.pixelColor(corner).alpha(), 0);
-  // Border at the left end of the circle
-  EXPECT_EQ(circle.pixelColor(1, size_px / 2), navy);
+  // The minimap has no border: the map reaches the left end of the circle
+  EXPECT_EQ(circle.pixelColor(1, size_px / 2), tile_color);
 
   style_.shape = MinimapShape::Squircle;
   const QImage squircle = paint();
@@ -167,7 +167,7 @@ TEST_F(MinimapPainterTest, ShapeGivesTheOutline)
   style_.shape = MinimapShape::Rectangle;
   const QImage rectangle = paint();
   EXPECT_EQ(rectangle.pixelColor(corner).alpha(), 255);
-  EXPECT_EQ(rectangle.pixelColor(size_px - 1, size_px - 1), navy);
+  EXPECT_EQ(rectangle.pixelColor(size_px - 1, 2), tile_color);
 }
 
 TEST_F(MinimapPainterTest, StandardStyleShowsTheTilesAsTheyAre)

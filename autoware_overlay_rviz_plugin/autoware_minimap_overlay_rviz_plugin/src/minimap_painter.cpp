@@ -39,14 +39,14 @@ const QColor green(0, 230, 120);
 const QColor mist(242, 245, 255);
 // Colors of the Autoware RViz theme, for the dark style
 const QColor charcoal(23, 28, 31);
-const QColor charcoal_border(96, 108, 116);
 const QColor charcoal_text(214, 220, 224);
 
 // The sizes are for a minimap of 256 pixels, see designScale()
 constexpr double design_size_px = 256.0;
 // Highest zoom level of the tile server
 constexpr int max_tile_zoom = 19;
-constexpr double border_width_px = 2.0;
+// Free space between the edge of the minimap and its buttons and texts
+constexpr double edge_margin_px = 2.0;
 constexpr double vehicle_icon_size_px = 40.0;
 constexpr double goal_icon_size_px = 30.0;
 constexpr double goal_direction_icon_size_px = 22.0;
@@ -114,8 +114,8 @@ const MinimapPainter::Colors & MinimapPainter::colors(const MapStyle map)
 {
   // The dark style shows the route in green, as the 3D view of RViz does.
   // Indigo is the accent of the Autoware brand colors on light backgrounds.
-  static const Colors dark{charcoal_border, green, charcoal, charcoal, charcoal_text, charcoal};
-  static const Colors light{navy, indigo, Qt::white, Qt::white, navy, navy};
+  static const Colors dark{green, charcoal, charcoal, charcoal_text, charcoal};
+  static const Colors light{indigo, Qt::white, Qt::white, navy, navy};
   return map == MapStyle::NavigationDark ? dark : light;
 }
 
@@ -222,7 +222,7 @@ QPointF MinimapPainter::buttonCenter(
   const bool left = button == MinimapButton::Layers || button == MinimapButton::ZoomOut;
   const bool top = button == MinimapButton::Layers || button == MinimapButton::Compass;
   const QPointF corner(left ? rect.left() : rect.right(), top ? rect.top() : rect.bottom());
-  const double margin = border_width_px + button_margin_px + button_size_px / 2.0;
+  const double margin = edge_margin_px + button_margin_px + button_size_px / 2.0;
   return outline(rect, shape).shrunk(margin).clamp(corner) * scale;
 }
 
@@ -324,7 +324,7 @@ void MinimapPainter::paint(
 
     if (scene.goal) {
       // Area for the center of an icon at the edge, so that the icon stays inside the minimap
-      const double margin = border_width_px + goal_direction_icon_size_px / 2.0 + 2.0;
+      const double margin = edge_margin_px + goal_direction_icon_size_px / 2.0 + 2.0;
       paintGoal(painter, shape.shrunk(margin), to_offset(*scene.goal), projection, theme_icons);
     }
     paintVehicle(
@@ -349,10 +349,6 @@ void MinimapPainter::paint(
     painter.restore();
   }
 
-  // Half of the pen is outside the outline. The clip removes it.
-  painter.setPen(QPen(theme_colors.border, 2.0 * border_width_px));
-  painter.setBrush(Qt::NoBrush);
-  painter.drawPath(shape_path);
   painter.restore();
 }
 
@@ -470,9 +466,9 @@ void MinimapPainter::paintAttribution(
   for (const char * text : {"© OpenStreetMap contributors", "© OpenStreetMap", "© OSM"}) {
     const QSizeF size(metrics.horizontalAdvance(text) + 8.0, metrics.height() + 2.0);
     // Move the text up until the shape is wide enough for it
-    double bottom_gap = border_width_px + 2.0;
+    double bottom_gap = edge_margin_px + 2.0;
     while (bottom_gap < rect.height() / 4.0 &&
-           shape.halfWidthAboveBottom(bottom_gap) - border_width_px - 2.0 < size.width() / 2.0) {
+           shape.halfWidthAboveBottom(bottom_gap) - edge_margin_px - 2.0 < size.width() / 2.0) {
       bottom_gap += 1.0;
     }
     if (bottom_gap >= rect.height() / 4.0) {
