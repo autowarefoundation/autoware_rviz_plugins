@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- Goal pin. The tip at the bottom center is the goal position. -->
+  <ellipse cx="24" cy="45" rx="7" ry="2.5" fill="#00002a" fill-opacity="0.3"/>
+  <path d="M24 45C24 45 10 30.5 10 19A14 14 0 0 1 38 19C38 30.5 24 45 24 45Z" fill="#3f2ee3" stroke="#ffffff" stroke-width="3" stroke-linejoin="round"/>
+  <circle cx="24" cy="19" r="6" fill="#ffffff"/>
+</svg>
