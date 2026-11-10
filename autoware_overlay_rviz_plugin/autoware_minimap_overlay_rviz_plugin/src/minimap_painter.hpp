@@ -72,7 +72,8 @@ public:
   // False if an icon file did not load
   bool isValid() const;
 
-  // Draws the minimap in the rectangle. The design is for a minimap of 256 pixels. A larger or
+  // Draws the minimap in the rectangle, and makes the part of the rectangle outside of the shape
+  // transparent. The design is for a minimap of 256 pixels. A larger or
   // smaller rectangle shows the same design and the same part of the map, larger or smaller.
   // tiles can be null. Then the map background stays empty.
   // The tiles must have the view of tileZoom() and tileViewSize(), and the map style of the style.

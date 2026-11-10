@@ -42,6 +42,7 @@ constexpr int zoom = 17;
 const QRectF minimap_rect(0.0, 0.0, size_px, size_px);
 const QPoint image_center(size_px / 2, size_px / 2);
 const QColor navy(0, 0, 42);
+const QColor charcoal(23, 28, 31);
 const QColor indigo(63, 46, 227);
 const QColor green(0, 230, 120);
 // Land color of the standard OpenStreetMap style
@@ -156,8 +157,9 @@ TEST_F(MinimapPainterTest, ShapeGivesTheOutline)
   const QImage circle = paint();
   EXPECT_EQ(circle.pixelColor(near_corner).alpha(), 0);
   EXPECT_EQ(circle.pixelColor(corner).alpha(), 0);
-  // The minimap has no border: the map reaches the left end of the circle
-  EXPECT_EQ(circle.pixelColor(1, size_px / 2), tile_color);
+  // Border at the left end of the circle, and the map beside it
+  EXPECT_EQ(circle.pixelColor(1, size_px / 2), charcoal);
+  EXPECT_EQ(circle.pixelColor(5, size_px / 2), tile_color);
 
   style_.shape = MinimapShape::Squircle;
   const QImage squircle = paint();
@@ -167,7 +169,7 @@ TEST_F(MinimapPainterTest, ShapeGivesTheOutline)
   style_.shape = MinimapShape::Rectangle;
   const QImage rectangle = paint();
   EXPECT_EQ(rectangle.pixelColor(corner).alpha(), 255);
-  EXPECT_EQ(rectangle.pixelColor(size_px - 1, 2), tile_color);
+  EXPECT_EQ(rectangle.pixelColor(size_px - 1, size_px - 1), charcoal);
 }
 
 TEST_F(MinimapPainterTest, StandardStyleShowsTheTilesAsTheyAre)

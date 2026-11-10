@@ -45,6 +45,7 @@ const QColor charcoal_text(214, 220, 224);
 constexpr double design_size_px = 256.0;
 // Highest zoom level of the tile server
 constexpr int max_tile_zoom = 19;
+constexpr double border_width_px = 3.0;
 // Free space between the edge of the minimap and its buttons and texts
 constexpr double edge_margin_px = 2.0;
 constexpr double vehicle_icon_size_px = 40.0;
@@ -260,7 +261,9 @@ void MinimapPainter::paint(
   painter.save();
   painter.scale(scale, scale);
   painter.setRenderHints(QPainter::Antialiasing | QPainter::SmoothPixmapTransform);
-  painter.setClipPath(shape_path);
+  // The shape is cut out at the end. A clip path here leaves a thin line of the map colors on
+  // the smooth edge of the shape, outside of the border.
+  painter.setClipRect(rect);
 
   if (!scene.vehicle) {
     painter.fillPath(shape_path, theme_colors.panel);
@@ -349,6 +352,18 @@ void MinimapPainter::paint(
     painter.restore();
   }
 
+  // A thin border in the background color of the other Autoware overlays keeps the map apart
+  // from the scene behind it. Half of the pen is outside the outline.
+  painter.setPen(QPen(charcoal, 2.0 * border_width_px));
+  painter.setBrush(Qt::NoBrush);
+  painter.drawPath(shape_path);
+
+  // Erase all that is outside the shape, so that the smooth edge has only the border color
+  QPainterPath outside;
+  outside.addRect(rect);
+  outside.addPath(shape_path);
+  painter.setCompositionMode(QPainter::CompositionMode_Clear);
+  painter.fillPath(outside, Qt::black);
   painter.restore();
 }
 
