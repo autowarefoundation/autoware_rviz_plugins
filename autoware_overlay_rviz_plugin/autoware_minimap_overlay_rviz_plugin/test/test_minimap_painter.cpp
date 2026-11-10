@@ -344,13 +344,16 @@ TEST_F(MinimapPainterTest, ButtonsAreInTheCornersAndAtTheBottom)
 
 TEST_F(MinimapPainterTest, RecenterButtonShowsOnlyWhenTheViewMoved)
 {
-  const QPoint recenter =
-    MinimapPainter::buttonCenter(MinimapButton::Recenter, minimap_rect, style_.shape).toPoint();
-  // The button of the light styles is white, with a dark symbol
-  EXPECT_EQ(paint().pixelColor(recenter + QPoint(0, 9)), tile_color);
+  // A point in the upper part of the button, between its symbol and its ring. The attribution
+  // text is below the button, and its height depends on the font of the system.
+  const QPoint in_button =
+    MinimapPainter::buttonCenter(MinimapButton::Recenter, minimap_rect, style_.shape).toPoint() +
+    QPoint(0, -10);
+  EXPECT_EQ(paint().pixelColor(in_button), tile_color);
 
+  // The button of the light styles is white, with a dark symbol
   scene_.view_center = offset_px(*scene_.vehicle, 20.0, 0.0);
-  EXPECT_GT(paint().pixelColor(recenter + QPoint(0, 9)).lightness(), 250);
+  EXPECT_GT(paint().pixelColor(in_button).lightness(), 250);
 }
 
 TEST_F(MinimapPainterTest, TileViewCoversTheMinimap)
