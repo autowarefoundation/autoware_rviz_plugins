@@ -388,8 +388,12 @@ bool MinimapDisplay::eventFilter(QObject * object, QEvent * event)
       if (!is_on_minimap(position)) {
         return false;
       }
-      if (mouse_event->button() == Qt::LeftButton) {
+      // The left and the middle button move the map. Only the left button clicks a button.
+      if (
+        !mouse_pressed_ &&
+        (mouse_event->button() == Qt::LeftButton || mouse_event->button() == Qt::MiddleButton)) {
         mouse_pressed_ = true;
+        mouse_button_ = mouse_event->button();
         mouse_dragging_ = false;
         mouse_press_position_ = position;
         mouse_last_position_ = position;
@@ -415,11 +419,11 @@ bool MinimapDisplay::eventFilter(QObject * object, QEvent * event)
     case QEvent::MouseButtonRelease: {
       const auto * mouse_event = static_cast<QMouseEvent *>(event);
       const QPointF position = to_minimap(mouse_event->localPos());
-      if (!mouse_pressed_ || mouse_event->button() != Qt::LeftButton) {
+      if (!mouse_pressed_ || mouse_event->button() != mouse_button_) {
         return is_on_minimap(position);
       }
       mouse_pressed_ = false;
-      if (!mouse_dragging_) {
+      if (!mouse_dragging_ && mouse_button_ == Qt::LeftButton) {
         const auto button =
           MinimapPainter::buttonAt(position, rect, style, scene_.view_center.has_value());
         if (button) {

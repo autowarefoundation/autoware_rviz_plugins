@@ -18,14 +18,14 @@ If the goal is outside the minimap, a marker at the edge of the minimap points t
 
 You control the minimap with the mouse. The minimap does not pass these mouse actions to the RViz tools.
 
-| Control                      | Action                                                                           |
-| ---------------------------- | -------------------------------------------------------------------------------- |
-| Layers button (top left)     | Changes the map style: Navigation Dark, Navigation Light, then OpenStreetMap     |
-| Compass button (top right)   | Changes the view: 3D, Heading Up, then North Up. The red tip points to north.    |
-| `-` and `+` buttons (bottom) | Change the zoom level                                                            |
-| Mouse wheel                  | Changes the zoom level                                                           |
-| Drag with the left button    | Moves the map. The minimap then stops to follow the vehicle.                     |
-| Recenter button              | Shows after you move the map. It moves the map back, to follow the vehicle again |
+| Control                             | Action                                                                           |
+| ----------------------------------- | -------------------------------------------------------------------------------- |
+| Layers button (top left)            | Changes the map style: Navigation Dark, Navigation Light, then OpenStreetMap     |
+| Compass button (top right)          | Changes the view: 3D, Heading Up, then North Up. The red tip points to north.    |
+| `-` and `+` buttons (bottom)        | Change the zoom level                                                            |
+| Mouse wheel                         | Changes the zoom level                                                           |
+| Drag with the left or middle button | Moves the map. The minimap then stops to follow the vehicle.                     |
+| Recenter button                     | Shows after you move the map. It moves the map back, to follow the vehicle again |
 
 ## Inputs / Outputs
 
@@ -68,7 +68,7 @@ The views:
 The map styles:
 
 - `OpenStreetMap` shows the map tiles as they are.
-- `Navigation Dark` and `Navigation Light` show mainly the roads. The dark style has the charcoal of the Autoware RViz theme, and it shows the route in green, as the 3D view of RViz does. The light style has the [Autoware brand colors](https://docs.autoware.org/main/home/media-kit/). The tile server has only one style. Thus the plugin finds the roads, the water, the buildings, and the text of each tile by their colors, and gives them new colors.
+- `Navigation Dark` and `Navigation Light` show mainly the roads. The dark style has the charcoal of the Autoware RViz theme, and it shows the route in green, as the 3D view of RViz does. Its vehicle arrow and its goal pin are purple. The light style has the [Autoware brand colors](https://docs.autoware.org/main/home/media-kit/). The tile server has only one style. Thus the plugin finds the roads, the water, the buildings, and the text of each tile by their colors, and gives them new colors.
 
 A larger minimap shows the same part of the map and the same design, with more pixels. From 362 pixels on, it uses the map tiles of the next zoom level, so that the map stays sharp.
 

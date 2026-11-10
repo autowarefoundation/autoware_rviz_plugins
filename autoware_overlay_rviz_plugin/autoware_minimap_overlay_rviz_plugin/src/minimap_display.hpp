@@ -143,6 +143,7 @@ private:
 
   // Mouse on the minimap, in pixels of the minimap
   bool mouse_pressed_ = false;
+  Qt::MouseButton mouse_button_ = Qt::NoButton;
   bool mouse_dragging_ = false;
   QPointF mouse_press_position_;
   QPointF mouse_last_position_;
