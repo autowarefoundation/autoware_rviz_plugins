@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <!-- Button that zooms in -->
+  <circle cx="24" cy="24" r="21" fill="#00002a" stroke="#9a9dbb" stroke-width="2"/>
+  <path d="M14 24H34M24 14V34" fill="none" stroke="#f2f5ff" stroke-width="4" stroke-linecap="round"/>
+</svg>

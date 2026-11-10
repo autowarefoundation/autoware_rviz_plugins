@@ -1,4 +1,4 @@
-// Copyright 2024 The Autoware Contributors
+// Copyright 2026 The Autoware Contributors
 //
 // Licensed under the Apache License, Version 2.0 (the "License");
 // you may not use this file except in compliance with the License.
@@ -12,16 +12,15 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-#include "include/tile_provider.hpp"
+#include <QGuiApplication>
 
-#include <string>
+#include <gtest/gtest.h>
 
-std::string TileProvider::getUrlTemplate(TileProvider::Provider provider)
+int main(int argc, char ** argv)
 {
-  switch (provider) {
-    case OpenStreetMap:
-      return "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-    default:
-      return "";
-  }
+  // The tests draw text and load tiles, which need a Qt application but no screen
+  qputenv("QT_QPA_PLATFORM", "offscreen");
+  QGuiApplication application(argc, argv);
+  testing::InitGoogleTest(&argc, argv);
+  return RUN_ALL_TESTS();
 }

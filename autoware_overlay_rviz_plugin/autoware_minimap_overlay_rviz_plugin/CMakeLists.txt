@@ -1,36 +1,26 @@
-cmake_minimum_required(VERSION 3.10)
+cmake_minimum_required(VERSION 3.14)
 project(autoware_minimap_overlay_rviz_plugin)
 
 find_package(autoware_cmake REQUIRED)
 autoware_package()
 
-find_package(Qt5 REQUIRED COMPONENTS Core Gui Network Widgets)
-
+find_package(Qt5 REQUIRED COMPONENTS Gui Network Svg)
 set(CMAKE_AUTOMOC ON)
 
-ament_auto_add_library(
-  ${PROJECT_NAME} SHARED
-  src/goal_pose.cpp
-  src/minimap.cpp
-  src/path_overlay.cpp
-  src/tile_field.cpp
-  src/tile_provider.cpp
-  src/include/goal_pose.hpp
-  src/include/minimap.hpp
-  src/include/path_overlay.hpp
-  src/include/tile_field.hpp
-  src/include/tile_provider.hpp
-  src/include/web_mercator.hpp
+ament_auto_add_library(${PROJECT_NAME} SHARED
+  src/map_style.cpp
+  src/minimap_display.cpp
+  src/minimap_painter.cpp
+  src/route_line.cpp
+  src/tile_loader.cpp
 )
-
 target_link_libraries(${PROJECT_NAME}
-  Qt5::Core
   Qt5::Gui
   Qt5::Network
-  Qt5::Widgets
+  Qt5::Svg
 )
 
-# Treat OGRE headers as system headers to suppress warnings
+# autoware_package() turns on -Werror, and the OGRE headers have warnings
 if(TARGET rviz_ogre_vendor::OgreMain)
   get_target_property(OGRE_INCLUDE_DIRS rviz_ogre_vendor::OgreMain INTERFACE_INCLUDE_DIRECTORIES)
   target_include_directories(${PROJECT_NAME} SYSTEM PRIVATE ${OGRE_INCLUDE_DIRS})
@@ -38,11 +28,24 @@ endif()
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC "PLUGINLIB__DISABLE_BOOST_FUNCTIONS")
 
-if(BUILD_TESTING)
-  ament_auto_add_gtest(test_web_mercator test/test_web_mercator.cpp)
-  target_link_libraries(test_web_mercator Qt5::Core)
-endif()
-
 pluginlib_export_plugin_description_file(rviz_common plugins/plugin_description.xml)
+
+if(BUILD_TESTING)
+  ament_add_gtest(test_${PROJECT_NAME}
+    test/main.cpp
+    test/test_map_style.cpp
+    test/test_minimap_painter.cpp
+    test/test_route_line.cpp
+    test/test_superellipse.cpp
+    test/test_tile_loader.cpp
+    test/test_web_mercator.cpp
+    SKIP_LINKING_MAIN_LIBRARIES
+  )
+  target_include_directories(test_${PROJECT_NAME} PRIVATE src)
+  target_link_libraries(test_${PROJECT_NAME} ${PROJECT_NAME})
+  target_compile_definitions(test_${PROJECT_NAME} PRIVATE
+    "ICON_DIRECTORY=\"${CMAKE_CURRENT_SOURCE_DIR}/icons\""
+  )
+endif()
 
 ament_auto_package(INSTALL_TO_SHARE icons)
