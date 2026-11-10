@@ -111,7 +111,7 @@ MinimapDisplay::MinimapDisplay()
   shape_property_->addOption("Rectangle", static_cast<int>(MinimapShape::Rectangle));
 
   alpha_property_ = new rviz_common::properties::FloatProperty(
-    "Alpha", 1.0, "Opacity of the minimap, from 0 to 1", this, SLOT(requestRedraw()));
+    "Alpha", 0.6, "Opacity of the minimap, from 0 to 1", this, SLOT(requestRedraw()));
   alpha_property_->setMin(0.0);
   alpha_property_->setMax(1.0);
 

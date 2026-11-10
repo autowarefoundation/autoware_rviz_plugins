@@ -54,7 +54,7 @@ The display has these properties in the `Displays` panel of RViz.
 | `Horizontal Margin` | int   | 10              | Horizontal distance from the anchor in pixels                           |
 | `Vertical Margin`   | int   | 10              | Vertical distance from the anchor in pixels                             |
 | `Shape`             | enum  | Squircle        | Squircle (a square with smooth corners), Circle, or Rectangle           |
-| `Alpha`             | float | 1.0             | Opacity of the minimap (0 to 1)                                         |
+| `Alpha`             | float | 0.6             | Opacity of the minimap (0 to 1)                                         |
 | `Zoom`              | int   | 16              | Zoom level of the map (3 to 19). One level more shows half the distance |
 | `View`              | enum  | 3D              | 3D, Heading Up, or North Up                                             |
 | `Map Style`         | enum  | Navigation Dark | Navigation Dark, Navigation Light, or OpenStreetMap                     |
@@ -95,7 +95,7 @@ An example of the display in an RViz configuration file:
   Horizontal Margin: 10
   Vertical Margin: 10
   Shape: Squircle
-  Alpha: 1
+  Alpha: 0.6
   Zoom: 16
   View: 3D
   Map Style: Navigation Dark
