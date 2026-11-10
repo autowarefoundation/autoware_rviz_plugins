@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Icon of the display in the RViz Displays panel -->
+  <circle cx="16" cy="16" r="14.5" fill="#3f2ee3" stroke="#ffffff" stroke-width="1"/>
+  <path d="M16 6 23.5 24 16 20.2 8.5 24Z" fill="#ffffff"/>
+</svg>
