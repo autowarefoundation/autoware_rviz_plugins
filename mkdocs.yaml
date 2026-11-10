@@ -2,10 +2,10 @@
 # https://github.com/autowarefoundation/sync-file-templates
 # To make changes, update the source repository and follow the guidelines in its README.
 
-site_name: Autoware Core Documentation
-site_url: https://autowarefoundation.github.io/autoware_core
-repo_url: https://github.com/autowarefoundation/autoware_core
-edit_uri: https://github.com/autowarefoundation/autoware_core/edit/main/
+site_name: Autoware RViz Plugins Documentation
+site_url: https://autowarefoundation.github.io/autoware_rviz_plugins
+repo_url: https://github.com/autowarefoundation/autoware_rviz_plugins
+edit_uri: https://github.com/autowarefoundation/autoware_rviz_plugins/edit/main/
 docs_dir: .
 copyright: Copyright &copy; 2023 The Autoware Foundation
 
@@ -59,8 +59,7 @@ plugins:
       regex:
         - ^(?!(.*/)?assets/).*\.(?!(.*\.)?md|(.*\.)?svg|(.*\.)?png|(.*\.)?gif|(.*\.)?jpg).*$
         - ^(.*/)?[^.]*$
-  - macros:
-      module_name: mkdocs_macros
+  - macros
   - mkdocs-video
   - same-dir
   - search
