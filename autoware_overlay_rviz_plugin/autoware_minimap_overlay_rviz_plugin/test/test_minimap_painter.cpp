@@ -24,6 +24,8 @@
 #include <cmath>
 #include <memory>
 
+using autoware_minimap_overlay_rviz_plugin::apply_map_style;
+using autoware_minimap_overlay_rviz_plugin::map_background;
 using autoware_minimap_overlay_rviz_plugin::map_size_px;
 using autoware_minimap_overlay_rviz_plugin::MapStyle;
 using autoware_minimap_overlay_rviz_plugin::MinimapButton;
@@ -45,8 +47,12 @@ const QColor navy(0, 0, 42);
 const QColor charcoal(23, 28, 31);
 const QColor indigo(63, 46, 227);
 const QColor green(0, 230, 120);
-// Land color of the standard OpenStreetMap style
-const QColor tile_color(242, 239, 233);
+// Color of the tiles. It is not the background color of a map style, so a pixel with this color
+// comes from a tile. The navigation styles show it as a large road.
+const QColor tile_color(249, 178, 156);
+// The vehicle of the tests of the tile positions is at the corner between these 4 tiles
+constexpr int corner_tile_x = 116484;
+constexpr int corner_tile_y = 51514;
 
 // Position that is the given number of map pixels east and south of the vehicle
 QPointF offset_px(const QPointF & vehicle, const double east, const double south)
@@ -65,6 +71,22 @@ bool has_color_near(const QImage & image, const QPoint & position, const QColor 
     }
   }
   return false;
+}
+
+// The colors are equal, with a small difference from the scaled drawing of the map
+bool is_near_color(const QColor & color, const QColor & expected)
+{
+  return std::abs(color.red() - expected.red()) <= 2 &&
+         std::abs(color.green() - expected.green()) <= 2 &&
+         std::abs(color.blue() - expected.blue()) <= 2 && color.alpha() == expected.alpha();
+}
+
+// Color of a tile of one color in a map style
+QColor styled(const QColor & color, const MapStyle style)
+{
+  QImage tile(1, 1, QImage::Format_RGB32);
+  tile.fill(color);
+  return apply_map_style(tile, style).pixelColor(0, 0);
 }
 
 // The dark body of the vehicle icon of the light theme, with its smooth edge
@@ -101,20 +123,12 @@ protected:
 
   QImage paint()
   {
-    // Load the tiles of the view, and wait until no more tile arrives
-    int loaded = 0;
-    const auto connection =
-      QObject::connect(tiles_.get(), &TileLoader::tileLoaded, [&loaded]() { ++loaded; });
+    // Load the tiles of the view, and wait until each request has its answer
     tiles_->setStyle(style_.map);
     tiles_->setView(
-      scene_.view_center.value_or(*scene_.vehicle), MinimapPainter::tileZoom(rect_, zoom),
+      scene_.view_center.value_or(*scene_.vehicle), MinimapPainter::tileZoom(rect_, style_, zoom),
       MinimapPainter::tileViewSize(rect_, style_, zoom));
-    wait_for([&loaded, last = -1]() mutable {
-      const bool settled = loaded == last;
-      last = loaded;
-      return settled;
-    });
-    QObject::disconnect(connection);
+    EXPECT_TRUE(wait_for([this]() { return !tiles_->isLoading(); }));
 
     QImage image(rect_.size().toSize(), QImage::Format_ARGB32_Premultiplied);
     image.fill(Qt::transparent);
@@ -129,6 +143,23 @@ protected:
       image.save(QString("%1/%2_%3.png").arg(output_directory, test->name()).arg(image_count_++));
     }
     return image;
+  }
+
+  // Puts the vehicle at the corner between 4 tiles of the zoom level, and gives these tiles the
+  // colors red (north west), green (north east), blue (south west) and yellow (south east)
+  void useCornerTiles(const int tile_zoom)
+  {
+    // The corner is also a corner of the tiles of zoom level 16, and of each higher level
+    const auto at_tile_zoom = [tile_zoom](const int index) {
+      return tile_zoom >= zoom ? index << (tile_zoom - zoom) : index >> (zoom - tile_zoom);
+    };
+    const int x = at_tile_zoom(corner_tile_x);
+    const int y = at_tile_zoom(corner_tile_y);
+    scene_.vehicle = QPointF(x, y) / (1 << tile_zoom);
+    directory_.addTile(tile_zoom, x - 1, y - 1, Qt::red);
+    directory_.addTile(tile_zoom, x, y - 1, Qt::green);
+    directory_.addTile(tile_zoom, x - 1, y, Qt::blue);
+    directory_.addTile(tile_zoom, x, y, Qt::yellow);
   }
 
   MinimapPainter painter_{ICON_DIRECTORY};
@@ -179,18 +210,120 @@ TEST_F(MinimapPainterTest, StandardStyleShowsTheTilesAsTheyAre)
 
 TEST_F(MinimapPainterTest, NavigationStylesChangeTheColorsOfTheTiles)
 {
-  style_.map = MapStyle::NavigationDark;
-  EXPECT_LT(paint().pixelColor(60, 150).lightness(), 80);
-  style_.map = MapStyle::NavigationLight;
-  const QColor light = paint().pixelColor(60, 150);
-  EXPECT_GT(light.lightness(), 200);
-  EXPECT_NE(light, tile_color);
+  for (const MapStyle map : {MapStyle::NavigationDark, MapStyle::NavigationLight}) {
+    style_.map = map;
+    const QColor expected = styled(tile_color, map);
+    // The color comes from the tile: it is not the tile color, and not the background
+    ASSERT_NE(expected, tile_color);
+    ASSERT_NE(expected, map_background(map));
+    EXPECT_EQ(paint().pixelColor(60, 150), expected);
+  }
+}
+
+TEST_F(MinimapPainterTest, NorthUpPutsEachTileAtItsPlace)
+{
+  useCornerTiles(zoom);
+  const QImage image = paint();
+  EXPECT_EQ(image.pixelColor(image_center + QPoint(-40, -40)), QColor(Qt::red));
+  EXPECT_EQ(image.pixelColor(image_center + QPoint(40, -40)), QColor(Qt::green));
+  EXPECT_EQ(image.pixelColor(image_center + QPoint(-40, 40)), QColor(Qt::blue));
+  EXPECT_EQ(image.pixelColor(image_center + QPoint(40, 40)), QColor(Qt::yellow));
+}
+
+TEST_F(MinimapPainterTest, HeadingUpTurnsTheTiles)
+{
+  // The vehicle drives east: east is up, and north is left
+  useCornerTiles(zoom);
+  style_.view = MinimapView::HeadingUp;
+  scene_.vehicle_heading_deg = 90.0;
+  const QImage image = paint();
+  EXPECT_TRUE(is_near_color(image.pixelColor(image_center + QPoint(-40, -40)), Qt::green));
+  EXPECT_TRUE(is_near_color(image.pixelColor(image_center + QPoint(40, -40)), Qt::yellow));
+  EXPECT_TRUE(is_near_color(image.pixelColor(image_center + QPoint(-40, 40)), Qt::red));
+  EXPECT_TRUE(is_near_color(image.pixelColor(image_center + QPoint(40, 40)), Qt::blue));
+}
+
+TEST_F(MinimapPainterTest, PerspectivePutsTheTilesWhereItPutsTheVehicle)
+{
+  // The vehicle is at the corner between the tiles, and it shows at 70 % of the height. So the
+  // edges between the tiles are the vertical and the horizontal line through that point.
+  useCornerTiles(zoom);
+  style_.view = MinimapView::Perspective;
+  const QImage image = paint();
+  const QPoint vehicle(size_px / 2, std::lround(0.7 * size_px));
+  EXPECT_TRUE(is_near_color(image.pixelColor(vehicle + QPoint(-8, -80)), Qt::red));
+  EXPECT_TRUE(is_near_color(image.pixelColor(vehicle + QPoint(8, -80)), Qt::green));
+  EXPECT_TRUE(is_near_color(image.pixelColor(vehicle + QPoint(-70, -8)), Qt::red));
+  EXPECT_TRUE(is_near_color(image.pixelColor(vehicle + QPoint(-70, 8)), Qt::blue));
+  EXPECT_TRUE(is_near_color(image.pixelColor(vehicle + QPoint(70, -8)), Qt::green));
+  EXPECT_TRUE(is_near_color(image.pixelColor(vehicle + QPoint(70, 8)), Qt::yellow));
+}
+
+TEST_F(MinimapPainterTest, LargerMinimapDrawsTheTilesOfTheNextZoomLevel)
+{
+  // Only the tiles of zoom level 18 have these colors
+  useCornerTiles(zoom + 1);
+  rect_ = QRectF(0.0, 0.0, 2 * size_px, 2 * size_px);
+  const QImage north_up = paint();
+  EXPECT_EQ(north_up.pixelColor(2 * image_center + QPoint(-60, -60)), QColor(Qt::red));
+  EXPECT_EQ(north_up.pixelColor(2 * image_center + QPoint(60, -60)), QColor(Qt::green));
+  EXPECT_EQ(north_up.pixelColor(2 * image_center + QPoint(-60, 60)), QColor(Qt::blue));
+  EXPECT_EQ(north_up.pixelColor(2 * image_center + QPoint(60, 60)), QColor(Qt::yellow));
+
+  style_.view = MinimapView::HeadingUp;
+  scene_.vehicle_heading_deg = 90.0;
+  const QImage heading_up = paint();
+  EXPECT_TRUE(is_near_color(heading_up.pixelColor(2 * image_center + QPoint(-60, -60)), Qt::green));
+  EXPECT_TRUE(is_near_color(heading_up.pixelColor(2 * image_center + QPoint(60, 60)), Qt::blue));
+}
+
+TEST_F(MinimapPainterTest, LongMinimapDrawsTheTilesOfALowerZoomLevel)
+{
+  // A minimap of 512 x 64 pixels shows a part of the map that is 2048 pixels wide at zoom level
+  // 17. It uses the tiles of zoom level 16, and each of them is 128 pixels wide on the minimap.
+  useCornerTiles(zoom - 1);
+  rect_ = QRectF(0.0, 0.0, 512.0, 64.0);
+  style_.shape = MinimapShape::Rectangle;
+  ASSERT_EQ(MinimapPainter::tileZoom(rect_, style_, zoom), zoom - 1);
+  const QImage image = paint();
+  EXPECT_TRUE(is_near_color(image.pixelColor(256 - 100, 32 - 15), Qt::red));
+  EXPECT_TRUE(is_near_color(image.pixelColor(256 + 100, 32 - 15), Qt::green));
+  EXPECT_TRUE(is_near_color(image.pixelColor(256 - 100, 32 + 15), Qt::blue));
+  EXPECT_TRUE(is_near_color(image.pixelColor(256 + 100, 32 + 15), Qt::yellow));
+}
+
+TEST_F(MinimapPainterTest, TileViewHasAnUpperLimit)
+{
+  // Each size that the display permits, in each view
+  for (const QSizeF & size :
+       {QSizeF(64, 64), QSizeF(256, 256), QSizeF(420, 420), QSizeF(1024, 1024), QSizeF(1024, 256),
+        QSizeF(1024, 64), QSizeF(64, 1024)}) {
+    for (const MinimapView view :
+         {MinimapView::Perspective, MinimapView::HeadingUp, MinimapView::NorthUp}) {
+      for (const int map_zoom : {3, 17, 19}) {
+        style_.view = view;
+        const QRectF rect(QPointF(), size);
+        EXPECT_LE(
+          MinimapPainter::tileViewSize(rect, style_, map_zoom).width(),
+          MinimapPainter::max_tile_view_px)
+          << size.width() << " x " << size.height() << ", zoom " << map_zoom;
+        EXPECT_GE(MinimapPainter::tileZoom(rect, style_, map_zoom), 0);
+      }
+    }
+  }
+
+  // The largest square minimap: the flat views take the tiles 2 levels up. The 3D view shows
+  // more of the map, so it takes the tiles 1 level up.
+  const QRectF large(0.0, 0.0, 1024.0, 1024.0);
+  style_.view = MinimapView::NorthUp;
+  EXPECT_EQ(MinimapPainter::tileZoom(large, style_, zoom), zoom + 2);
+  style_.view = MinimapView::Perspective;
+  EXPECT_EQ(MinimapPainter::tileZoom(large, style_, zoom), zoom + 1);
 }
 
 TEST_F(MinimapPainterTest, VehicleIconTurnsWithTheHeadingWhenNorthIsUp)
 {
-  // The icon is narrow: 6 pixels ahead of the image_center are inside it, 6 pixels to the side are
-  // not
+  // The icon is narrow: 6 pixels ahead of the center are inside it, 6 pixels to the side are not
   const QPoint north_of_center = image_center + QPoint(1, -6);
   const QPoint east_of_center = image_center + QPoint(6, 1);
 
@@ -291,7 +424,7 @@ TEST_F(MinimapPainterTest, PerspectiveDrawsARouteThatStartsBehindTheViewer)
 
 TEST_F(MinimapPainterTest, MovedViewShowsTheVehicleAwayFromTheCenter)
 {
-  // The view image_center is 50 pixels east of the vehicle, so the vehicle is 50 pixels left
+  // The view center is 50 pixels east of the vehicle, so the vehicle is 50 pixels left
   scene_.view_center = offset_px(*scene_.vehicle, 50.0, 0.0);
   const QImage image = paint();
   EXPECT_TRUE(is_dark(image.pixelColor(image_center + QPoint(-50 + 1, -6))));
@@ -385,12 +518,12 @@ TEST_F(MinimapPainterTest, LargerMinimapShowsTheSameDesignLarger)
     MinimapPainter::buttonCenter(MinimapButton::Layers, rect_, style_.shape),
     2.0 * MinimapPainter::buttonCenter(MinimapButton::Layers, minimap_rect, style_.shape));
   // It uses the tiles of the next zoom level, which have 2 times the pixels
-  EXPECT_EQ(MinimapPainter::tileZoom(rect_, zoom), zoom + 1);
+  EXPECT_EQ(MinimapPainter::tileZoom(rect_, style_, zoom), zoom + 1);
   EXPECT_NEAR(
     MinimapPainter::tileViewSize(rect_, style_, zoom).width(), 2 * size_px * M_SQRT2, 1e-6);
   // The tile server has no tiles above zoom level 19
-  EXPECT_EQ(MinimapPainter::tileZoom(rect_, 19), 19);
-  EXPECT_EQ(MinimapPainter::tileZoom(minimap_rect, zoom), zoom);
+  EXPECT_EQ(MinimapPainter::tileZoom(rect_, style_, 19), 19);
+  EXPECT_EQ(MinimapPainter::tileZoom(minimap_rect, style_, zoom), zoom);
 }
 
 TEST_F(MinimapPainterTest, MessageShowsWithoutVehiclePosition)
@@ -420,5 +553,5 @@ TEST_F(MinimapPainterTest, PaintsWithoutTiles)
   image.fill(Qt::transparent);
   QPainter painter(&image);
   painter_.paint(painter, minimap_rect, style_, scene_, nullptr);
-  EXPECT_EQ(image.pixelColor(60, 150).alpha(), 255);
+  EXPECT_EQ(image.pixelColor(60, 150), map_background(style_.map));
 }

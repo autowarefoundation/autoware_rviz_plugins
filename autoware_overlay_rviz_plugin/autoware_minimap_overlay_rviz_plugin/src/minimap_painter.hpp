@@ -17,6 +17,7 @@
 
 #include "superellipse.hpp"
 #include "tile_loader.hpp"
+#include "web_mercator.hpp"
 
 #include <QColor>
 #include <QImage>
@@ -39,6 +40,8 @@ struct MinimapScene
   int zoom = 17;
   // Without a vehicle position, the minimap shows a message in place of the map
   std::optional<QPointF> vehicle;
+  // Text of that message
+  QString waiting_message = "Waiting for the\nvehicle position";
   // Clockwise from north
   double vehicle_heading_deg = 0.0;
   // Map position at the center of the view. Without it, the view follows the vehicle.
@@ -84,10 +87,14 @@ public:
   // Size of the design, as a ratio of the design for 256 pixels
   static double designScale(const QRectF & rect);
   // Zoom level of the tiles for a minimap at a zoom level. A large minimap uses the tiles of a
-  // higher zoom level, so that they stay sharp.
-  static int tileZoom(const QRectF & rect, int zoom);
+  // higher zoom level, so that they stay sharp. A minimap that shows a very large part of the map,
+  // such as a long and narrow one, uses the tiles of a lower zoom level. This keeps the view of
+  // the tiles below max_tile_view_px.
+  static int tileZoom(const QRectF & rect, const MinimapStyle & style, int zoom);
   // Size of the square of map tiles that the minimap needs, in pixels of the tiles of tileZoom()
   static QSizeF tileViewSize(const QRectF & rect, const MinimapStyle & style, int zoom);
+  // Upper limit of tileViewSize(). One view then needs at most 8 x 8 tiles.
+  static constexpr double max_tile_view_px = 7.0 * tile_size_px;
 
   // Outline of the minimap in the rectangle
   static Superellipse outline(const QRectF & rect, MinimapShape shape);
@@ -150,6 +157,9 @@ private:
     QTransform tile_transform;
   };
 
+  // Distance from the view center that the tiles must cover, in map pixels of the zoom level of
+  // the minimap
+  static double viewRadius(const QRectF & device_rect, const MinimapStyle & style);
   static const Colors & colors(MapStyle map);
   Icons & icons(MapStyle map);
 
@@ -164,8 +174,9 @@ private:
   void paintVehicle(
     QPainter & painter, const Superellipse & shape, const QPointF & offset, double rotation_deg,
     const Projection & projection, Icons & icons);
+  // `scale` is the size of one unit of the painter in pixels
   void paintAttribution(
-    QPainter & painter, const Superellipse & shape, const Colors & colors) const;
+    QPainter & painter, const Superellipse & shape, const Colors & colors, double scale) const;
 
   Icons dark_icons_;
   Icons light_icons_;

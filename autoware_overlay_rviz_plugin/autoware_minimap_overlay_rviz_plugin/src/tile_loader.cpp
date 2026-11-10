@@ -31,6 +31,7 @@ namespace
 {
 constexpr int keep_margin_tiles = 1;
 constexpr int max_retry_delay_s = 60;
+constexpr int transfer_timeout_ms = 30000;
 constexpr qint64 disk_cache_size_bytes = 100 * 1024 * 1024;
 // The OpenStreetMap tile usage policy asks for a User-Agent that identifies the application
 constexpr char user_agent[] =
@@ -61,21 +62,49 @@ TileLoader::TileLoader(
 
 TileLoader::~TileLoader()
 {
-  dropAllTiles();
+  dropAllTiles(false);
 }
 
-void TileLoader::dropAllTiles()
+void TileLoader::dropAllTiles(const bool keep_failures)
 {
-  for (auto & [id, tile] : tiles_) {
+  for (auto it = tiles_.begin(); it != tiles_.end();) {
+    Tile & tile = it->second;
     if (tile.reply) {
       // abort() emits finished(). Disconnect first so that it does not reach this object.
       tile.reply->disconnect(this);
       tile.reply->abort();
       tile.reply->deleteLater();
+      tile.reply = nullptr;
+    }
+    if (keep_failures && tile.image.isNull() && tile.failures > 0) {
+      ++it;
+    } else {
+      it = tiles_.erase(it);
     }
   }
-  tiles_.clear();
   mosaic_dirty_ = true;
+}
+
+void TileLoader::setUrlTemplate(const QString & url_template)
+{
+  if (url_template_ == url_template) {
+    return;
+  }
+  url_template_ = url_template;
+  dropAllTiles(false);
+  requestMissingTiles();
+}
+
+void TileLoader::pause()
+{
+  has_view_ = false;
+  retry_timer_.stop();
+}
+
+bool TileLoader::isLoading() const
+{
+  return std::any_of(
+    tiles_.begin(), tiles_.end(), [](const auto & tile) { return !tile.second.reply.isNull(); });
 }
 
 void TileLoader::setStyle(const MapStyle style)
@@ -84,8 +113,9 @@ void TileLoader::setStyle(const MapStyle style)
     return;
   }
   style_ = style;
-  // The disk cache gives the tiles again
-  dropAllTiles();
+  // The disk cache gives the tiles again. A tile that did not load keeps its delay, so that a
+  // change of the style does not request it at once.
+  dropAllTiles(true);
   requestMissingTiles();
 }
 
@@ -184,6 +214,8 @@ void TileLoader::requestTile(const TileId & id, Tile & tile)
   request.setAttribute(QNetworkRequest::CacheLoadControlAttribute, QNetworkRequest::PreferCache);
   request.setAttribute(
     QNetworkRequest::RedirectPolicyAttribute, QNetworkRequest::NoLessSafeRedirectPolicy);
+  // Without a timeout, a connection that hangs keeps its tile from a new request for ever
+  request.setTransferTimeout(transfer_timeout_ms);
 
   QNetworkReply * reply = network_.get(request);
   tile.reply = reply;
@@ -217,12 +249,19 @@ void TileLoader::onReplyFinished(const TileId & id, QNetworkReply * reply)
     return;
   }
 
-  // Wait longer after each failure, for example when the host is offline or rate limited
   tile.failures = std::min(tile.failures + 1, 6);
-  const int delay_s = std::min(1 << tile.failures, max_retry_delay_s);
-  tile.retry_time = std::chrono::steady_clock::now() + std::chrono::seconds(delay_s);
-  if (!retry_timer_.isActive()) {
-    retry_timer_.start(std::chrono::seconds(delay_s));
+  const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+  if (status >= 400 && status < 500 && status != 408 && status != 429) {
+    // The server refuses this tile, for example with 403 or 404. A new request gives the same
+    // answer, so do not ask again while the tile stays in the view.
+    tile.retry_time = std::chrono::steady_clock::time_point::max();
+  } else {
+    // Wait longer after each failure, for example when the host is offline or rate limited
+    const int delay_s = std::min(1 << tile.failures, max_retry_delay_s);
+    tile.retry_time = std::chrono::steady_clock::now() + std::chrono::seconds(delay_s);
+    if (!retry_timer_.isActive()) {
+      retry_timer_.start(std::chrono::seconds(delay_s));
+    }
   }
   Q_EMIT tileFailed(failure);
 }

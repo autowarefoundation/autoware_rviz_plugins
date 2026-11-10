@@ -15,6 +15,7 @@
 #ifndef MINIMAP_DISPLAY_HPP_
 #define MINIMAP_DISPLAY_HPP_
 
+#include "minimap_mouse.hpp"
 #include "minimap_painter.hpp"
 #include "route_line.hpp"
 #include "tile_loader.hpp"
@@ -25,6 +26,7 @@
 #include <rviz_common/properties/enum_property.hpp>
 #include <rviz_common/properties/float_property.hpp>
 #include <rviz_common/properties/int_property.hpp>
+#include <rviz_common/properties/string_property.hpp>
 #include <rviz_rendering/render_window.hpp>
 
 #include <autoware_adapi_v1_msgs/msg/route.hpp>
@@ -64,6 +66,7 @@ protected:
 private Q_SLOTS:
   void updateOverlayGeometry();
   void requestRedraw();
+  void updateTileUrl();
   void onTileFailed(const QString & reason);
 
 private:
@@ -109,6 +112,7 @@ private:
   rviz_common::properties::IntProperty * zoom_property_;
   rviz_common::properties::EnumProperty * view_property_;
   rviz_common::properties::EnumProperty * map_style_property_;
+  rviz_common::properties::StringProperty * tile_url_property_;
 
   rviz_2d_overlay_plugins::OverlayObject::SharedPtr overlay_;
   rviz_rendering::RenderWindow * render_window_ = nullptr;
@@ -141,12 +145,7 @@ private:
   double drawn_heading_deg_ = 0.0;
   bool needs_redraw_ = true;
 
-  // Mouse on the minimap, in pixels of the minimap
-  bool mouse_pressed_ = false;
-  Qt::MouseButton mouse_button_ = Qt::NoButton;
-  bool mouse_dragging_ = false;
-  QPointF mouse_press_position_;
-  QPointF mouse_last_position_;
+  MinimapMouse mouse_;
 };
 
 }  // namespace autoware_minimap_overlay_rviz_plugin

@@ -10,6 +10,7 @@ set(CMAKE_AUTOMOC ON)
 ament_auto_add_library(${PROJECT_NAME} SHARED
   src/map_style.cpp
   src/minimap_display.cpp
+  src/minimap_mouse.cpp
   src/minimap_painter.cpp
   src/route_line.cpp
   src/tile_loader.cpp
@@ -34,6 +35,7 @@ if(BUILD_TESTING)
   ament_add_gtest(test_${PROJECT_NAME}
     test/main.cpp
     test/test_map_style.cpp
+    test/test_minimap_mouse.cpp
     test/test_minimap_painter.cpp
     test/test_route_line.cpp
     test/test_superellipse.cpp

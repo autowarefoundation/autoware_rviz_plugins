@@ -14,9 +14,14 @@
 
 #include "route_line.hpp"
 
+#include <boost/archive/binary_oarchive.hpp>
+
 #include <gtest/gtest.h>
 #include <lanelet2_core/primitives/Lanelet.h>
+#include <lanelet2_io/io_handlers/Serialize.h>
 
+#include <sstream>
+#include <string>
 #include <vector>
 
 using autoware_adapi_v1_msgs::msg::RouteData;
@@ -25,6 +30,7 @@ using autoware_minimap_overlay_rviz_plugin::advance_progress;
 using autoware_minimap_overlay_rviz_plugin::LineProgress;
 using autoware_minimap_overlay_rviz_plugin::remaining_line;
 using autoware_minimap_overlay_rviz_plugin::route_centerline;
+using autoware_minimap_overlay_rviz_plugin::to_lanelet_map;
 
 namespace
 {
@@ -56,6 +62,35 @@ RouteData make_route(
 
 const std::vector<QPointF> straight_line = {{0.0, 0.0}, {10.0, 0.0}, {20.0, 0.0}, {30.0, 0.0}};
 }  // namespace
+
+TEST(ToLaneletMap, ReadsTheMapOfAMessage)
+{
+  // The same data as the map loader of Autoware sends: the map, then the largest ID
+  lanelet::LaneletMap map;
+  map.add(make_lanelet(7, 0.0, 30.0));
+  std::stringstream stream;
+  boost::archive::binary_oarchive archive(stream);
+  archive << map;
+  const lanelet::Id id_counter = lanelet::utils::getId();
+  archive << id_counter;
+  const std::string data = stream.str();
+  autoware_map_msgs::msg::LaneletMapBin msg;
+  msg.data.assign(data.begin(), data.end());
+
+  const auto loaded = to_lanelet_map(msg);
+  ASSERT_TRUE(loaded->laneletLayer.exists(7));
+  const auto centerline = loaded->laneletLayer.get(7).centerline();
+  EXPECT_DOUBLE_EQ(centerline.front().x(), 0.0);
+  EXPECT_DOUBLE_EQ(centerline.back().x(), 30.0);
+  EXPECT_DOUBLE_EQ(centerline.front().y(), 0.0);
+}
+
+TEST(ToLaneletMap, ThrowsForDataThatIsNotAMap)
+{
+  autoware_map_msgs::msg::LaneletMapBin msg;
+  msg.data = {1, 2, 3};
+  EXPECT_ANY_THROW(to_lanelet_map(msg));
+}
 
 TEST(RouteCenterline, FollowsTheLaneletsFromTheStartToTheGoal)
 {

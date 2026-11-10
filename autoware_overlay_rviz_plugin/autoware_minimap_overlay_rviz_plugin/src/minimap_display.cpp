@@ -45,7 +45,7 @@ using rviz_2d_overlay_plugins::HorizontalAlignment;
 using rviz_2d_overlay_plugins::VerticalAlignment;
 using rviz_common::properties::StatusProperty;
 
-constexpr char tile_url_template[] = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
+constexpr char default_tile_url[] = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
 // The tiles of tile.openstreetmap.org end at zoom level 19
 constexpr int max_zoom = 19;
 constexpr int min_zoom = 3;
@@ -60,8 +60,6 @@ constexpr char icons_status[] = "Icons";
 // A smaller movement of the vehicle does not change the image
 constexpr double redraw_distance_px = 0.25;
 constexpr double redraw_heading_deg = 0.5;
-// A mouse press that moves less than this distance is a click
-constexpr double click_distance_px = 4.0;
 
 QString format_position(const double latitude, const double longitude)
 {
@@ -140,6 +138,12 @@ MinimapDisplay::MinimapDisplay()
   map_style_property_->addOption("Navigation Dark", static_cast<int>(MapStyle::NavigationDark));
   map_style_property_->addOption("Navigation Light", static_cast<int>(MapStyle::NavigationLight));
   map_style_property_->addOption("OpenStreetMap", static_cast<int>(MapStyle::Standard));
+
+  tile_url_property_ = new rviz_common::properties::StringProperty(
+    "Tile URL", default_tile_url,
+    "Address of the map tiles, with the placeholders {z}, {x} and {y}. The tiles must have the "
+    "colors of the standard OpenStreetMap style for the navigation styles.",
+    this, SLOT(updateTileUrl()));
 }
 
 void MinimapDisplay::onInitialize()
@@ -158,8 +162,9 @@ void MinimapDisplay::onInitialize()
   }
 
   tiles_ = std::make_unique<TileLoader>(
-    tile_url_template, QDir(QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation))
-                         .filePath("autoware_minimap_overlay_rviz_plugin"));
+    tile_url_property_->getString(),
+    QDir(QStandardPaths::writableLocation(QStandardPaths::GenericCacheLocation))
+      .filePath("autoware_minimap_overlay_rviz_plugin"));
   connect(tiles_.get(), &TileLoader::tileLoaded, this, [this]() {
     setStatus(StatusProperty::Ok, tiles_status, "OK");
     requestRedraw();
@@ -195,12 +200,19 @@ void MinimapDisplay::onDisable()
     return;
   }
   unsubscribe();
+  // No requests for tiles while the minimap does not show
+  tiles_->pause();
+  mouse_.reset();
   overlay_->hide();
 }
 
 void MinimapDisplay::reset()
 {
   rviz_common::Display::reset();
+  // Display::reset() deletes the status lines
+  if (painter_ && !painter_->isValid()) {
+    setStatus(StatusProperty::Error, icons_status, "The icon files did not load");
+  }
   // A new subscription gets the transient local messages again
   unsubscribe();
   clearInputs();
@@ -217,6 +229,11 @@ void MinimapDisplay::subscribe()
   using std::placeholders::_1;
   const rclcpp::QoS transient_local = rclcpp::QoS(1).transient_local();
 
+  if (!vector_map_sub_) {
+    vector_map_sub_ = node_->create_subscription<LaneletMapBin>(
+      "/map/vector_map", transient_local, std::bind(&MinimapDisplay::onVectorMap, this, _1));
+  }
+
   kinematics_sub_ = node_->create_subscription<VehicleKinematics>(
     "/api/vehicle/kinematics", rclcpp::QoS(1).best_effort(),
     std::bind(&MinimapDisplay::onKinematics, this, _1));
@@ -224,8 +241,6 @@ void MinimapDisplay::subscribe()
     "/api/routing/route", transient_local, std::bind(&MinimapDisplay::onRoute, this, _1));
   route_state_sub_ = node_->create_subscription<RouteState>(
     "/api/routing/state", transient_local, std::bind(&MinimapDisplay::onRouteState, this, _1));
-  vector_map_sub_ = node_->create_subscription<LaneletMapBin>(
-    "/map/vector_map", transient_local, std::bind(&MinimapDisplay::onVectorMap, this, _1));
   map_projector_info_sub_ = node_->create_subscription<MapProjectorInfo>(
     "/map/map_projector_info", transient_local,
     std::bind(&MinimapDisplay::onMapProjectorInfo, this, _1));
@@ -236,8 +251,10 @@ void MinimapDisplay::unsubscribe()
   kinematics_sub_.reset();
   route_sub_.reset();
   route_state_sub_.reset();
-  vector_map_sub_.reset();
   map_projector_info_sub_.reset();
+  // The subscription to the map stays. A new one gets the map again, and RViz resets the
+  // displays at each jump back in time, for example at each loop of a rosbag. The conversion of
+  // a large map blocks the GUI thread for a noticeable time.
 }
 
 void MinimapDisplay::clearInputs()
@@ -245,13 +262,12 @@ void MinimapDisplay::clearInputs()
   route_.reset();
   route_state_.reset();
   map_projector_info_.reset();
-  lanelet_map_.reset();
   route_line_.clear();
   route_line_mercator_.clear();
   route_progress_ = LineProgress();
   vehicle_position_.reset();
   scene_ = MinimapScene();
-  mouse_pressed_ = false;
+  mouse_.reset();
 
   setStatus(StatusProperty::Warn, vehicle_status, "No message received");
   setStatus(StatusProperty::Warn, projector_status, "No message received");
@@ -277,6 +293,14 @@ void MinimapDisplay::requestRedraw()
 {
   needs_redraw_ = true;
   queueRender();
+}
+
+void MinimapDisplay::updateTileUrl()
+{
+  if (tiles_) {
+    tiles_->setUrlTemplate(tile_url_property_->getString());
+  }
+  requestRedraw();
 }
 
 void MinimapDisplay::onTileFailed(const QString & reason)
@@ -306,7 +330,7 @@ void MinimapDisplay::update(float /*wall_dt*/, float /*ros_dt*/)
     tiles_->setStyle(style.map);
     tiles_->setView(
       scene_.view_center.value_or(*scene_.vehicle),
-      MinimapPainter::tileZoom(image.rect(), scene_.zoom),
+      MinimapPainter::tileZoom(image.rect(), style, scene_.zoom),
       MinimapPainter::tileViewSize(image.rect(), style, scene_.zoom));
   }
 
@@ -388,57 +412,38 @@ bool MinimapDisplay::eventFilter(QObject * object, QEvent * event)
       if (!is_on_minimap(position)) {
         return false;
       }
-      // The left and the middle button move the map. Only the left button clicks a button.
-      if (
-        !mouse_pressed_ &&
-        (mouse_event->button() == Qt::LeftButton || mouse_event->button() == Qt::MiddleButton)) {
-        mouse_pressed_ = true;
-        mouse_button_ = mouse_event->button();
-        mouse_dragging_ = false;
-        mouse_press_position_ = position;
-        mouse_last_position_ = position;
-      }
       // The tools of RViz must not get a click on the minimap
-      return true;
+      return mouse_.press(mouse_event->button(), position, true);
     }
     case QEvent::MouseMove: {
-      if (!mouse_pressed_) {
-        return false;
+      const auto * mouse_event = static_cast<QMouseEvent *>(event);
+      const auto motion =
+        mouse_.motion(mouse_event->buttons(), to_minimap(mouse_event->localPos()));
+      if (!motion.drag.isNull()) {
+        panView(motion.drag);
       }
-      const QPointF position = to_minimap(static_cast<QMouseEvent *>(event)->localPos());
-      const QPointF from_press = position - mouse_press_position_;
-      if (std::hypot(from_press.x(), from_press.y()) > click_distance_px) {
-        mouse_dragging_ = true;
-      }
-      if (mouse_dragging_) {
-        panView(position - mouse_last_position_);
-        mouse_last_position_ = position;
-      }
-      return true;
+      return motion.consumed;
     }
     case QEvent::MouseButtonRelease: {
       const auto * mouse_event = static_cast<QMouseEvent *>(event);
-      const QPointF position = to_minimap(mouse_event->localPos());
-      if (!mouse_pressed_ || mouse_event->button() != mouse_button_) {
-        return is_on_minimap(position);
-      }
-      mouse_pressed_ = false;
-      if (!mouse_dragging_ && mouse_button_ == Qt::LeftButton) {
-        const auto button =
-          MinimapPainter::buttonAt(position, rect, style, scene_.view_center.has_value());
+      const auto release = mouse_.release(mouse_event->button());
+      if (release.click) {
+        const auto button = MinimapPainter::buttonAt(
+          to_minimap(mouse_event->localPos()), rect, style, scene_.view_center.has_value());
         if (button) {
           onButtonClicked(*button);
         }
       }
-      return true;
+      return release.consumed;
     }
     case QEvent::Wheel: {
       const auto * wheel_event = static_cast<QWheelEvent *>(event);
       if (!is_on_minimap(to_minimap(wheel_event->position()))) {
         return false;
       }
-      if (wheel_event->angleDelta().y() != 0) {
-        changeZoom(wheel_event->angleDelta().y() > 0 ? 1 : -1);
+      const int steps = mouse_.wheel(wheel_event->angleDelta().y());
+      if (steps != 0) {
+        changeZoom(steps);
       }
       return true;
     }
@@ -523,14 +528,20 @@ void MinimapDisplay::onKinematics(const VehicleKinematics::ConstSharedPtr msg)
     // A map with a local projector gives no geographic pose
     return;
   }
-  if (!std::isfinite(latitude) || !std::isfinite(longitude)) {
-    setStatus(StatusProperty::Error, vehicle_status, "The geographic position is not finite");
+  // The comparisons are false for NaN
+  if (!(std::abs(latitude) <= 90.0) || !(std::abs(longitude) <= 180.0)) {
+    setStatus(
+      StatusProperty::Error, vehicle_status, "The geographic position is not a valid position");
     return;
   }
 
   // Yaw from the quaternion. A zero quaternion gives 0, not NaN.
   const auto & q = msg->pose.pose.pose.orientation;
   const double yaw = std::atan2(2.0 * (q.w * q.z + q.x * q.y), 1.0 - 2.0 * (q.y * q.y + q.z * q.z));
+  if (!std::isfinite(yaw)) {
+    setStatus(StatusProperty::Error, vehicle_status, "The orientation is not finite");
+    return;
+  }
 
   scene_.vehicle = to_mercator(latitude, longitude);
   // The yaw is counterclockwise from east
@@ -558,11 +569,14 @@ void MinimapDisplay::onMapProjectorInfo(const MapProjectorInfo::ConstSharedPtr m
   map_projector_info_ = msg;
   if (msg->projector_type == MapProjectorInfo::LOCAL) {
     scene_.vehicle.reset();
+    scene_.waiting_message = "The map has a local\nprojector, so it has no\ngeographic position";
+    mouse_.reset();
     setStatus(
       StatusProperty::Error, projector_status,
       "The map has a local projector, so it has no geographic position");
     setStatus(StatusProperty::Error, vehicle_status, "No geographic position");
   } else {
+    scene_.waiting_message = MinimapScene().waiting_message;
     setStatus(StatusProperty::Ok, projector_status, QString::fromStdString(msg->projector_type));
   }
   updateRoute();
@@ -585,7 +599,9 @@ void MinimapDisplay::onVectorMap(const LaneletMapBin::ConstSharedPtr msg)
   try {
     lanelet_map_ = to_lanelet_map(*msg);
   } catch (const std::exception & e) {
+    // Without the map, the old route line must not stay
     lanelet_map_.reset();
+    updateRoute();
     setStatus(StatusProperty::Error, route_status, QString("The map did not load: ") + e.what());
     return;
   }

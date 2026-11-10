@@ -57,6 +57,15 @@ public:
   // Sets the colors of the tiles. A change drops the loaded tiles.
   void setStyle(MapStyle style);
 
+  // Sets the address of the tiles, see the constructor. A change drops all tiles.
+  void setUrlTemplate(const QString & url_template);
+
+  // Stops the requests until the next call of setView(). The loaded tiles stay.
+  void pause();
+
+  // True while a request for a tile is not finished
+  bool isLoading() const;
+
   // Draws the loaded tiles of the view, with the center of the view at the center of `target`.
   // snap_to_pixels keeps the tiles sharp. Turn it off when the painter rotates.
   void paint(QPainter & painter, const QRectF & target, bool snap_to_pixels = true);
@@ -103,7 +112,8 @@ private:
   TileRange visibleRange() const;
   void requestMissingTiles();
   void dropFarTiles();
-  void dropAllTiles();
+  // keep_failures keeps the tiles that did not load, with the time of their next request
+  void dropAllTiles(bool keep_failures);
   void requestTile(const TileId & id, Tile & tile);
   void onReplyFinished(const TileId & id, QNetworkReply * reply);
 

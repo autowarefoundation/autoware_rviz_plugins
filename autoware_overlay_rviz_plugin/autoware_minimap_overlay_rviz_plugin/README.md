@@ -16,7 +16,7 @@ If the goal is outside the minimap, a marker at the edge of the minimap points t
 
 ## Controls on the minimap
 
-You control the minimap with the mouse. The minimap does not pass these mouse actions to the RViz tools.
+You control the minimap with the mouse. The minimap does not pass these mouse actions to the RViz tools. A mouse button that you press outside the minimap stays with the RViz tool until you release it, also above the minimap.
 
 | Control                             | Action                                                                           |
 | ----------------------------------- | -------------------------------------------------------------------------------- |
@@ -24,7 +24,7 @@ You control the minimap with the mouse. The minimap does not pass these mouse ac
 | Compass button (top right)          | Changes the view: 3D, Heading Up, then North Up. The red tip points to north.    |
 | `-` and `+` buttons (bottom)        | Change the zoom level                                                            |
 | Mouse wheel                         | Changes the zoom level                                                           |
-| Drag with the left or middle button | Moves the map. The minimap then stops to follow the vehicle.                     |
+| Drag with the left or middle button | Moves the map. The minimap then does not follow the vehicle.                     |
 | Recenter button                     | Shows after you move the map. It moves the map back, to follow the vehicle again |
 
 ## Inputs / Outputs
@@ -39,7 +39,7 @@ You control the minimap with the mouse. The minimap does not pass these mouse ac
 | `/map/vector_map`         | `autoware_map_msgs::msg::LaneletMapBin`          | The centerline of each route lanelet gives the route line |
 | `/map/map_projector_info` | `autoware_map_msgs::msg::MapProjectorInfo`       | Converts the goal and the route to latitude and longitude |
 
-The plugin has no output topics. It downloads map tiles from `https://tile.openstreetmap.org`.
+The plugin has no output topics. It downloads map tiles from the address in the `Tile URL` property. The default is `https://tile.openstreetmap.org`.
 
 ## Parameters
 
@@ -59,6 +59,8 @@ The display has these properties in the `Displays` panel of RViz.
 | `View`              | enum  | 3D              | 3D, Heading Up, or North Up                                             |
 | `Map Style`         | enum  | Navigation Dark | Navigation Dark, Navigation Light, or OpenStreetMap                     |
 
+The `Tile URL` property (string) holds the address of the map tiles, with the placeholders `{z}`, `{x}`, and `{y}`. Its default is `https://tile.openstreetmap.org/{z}/{x}/{y}.png`. Change it to use a tile server of your own. For the navigation styles, the tiles must have the colors of the standard OpenStreetMap style.
+
 The views:
 
 - `North Up` keeps north at the top. The vehicle arrow turns.
@@ -70,7 +72,7 @@ The map styles:
 - `OpenStreetMap` shows the map tiles as they are.
 - `Navigation Dark` and `Navigation Light` show mainly the roads. The dark style has the charcoal of the Autoware RViz theme, and it shows the route in green, as the 3D view of RViz does. Its vehicle arrow and its goal pin are purple. The light style has the [Autoware brand colors](https://docs.autoware.org/main/home/media-kit/). The tile server has only one style. Thus the plugin finds the roads, the water, the buildings, and the text of each tile by their colors, and gives them new colors.
 
-A larger minimap shows the same part of the map and the same design, with more pixels. From 362 pixels on, it uses the map tiles of the next zoom level, so that the map stays sharp.
+A larger minimap shows the same part of the map and the same design, with more pixels. From 362 pixels on, it uses the map tiles of the next zoom level, so that the map stays sharp. One view uses at most 8 x 8 tiles. A minimap that needs more, for example a long and narrow one, uses the tiles of a lower zoom level, and its map is less sharp.
 
 The display also shows status lines in the `Displays` panel: `Vehicle`, `Map projector`, `Route`, and `Map tiles`. If the minimap does not show an item, read these lines first.
 
@@ -99,13 +101,16 @@ An example of the display in an RViz configuration file:
   Zoom: 17
   View: 3D
   Map Style: Navigation Dark
+  Tile URL: https://tile.openstreetmap.org/{z}/{x}/{y}.png
 ```
 
 ## Assumptions / Known Limits
 
-- The plugin needs internet access to download the map tiles. It keeps the tiles in a disk cache in `~/.cache/autoware_minimap_overlay_rviz_plugin`. If a tile does not download, the plugin tries again later, with a delay that grows up to 60 seconds.
-- The plugin obeys the [tile usage policy of OpenStreetMap](https://operations.osmfoundation.org/policies/tiles/): it caches the tiles, it sends a User-Agent that names this repository, and it shows "© OpenStreetMap contributors" on the map. The policy does not permit heavy use. For heavy use, a tile server of your own is necessary, and the plugin has no property for its address yet.
+- The plugin needs internet access to download the map tiles. It keeps the tiles in a disk cache in `~/.cache/autoware_minimap_overlay_rviz_plugin`. If a tile does not download, the plugin tries again later, with a delay that grows up to 60 seconds. If the server refuses a tile (an HTTP status from 400 to 499, but not 408 or 429), the plugin does not request this tile again while it stays in the view.
+- The plugin follows the [tile usage policy of OpenStreetMap](https://operations.osmfoundation.org/policies/tiles/) in these points: it caches the tiles, it sends a User-Agent that names this repository, it shows "© OpenStreetMap contributors" on the map, and the `Tile URL` property can point to a different server. The policy does not permit heavy use. For heavy use, a tile server of your own is necessary.
+- The requests for the tiles tell the tile server which part of the map you look at, and thus approximately where the vehicle is. If this is not acceptable, use a tile server of your own, or disable the display.
 - A map with a `Local` projector has no geographic position. The minimap then shows a message and no map.
+- The minimap does not draw the vehicle, the goal, and the route correctly across the 180 degree meridian.
 - The map tiles are images. Thus the text of the map turns with the map in the `Heading Up` and `3D` views.
 - The navigation styles find the items of the map by their colors. An area that has the color of a large road shows as a large road.
 - The heading comes from the orientation in the map frame. The plugin does not correct the small angle between the north of the map frame and true north.

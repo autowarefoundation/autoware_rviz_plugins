@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
-  <!-- Button that changes between heading up and north up. The red tip points to north. -->
+  <!-- Button that changes the view: 3D, heading up, then north up. The red tip points to north. -->
   <circle cx="24" cy="24" r="21" fill="#ffffff" stroke="#00002a" stroke-width="2"/>
   <path d="M24 8 30 24H18Z" fill="#dc143c"/>
   <path d="M24 40 18 24H30Z" fill="#6b6f8a"/>

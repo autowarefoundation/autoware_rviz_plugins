@@ -184,15 +184,20 @@ double MinimapPainter::designScale(const QRectF & rect)
   return std::min(rect.width(), rect.height()) / design_size_px;
 }
 
-int MinimapPainter::tileZoom(const QRectF & rect, const int zoom)
+int MinimapPainter::tileZoom(const QRectF & rect, const MinimapStyle & style, const int zoom)
 {
   // Each level more has tiles with 2 times the detail
   const int detail = std::max(0, static_cast<int>(std::lround(std::log2(designScale(rect)))));
-  return std::max(zoom, std::min(zoom + detail, max_tile_zoom));
+  int tile_zoom = std::max(zoom, std::min(zoom + detail, max_tile_zoom));
+  // Each level less needs half of the tiles in each direction
+  const double radius = viewRadius(rect, style);
+  while (tile_zoom > 0 && 2.0 * std::ldexp(radius, tile_zoom - zoom) > max_tile_view_px) {
+    --tile_zoom;
+  }
+  return tile_zoom;
 }
 
-QSizeF MinimapPainter::tileViewSize(
-  const QRectF & device_rect, const MinimapStyle & style, const int zoom)
+double MinimapPainter::viewRadius(const QRectF & device_rect, const MinimapStyle & style)
 {
   const QRectF rect = to_design(device_rect, designScale(device_rect));
   // The tiles must reach the place on the map of each corner of the minimap, at each rotation
@@ -204,10 +209,18 @@ QSizeF MinimapPainter::tileViewSize(
     const QPointF on_map = to_map.map(corner) - rect.center();
     radius = std::max(radius, std::hypot(on_map.x(), on_map.y()));
   }
-  radius = std::min(radius, max_view_radius_ratio * std::max(rect.width(), rect.height()));
-  // The radius is in map pixels of the zoom level. The tiles can have a higher zoom level.
-  radius = std::ldexp(radius, tileZoom(device_rect, zoom) - zoom);
-  return {2.0 * radius, 2.0 * radius};
+  return std::min(radius, max_view_radius_ratio * std::max(rect.width(), rect.height()));
+}
+
+QSizeF MinimapPainter::tileViewSize(
+  const QRectF & device_rect, const MinimapStyle & style, const int zoom)
+{
+  // The radius is in map pixels of the zoom level. The tiles can have another zoom level.
+  const double radius =
+    std::ldexp(viewRadius(device_rect, style), tileZoom(device_rect, style, zoom) - zoom);
+  // The limit cuts the view only when the tiles of zoom level 0 are still too many
+  const double size = std::min(2.0 * radius, max_tile_view_px);
+  return {size, size};
 }
 
 QPointF MinimapPainter::buttonCenter(
@@ -267,7 +280,7 @@ void MinimapPainter::paint(
 
   if (!scene.vehicle) {
     painter.fillPath(shape_path, theme_colors.panel);
-    paintMessage(painter, rect, "Waiting for the\nvehicle position");
+    paintMessage(painter, rect, scene.waiting_message);
   } else {
     painter.fillPath(shape_path, background);
 
@@ -281,7 +294,7 @@ void MinimapPainter::paint(
     };
 
     // The tiles can have a higher zoom level than the map. Then they are drawn smaller.
-    const int tile_zoom = tileZoom(device_rect, scene.zoom);
+    const int tile_zoom = tileZoom(device_rect, style, scene.zoom);
     const double tile_scale = std::ldexp(1.0, scene.zoom - tile_zoom);
     const QTransform tile_transform =
       QTransform::fromTranslate(-rect.center().x(), -rect.center().y()) *
@@ -333,7 +346,7 @@ void MinimapPainter::paint(
     paintVehicle(
       painter, shape, to_offset(*scene.vehicle), scene.vehicle_heading_deg + map_rotation_deg,
       projection, theme_icons);
-    paintAttribution(painter, shape, theme_colors);
+    paintAttribution(painter, shape, theme_colors, scale);
 
     const auto button_rect = [&](const MinimapButton button) {
       return centered_square(buttonCenter(button, rect, style.shape), button_size_px);
@@ -460,7 +473,8 @@ void MinimapPainter::paintVehicle(
   }
   painter.save();
   painter.translate(*position);
-  // In the 3D view, the icon lies flat on the map
+  // In the 3D view, the icon lies flat on the map. A fully flat icon is hard to read, so it
+  // keeps a quarter of the height that the tilt takes away.
   painter.scale(1.0, projection.tilt_cos + 0.25 * projection.tilt_sin);
   // The icon points up
   painter.rotate(rotation_deg);
@@ -469,11 +483,12 @@ void MinimapPainter::paintVehicle(
 }
 
 void MinimapPainter::paintAttribution(
-  QPainter & painter, const Superellipse & shape, const Colors & colors) const
+  QPainter & painter, const Superellipse & shape, const Colors & colors, const double scale) const
 {
-  // The OpenStreetMap license asks for this text on the map
+  // The OpenStreetMap license asks for this text on the map.
+  // On a small minimap the text keeps a height of 9 pixels, so that it stays readable.
   QFont font = painter.font();
-  font.setPixelSize(9);
+  font.setPixelSize(std::lround(9.0 / std::min(scale, 1.0)));
   painter.setFont(font);
   const QFontMetricsF metrics(font);
   const QRectF & rect = shape.rect;
