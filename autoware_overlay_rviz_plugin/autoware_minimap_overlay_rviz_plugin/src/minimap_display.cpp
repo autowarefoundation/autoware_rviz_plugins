@@ -116,7 +116,7 @@ MinimapDisplay::MinimapDisplay()
   alpha_property_->setMax(1.0);
 
   zoom_property_ = new rviz_common::properties::IntProperty(
-    "Zoom", 16,
+    "Zoom", 17,
     "Zoom level of the map. One level more shows half of the distance. The mouse wheel "
     "and the buttons on the minimap change it.",
     this, SLOT(requestRedraw()));

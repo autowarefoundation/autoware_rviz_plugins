@@ -36,7 +36,7 @@ namespace autoware_minimap_overlay_rviz_plugin
 // What the minimap shows. All positions are on the Web Mercator map, as returned by to_mercator().
 struct MinimapScene
 {
-  int zoom = 16;
+  int zoom = 17;
   // Without a vehicle position, the minimap shows a message in place of the map
   std::optional<QPointF> vehicle;
   // Clockwise from north
