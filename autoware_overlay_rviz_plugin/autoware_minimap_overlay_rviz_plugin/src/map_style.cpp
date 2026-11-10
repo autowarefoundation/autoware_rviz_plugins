@@ -35,10 +35,10 @@ struct Palette
   Rgb text;
 };
 
-// The land of the dark style is near the navy of the Autoware colors, and its text is the mist.
-// The light style has them the other way around.
-constexpr Palette dark_palette{{10.0, 12.0, 58.0},    {22.0, 25.0, 80.0}, {66.0, 73.0, 135.0},
-                               {110.0, 118.0, 190.0}, {0.0, 40.0, 92.0},  {242.0, 245.0, 255.0}};
+// The dark style has the charcoal of the Autoware RViz theme and of the other Autoware overlays.
+// The light style has the mist and the navy of the Autoware brand colors.
+constexpr Palette dark_palette{{23.0, 28.0, 31.0},    {30.0, 36.0, 40.0}, {92.0, 104.0, 112.0},
+                               {134.0, 148.0, 158.0}, {16.0, 34.0, 44.0}, {214.0, 220.0, 224.0}};
 constexpr Palette light_palette{{228.0, 232.0, 246.0}, {214.0, 219.0, 238.0}, {255.0, 255.0, 255.0},
                                 {255.0, 222.0, 140.0}, {160.0, 200.0, 240.0}, {0.0, 0.0, 42.0}};
 // Land color of the standard OpenStreetMap style

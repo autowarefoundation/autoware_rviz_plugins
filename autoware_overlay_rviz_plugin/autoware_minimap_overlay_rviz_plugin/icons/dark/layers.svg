@@ -1,6 +1,6 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
   <!-- Button that changes the map style -->
-  <circle cx="24" cy="24" r="21" fill="#00002a" stroke="#9a9dbb" stroke-width="2"/>
-  <path d="M24 12 36 19 24 26 12 19Z" fill="#f2f5ff"/>
-  <path d="M13 25 24 31.5 35 25M13 30.5 24 37 35 30.5" fill="none" stroke="#f2f5ff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+  <circle cx="24" cy="24" r="21" fill="#171c1f" stroke="#606c74" stroke-width="2"/>
+  <path d="M24 12 36 19 24 26 12 19Z" fill="#d6dce0"/>
+  <path d="M13 25 24 31.5 35 25M13 30.5 24 37 35 30.5" fill="none" stroke="#d6dce0" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>

@@ -68,7 +68,7 @@ The views:
 The map styles:
 
 - `OpenStreetMap` shows the map tiles as they are.
-- `Navigation Dark` and `Navigation Light` show mainly the roads, in the [Autoware colors](https://docs.autoware.org/main/home/media-kit/). The tile server has only one style. Thus the plugin finds the roads, the water, the buildings, and the text of each tile by their colors, and gives them new colors.
+- `Navigation Dark` and `Navigation Light` show mainly the roads. The dark style has the charcoal of the Autoware RViz theme, and it shows the route in green, as the 3D view of RViz does. The light style has the [Autoware brand colors](https://docs.autoware.org/main/home/media-kit/). The tile server has only one style. Thus the plugin finds the roads, the water, the buildings, and the text of each tile by their colors, and gives them new colors.
 
 A larger minimap shows the same part of the map and the same design, with more pixels. From 362 pixels on, it uses the map tiles of the next zoom level, so that the map stays sharp.
 

@@ -1,5 +1,5 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
   <!-- Shows the direction of a goal that is outside the minimap. The tip points to the goal. -->
-  <circle cx="24" cy="24" r="20" fill="#00c8ff" stroke="#00002a" stroke-width="3"/>
-  <path d="M24 11 35 31 24 26 13 31Z" fill="#00002a"/>
+  <circle cx="24" cy="24" r="20" fill="#00e678" stroke="#171c1f" stroke-width="3"/>
+  <path d="M24 11 35 31 24 26 13 31Z" fill="#171c1f"/>
 </svg>

@@ -35,9 +35,12 @@ namespace
 // Brand colors of Autoware, from https://docs.autoware.org/main/home/media-kit/
 const QColor navy(0, 0, 42);
 const QColor indigo(63, 46, 227);
-const QColor cyan(0, 200, 255);
+const QColor green(0, 230, 120);
 const QColor mist(242, 245, 255);
-const QColor grey_on_dark(154, 157, 187);
+// Colors of the Autoware RViz theme, for the dark style
+const QColor charcoal(23, 28, 31);
+const QColor charcoal_border(96, 108, 116);
+const QColor charcoal_text(214, 220, 224);
 
 // The sizes are for a minimap of 256 pixels, see designScale()
 constexpr double design_size_px = 256.0;
@@ -109,9 +112,10 @@ bool MinimapPainter::isValid() const
 
 const MinimapPainter::Colors & MinimapPainter::colors(const MapStyle map)
 {
-  // Cyan is the accent on dark backgrounds, and indigo is the accent on light backgrounds
-  static const Colors dark{grey_on_dark, cyan, navy, navy, mist};
-  static const Colors light{navy, indigo, Qt::white, Qt::white, navy};
+  // The dark style shows the route in green, as the 3D view of RViz does.
+  // Indigo is the accent of the Autoware brand colors on light backgrounds.
+  static const Colors dark{charcoal_border, green, charcoal, charcoal, charcoal_text, charcoal};
+  static const Colors light{navy, indigo, Qt::white, Qt::white, navy, navy};
   return map == MapStyle::NavigationDark ? dark : light;
 }
 
@@ -259,7 +263,7 @@ void MinimapPainter::paint(
   painter.setClipPath(shape_path);
 
   if (!scene.vehicle) {
-    painter.fillPath(shape_path, navy);
+    painter.fillPath(shape_path, theme_colors.panel);
     paintMessage(painter, rect, "Waiting for the\nvehicle position");
   } else {
     painter.fillPath(shape_path, background);

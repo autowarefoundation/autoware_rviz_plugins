@@ -123,6 +123,8 @@ private:
     QColor route_casing;
     QColor label_background;
     QColor label_text;
+    // Background of the minimap when it has no map to show
+    QColor panel;
   };
 
   // Places the map on the minimap: rotation around the view center, and the tilt of the 3D view

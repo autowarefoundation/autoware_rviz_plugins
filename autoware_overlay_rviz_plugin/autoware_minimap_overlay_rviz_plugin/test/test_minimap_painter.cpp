@@ -43,7 +43,7 @@ const QRectF minimap_rect(0.0, 0.0, size_px, size_px);
 const QPoint image_center(size_px / 2, size_px / 2);
 const QColor navy(0, 0, 42);
 const QColor indigo(63, 46, 227);
-const QColor cyan(0, 200, 255);
+const QColor green(0, 230, 120);
 // Land color of the standard OpenStreetMap style
 const QColor tile_color(242, 239, 233);
 
@@ -226,11 +226,11 @@ TEST_F(MinimapPainterTest, RouteIsDrawnRelativeToTheVehicle)
   EXPECT_EQ(image.pixelColor(image_center + QPoint(60, 30)), tile_color);
 }
 
-TEST_F(MinimapPainterTest, DarkStyleDrawsTheRouteInCyan)
+TEST_F(MinimapPainterTest, DarkStyleDrawsTheRouteInGreen)
 {
   style_.map = MapStyle::NavigationDark;
   scene_.route = {*scene_.vehicle, offset_px(*scene_.vehicle, 80.0, -40.0)};
-  EXPECT_EQ(paint().pixelColor(image_center + QPoint(60, -30)), cyan);
+  EXPECT_EQ(paint().pixelColor(image_center + QPoint(60, -30)), green);
 }
 
 TEST_F(MinimapPainterTest, GoalInsideTheMinimapShowsThePin)

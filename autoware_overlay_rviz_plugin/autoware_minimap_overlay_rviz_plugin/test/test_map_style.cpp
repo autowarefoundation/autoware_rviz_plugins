@@ -100,6 +100,6 @@ TEST(MapStyle, WaterIsBlue)
 
 TEST(MapStyle, TextIsLightOnDarkAndDarkOnLight)
 {
-  EXPECT_GT(styled(osm_text, MapStyle::NavigationDark).lightness(), 220);
+  EXPECT_GT(styled(osm_text, MapStyle::NavigationDark).lightness(), 200);
   EXPECT_LT(styled(osm_text, MapStyle::NavigationLight).lightness(), 40);
 }
