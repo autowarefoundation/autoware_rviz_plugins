@@ -39,7 +39,7 @@ struct LineProgress
 
 lanelet::LaneletMapConstPtr to_lanelet_map(const autoware_map_msgs::msg::LaneletMapBin & msg);
 
-// Line along the centerlines of the preferred lanelets of the route, in the map frame.
+// Line along the centerline of each preferred lanelet of the route, in the map frame.
 // It starts near the start pose of the route and ends at the goal.
 // It is empty if the map does not have a lanelet of the route.
 std::vector<geometry_msgs::msg::Point> route_centerline(

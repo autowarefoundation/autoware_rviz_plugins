@@ -146,7 +146,7 @@ TEST(TileLoader, MapStyleChangesTheColorsOfTheTiles)
   EXPECT_EQ(paint_tiles(loader, QSize(64, 64)).pixelColor(32, 32), QColor(Qt::white));
 }
 
-TEST(TileLoader, WrapsTheColumnsAtTheAntimeridian)
+TEST(TileLoader, WrapsTheColumnsAtTheEdgeOfTheMap)
 {
   // At zoom level 2 the map has 4 columns. The view at the west edge shows column 3 on its left.
   TileDirectory directory;

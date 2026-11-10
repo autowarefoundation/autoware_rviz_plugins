@@ -36,7 +36,7 @@ You control the minimap with the mouse. The minimap does not pass these mouse ac
 | `/api/vehicle/kinematics` | `autoware_adapi_v1_msgs::msg::VehicleKinematics` | The geographic position and the heading of the vehicle    |
 | `/api/routing/route`      | `autoware_adapi_v1_msgs::msg::Route`             | The goal, and the lanelets of the route                   |
 | `/api/routing/state`      | `autoware_adapi_v1_msgs::msg::RouteState`        | The goal and the route show when a route is set           |
-| `/map/vector_map`         | `autoware_map_msgs::msg::LaneletMapBin`          | The centerlines of the route lanelets give the route line |
+| `/map/vector_map`         | `autoware_map_msgs::msg::LaneletMapBin`          | The centerline of each route lanelet gives the route line |
 | `/map/map_projector_info` | `autoware_map_msgs::msg::MapProjectorInfo`       | Converts the goal and the route to latitude and longitude |
 
 The plugin has no output topics. It downloads map tiles from `https://tile.openstreetmap.org`.
@@ -109,7 +109,7 @@ An example of the display in an RViz configuration file:
 - The map tiles are images. Thus the text of the map turns with the map in the `Heading Up` and `3D` views.
 - The navigation styles find the items of the map by their colors. An area that has the color of a large road shows as a large road.
 - The heading comes from the orientation in the map frame. The plugin does not correct the small angle between the north of the map frame and true north.
-- The route line follows the centerlines of the preferred lanelets of the route. At a lane change, the line jumps from one lane to the next.
+- The route line follows the centerline of each preferred lanelet of the route. At a lane change, the line jumps from one lane to the next.
 
 ## License
 

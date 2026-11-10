@@ -85,7 +85,8 @@ private:
     std::chrono::steady_clock::time_point retry_time{};
   };
 
-  // Tile columns and rows that the view covers. The columns are not wrapped at the antimeridian.
+  // Tile columns and rows that the view covers. The columns are not wrapped at the east and west
+  // edges of the map.
   struct TileRange
   {
     int x_min;

@@ -122,7 +122,7 @@ void TileLoader::dropFarTiles()
     bool keep = id.zoom == zoom_ && id.y >= range.y_min - keep_margin_tiles &&
                 id.y <= range.y_max + keep_margin_tiles;
     if (keep) {
-      // The view can cross the antimeridian, so compare the wrapped columns
+      // The view can cross the east or west edge of the map, so compare the wrapped columns
       keep = false;
       for (int x = range.x_min - keep_margin_tiles; x <= range.x_max + keep_margin_tiles; ++x) {
         keep = keep || wrap(x, tile_count) == id.x;

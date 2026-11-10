@@ -16,10 +16,12 @@
 
 #include <gtest/gtest.h>
 
+#include <cstdlib>
+
 int main(int argc, char ** argv)
 {
   // The tests draw text and load tiles, which need a Qt application but no screen
-  qputenv("QT_QPA_PLATFORM", "offscreen");
+  setenv("QT_QPA_PLATFORM", "offscreen", 1);
   QGuiApplication application(argc, argv);
   testing::InitGoogleTest(&argc, argv);
   return RUN_ALL_TESTS();
