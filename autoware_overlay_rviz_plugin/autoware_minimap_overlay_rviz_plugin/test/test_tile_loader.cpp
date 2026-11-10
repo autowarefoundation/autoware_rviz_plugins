@@ -107,6 +107,68 @@ TEST(TileLoader, LoadsAFailedTileAgainLater)
   EXPECT_EQ(paint_tiles(loader, QSize(64, 64)).pixelColor(32, 32), QColor(Qt::green));
 }
 
+TEST(TileLoader, PauseStopsTheRequests)
+{
+  TileDirectory directory;
+  TileLoader loader(directory.urlTemplate());
+  bool failed = false;
+  bool loaded = false;
+  QObject::connect(&loader, &TileLoader::tileFailed, [&failed]() { failed = true; });
+  QObject::connect(&loader, &TileLoader::tileLoaded, [&loaded]() { loaded = true; });
+
+  loader.setView(tile_center(4, 8, 5), 4, QSizeF(64.0, 64.0));
+  ASSERT_TRUE(wait_for([&failed]() { return failed; }));
+
+  // Without the pause, the retry loads the tile after 2 seconds
+  loader.pause();
+  directory.addTile(4, 8, 5, Qt::green);
+  EXPECT_FALSE(wait_for([&loaded]() { return loaded; }, 3000));
+
+  // The next view starts the requests again
+  loader.setView(tile_center(4, 8, 5), 4, QSizeF(64.0, 64.0));
+  EXPECT_TRUE(wait_for([&loaded]() { return loaded; }));
+}
+
+TEST(TileLoader, UrlTemplateChangesTheSourceOfTheTiles)
+{
+  TileDirectory first;
+  TileDirectory second;
+  first.addTile(4, 8, 5, Qt::red);
+  second.addTile(4, 8, 5, Qt::blue);
+  TileLoader loader(first.urlTemplate());
+  int loaded = 0;
+  QObject::connect(&loader, &TileLoader::tileLoaded, [&loaded]() { ++loaded; });
+
+  loader.setView(tile_center(4, 8, 5), 4, QSizeF(64.0, 64.0));
+  ASSERT_TRUE(wait_for([&loaded]() { return loaded == 1; }));
+  EXPECT_EQ(paint_tiles(loader, QSize(64, 64)).pixelColor(32, 32), QColor(Qt::red));
+
+  // The tile of the first address is gone at once, and the tile of the second address loads
+  loader.setUrlTemplate(second.urlTemplate());
+  EXPECT_EQ(paint_tiles(loader, QSize(64, 64)).pixelColor(32, 32).alpha(), 0);
+  ASSERT_TRUE(wait_for([&loaded]() { return loaded == 2; }));
+  EXPECT_EQ(paint_tiles(loader, QSize(64, 64)).pixelColor(32, 32), QColor(Qt::blue));
+}
+
+TEST(TileLoader, StyleChangeKeepsTheDelayOfAFailedTile)
+{
+  TileDirectory directory;
+  TileLoader loader(directory.urlTemplate());
+  bool failed = false;
+  bool loaded = false;
+  QObject::connect(&loader, &TileLoader::tileFailed, [&failed]() { failed = true; });
+  QObject::connect(&loader, &TileLoader::tileLoaded, [&loaded]() { loaded = true; });
+
+  loader.setView(tile_center(4, 8, 5), 4, QSizeF(64.0, 64.0));
+  ASSERT_TRUE(wait_for([&failed]() { return failed; }));
+
+  // The file is there now, but the new style does not request the tile before its delay ends
+  directory.addTile(4, 8, 5, Qt::white);
+  loader.setStyle(MapStyle::NavigationDark);
+  EXPECT_FALSE(wait_for([&loaded]() { return loaded; }, 1000));
+  EXPECT_TRUE(wait_for([&loaded]() { return loaded; }, 6000));
+}
+
 TEST(TileLoader, DropsTheTilesOfAnotherZoomLevel)
 {
   TileDirectory directory;

@@ -59,7 +59,7 @@ The display has these properties in the `Displays` panel of RViz.
 | `View`              | enum  | 3D              | 3D, Heading Up, or North Up                                             |
 | `Map Style`         | enum  | Navigation Dark | Navigation Dark, Navigation Light, or OpenStreetMap                     |
 
-The `Tile URL` property (string) holds the address of the map tiles, with the placeholders `{z}`, `{x}`, and `{y}`. Its default is `https://tile.openstreetmap.org/{z}/{x}/{y}.png`. Change it to use a tile server of your own. For the navigation styles, the tiles must have the colors of the standard OpenStreetMap style.
+The `Tile URL` property (string) holds the address of the map tiles, with the placeholders `{z}`, `{x}`, and `{y}`. Its default is `https://tile.openstreetmap.org/{z}/{x}/{y}.png`. Change it to use a tile server of your own. For the navigation styles, the tiles must have the colors of the standard OpenStreetMap style. The minimap always shows the text "© OpenStreetMap contributors", so use only tiles that come from OpenStreetMap data.
 
 The views:
 

@@ -409,11 +409,8 @@ bool MinimapDisplay::eventFilter(QObject * object, QEvent * event)
     case QEvent::MouseButtonDblClick: {
       const auto * mouse_event = static_cast<QMouseEvent *>(event);
       const QPointF position = to_minimap(mouse_event->localPos());
-      if (!is_on_minimap(position)) {
-        return false;
-      }
       // The tools of RViz must not get a click on the minimap
-      return mouse_.press(mouse_event->button(), position, true);
+      return mouse_.press(mouse_event->button(), position, is_on_minimap(position));
     }
     case QEvent::MouseMove: {
       const auto * mouse_event = static_cast<QMouseEvent *>(event);

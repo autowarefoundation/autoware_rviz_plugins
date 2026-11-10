@@ -101,6 +101,16 @@ TEST(MinimapMouse, LostReleaseEndsTheDragAtTheNextMove)
   EXPECT_FALSE(mouse.release(Qt::LeftButton).consumed);
 }
 
+TEST(MinimapMouse, LostReleaseEndsTheDragAtTheNextPress)
+{
+  // No move comes between the lost release and the next press, as on a touch screen
+  MinimapMouse mouse;
+  mouse.press(Qt::LeftButton, {50.0, 50.0}, true);
+  EXPECT_FALSE(mouse.press(Qt::LeftButton, {-200.0, 50.0}, false));
+  EXPECT_FALSE(mouse.motion(Qt::LeftButton, {-190.0, 50.0}).consumed);
+  EXPECT_FALSE(mouse.release(Qt::LeftButton).consumed);
+}
+
 TEST(MinimapMouse, ResetForgetsTheButtons)
 {
   MinimapMouse mouse;
@@ -132,4 +142,8 @@ TEST(MinimapMouse, SmallWheelAnglesAddUpToOneZoomStep)
   EXPECT_EQ(mouse.wheel(60), 0);
   EXPECT_EQ(mouse.wheel(-60), 0);
   EXPECT_EQ(mouse.wheel(-60), -1);
+  // An event with no vertical angle does not change the sum
+  EXPECT_EQ(mouse.wheel(60), 0);
+  EXPECT_EQ(mouse.wheel(0), 0);
+  EXPECT_EQ(mouse.wheel(60), 1);
 }

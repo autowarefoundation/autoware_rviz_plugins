@@ -31,6 +31,11 @@ bool MinimapMouse::press(
   const Qt::MouseButton button, const QPointF & position, const bool on_minimap)
 {
   if (!on_minimap) {
+    // A new press of a button shows that its last release got lost
+    taken_buttons_ &= ~Qt::MouseButtons(button);
+    if (drag_button_ == button) {
+      drag_button_ = Qt::NoButton;
+    }
     return false;
   }
   taken_buttons_ |= button;
@@ -87,6 +92,10 @@ MinimapMouse::Release MinimapMouse::release(const Qt::MouseButton button)
 
 int MinimapMouse::wheel(const int angle_delta)
 {
+  if (angle_delta == 0) {
+    // An event with only a horizontal angle
+    return 0;
+  }
   if ((angle_delta > 0) != (wheel_angle_ > 0)) {
     // The direction changed
     wheel_angle_ = 0;
