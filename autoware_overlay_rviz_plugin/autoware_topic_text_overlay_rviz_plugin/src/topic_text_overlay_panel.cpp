@@ -309,8 +309,9 @@ void TopicTextOverlayPanel::load(const rviz_common::Config & config)
     configured_selected_marker_namespaces_ = std::move(selected_marker_namespaces);
     for (auto & [topic, state] : topics_) {
       state.selected = configured_selected_topics_.count(topic) != 0U;
-      if (const auto it = configured_selected_marker_namespaces_.find(topic);
-          it != configured_selected_marker_namespaces_.end()) {
+      if (
+        const auto it = configured_selected_marker_namespaces_.find(topic);
+        it != configured_selected_marker_namespaces_.end()) {
         state.selected_marker_namespaces = it->second;
       }
     }
@@ -491,8 +492,9 @@ void TopicTextOverlayPanel::refresh_topics()
       if (configured_selected_topics.count(topic_name) != 0U) {
         state.selected = true;
       }
-      if (const auto namespaces_it = configured_selected_marker_namespaces.find(topic_name);
-          namespaces_it != configured_selected_marker_namespaces.end()) {
+      if (
+        const auto namespaces_it = configured_selected_marker_namespaces.find(topic_name);
+        namespaces_it != configured_selected_marker_namespaces.end()) {
         state.selected_marker_namespaces = namespaces_it->second;
       }
       if (!state.color.isValid()) {
