@@ -1,5 +1,8 @@
 {
   "ignorePaths": [],
   "ignoreRegExpList": [],
-  "words": ["squircle", "superellipse"]
+  "words": [
+    "squircle",
+    "superellipse"
+  ]
 }
