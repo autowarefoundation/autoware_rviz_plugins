@@ -52,3 +52,4 @@
         sd "docs_dir: .*" "docs_dir: ." {source}
         sd "assets/(\w+)" "docs/assets/\$1" {source}
     - source: setup.cfg
+    - source: codecov.yaml
