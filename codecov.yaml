@@ -1,0 +1,20 @@
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        informational: true
+    patch:
+      default:
+        target: auto
+        informational: true
+
+comment:
+  show_carryforward_flags: true
+
+flag_management:
+  default_rules:
+    carryforward: false
+  individual_flags:
+    - name: full-suite
+      carryforward: true
