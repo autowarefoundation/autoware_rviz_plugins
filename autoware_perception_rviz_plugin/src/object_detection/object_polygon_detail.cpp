@@ -120,7 +120,7 @@ visualization_msgs::msg::Marker::SharedPtr get_hologram_predicted_path_marker_pt
                     static_cast<double>(predicted_path.time_step.nanosec) * 1e-9;
   const double max_time = options.horizon_sec > 0.0 ? options.horizon_sec : 1e9;
   const double max_len = options.max_length > 0.0 ? options.max_length : 1e9;
-  const double ground_z_offset = -static_cast<double>(shape.dimensions.z) * 0.5 + 0.032;
+  const double ground_z_offset = -static_cast<double>(shape.dimensions.z) * 0.5 + 0.072;
 
   std::vector<CtrlPt> ctrl;
   ctrl.reserve(predicted_path.path.size());

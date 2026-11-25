@@ -19,8 +19,10 @@
 
 #include <algorithm>
 #include <cmath>
+#include <cstdint>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <vector>
 
 namespace autoware
@@ -145,9 +147,129 @@ void resizeRibbonAndApplyZOffset(
   }
 }
 
+struct BorderSegment2D
+{
+  double sx;
+  double sy;
+  double ex;
+  double ey;
+};
+
+int64_t packGridCell(const int32_t ix, const int32_t iy)
+{
+  return (static_cast<int64_t>(ix) << 32) ^ static_cast<uint32_t>(iy);
+}
+
+using BorderSpatialGrid = std::unordered_map<int64_t, std::vector<BorderSegment2D>>;
+
+void collectRibbonSegmentsToGrid(
+  const visualization_msgs::msg::Marker & marker, BorderSpatialGrid & grid)
+{
+  if (
+    marker.type != visualization_msgs::msg::Marker::TRIANGLE_LIST || marker.points.size() < 6 ||
+    (marker.points.size() % 6) != 0) {
+    return;
+  }
+  const auto & pts = marker.points;
+  for (size_t i = 0; i + 5 < pts.size(); i += 6) {
+    if (!isSamePoint(pts[i + 1], pts[i + 5]) || !isSamePoint(pts[i + 2], pts[i + 4])) {
+      continue;
+    }
+    const double sx = 0.5 * (pts[i + 0].x + pts[i + 1].x);
+    const double sy = 0.5 * (pts[i + 0].y + pts[i + 1].y);
+    const double ex = 0.5 * (pts[i + 2].x + pts[i + 3].x);
+    const double ey = 0.5 * (pts[i + 2].y + pts[i + 3].y);
+    const int32_t ix = static_cast<int32_t>(std::floor(0.5 * (sx + ex)));
+    const int32_t iy = static_cast<int32_t>(std::floor(0.5 * (sy + ey)));
+    grid[packGridCell(ix, iy)].push_back({sx, sy, ex, ey});
+  }
+}
+
+void stripOverlappingBorderSegments(
+  visualization_msgs::msg::Marker & marker, const BorderSpatialGrid & border_grid)
+{
+  if (
+    border_grid.empty() || marker.type != visualization_msgs::msg::Marker::TRIANGLE_LIST ||
+    marker.points.size() < 6 || (marker.points.size() % 6) != 0) {
+    return;
+  }
+
+  const auto & pts = marker.points;
+  const bool has_colors = (marker.colors.size() == pts.size());
+
+  std::vector<geometry_msgs::msg::Point> filtered_pts;
+  std::vector<std_msgs::msg::ColorRGBA> filtered_cols;
+  filtered_pts.reserve(pts.size());
+  if (has_colors) {
+    filtered_cols.reserve(pts.size());
+  }
+
+  constexpr double kMatchTol = 0.12;
+  constexpr double kMatchTolSq = kMatchTol * kMatchTol;
+
+  for (size_t i = 0; i + 5 < pts.size(); i += 6) {
+    bool is_dup = false;
+    if (isSamePoint(pts[i + 1], pts[i + 5]) && isSamePoint(pts[i + 2], pts[i + 4])) {
+      const double sx = 0.5 * (pts[i + 0].x + pts[i + 1].x);
+      const double sy = 0.5 * (pts[i + 0].y + pts[i + 1].y);
+      const double ex = 0.5 * (pts[i + 2].x + pts[i + 3].x);
+      const double ey = 0.5 * (pts[i + 2].y + pts[i + 3].y);
+      const int32_t cx = static_cast<int32_t>(std::floor(0.5 * (sx + ex)));
+      const int32_t cy = static_cast<int32_t>(std::floor(0.5 * (sy + ey)));
+
+      for (int32_t dx = -1; dx <= 1 && !is_dup; ++dx) {
+        for (int32_t dy = -1; dy <= 1 && !is_dup; ++dy) {
+          const auto it = border_grid.find(packGridCell(cx + dx, cy + dy));
+          if (it == border_grid.end()) {
+            continue;
+          }
+          for (const auto & b : it->second) {
+            const double d_fwd_s = (sx - b.sx) * (sx - b.sx) + (sy - b.sy) * (sy - b.sy);
+            const double d_fwd_e = (ex - b.ex) * (ex - b.ex) + (ey - b.ey) * (ey - b.ey);
+            if (d_fwd_s < kMatchTolSq && d_fwd_e < kMatchTolSq) {
+              is_dup = true;
+              break;
+            }
+            const double d_rev_s = (sx - b.ex) * (sx - b.ex) + (sy - b.ey) * (sy - b.ey);
+            const double d_rev_e = (ex - b.sx) * (ex - b.sx) + (ey - b.sy) * (ey - b.sy);
+            if (d_rev_s < kMatchTolSq && d_rev_e < kMatchTolSq) {
+              is_dup = true;
+              break;
+            }
+          }
+        }
+      }
+    }
+
+    if (!is_dup) {
+      for (size_t k = 0; k < 6; ++k) {
+        filtered_pts.push_back(pts[i + k]);
+        if (has_colors) {
+          filtered_cols.push_back(marker.colors[i + k]);
+        }
+      }
+    }
+  }
+
+  marker.points = std::move(filtered_pts);
+  if (has_colors) {
+    marker.colors = std::move(filtered_cols);
+  }
+}
+
+bool isClutterArrowOrIdNamespace(const std::string & ns)
+{
+  return ns.find("arrows") != std::string::npos ||
+         ns.find("lanelet direction") != std::string::npos ||
+         ns.find("lane_start_bound") != std::string::npos ||
+         ns.find("lanelet_id") != std::string::npos || ns == "traffic_light_id" ||
+         ns == "traffic_light_reg_elem_id";
+}
+
 bool isSurfaceFillNamespace(const std::string & ns)
 {
-  return ns == "road_lanelets" || ns == "shoulder_road_lanelets" || ns == "walkway_lanelets";
+  return ns == "road_lanelets" || ns == "shoulder_road_lanelets" || ns == "walkway_lanelets" ||
+         ns == "bicycle_lane_lanelets";
 }
 }  // namespace
 
@@ -155,6 +277,10 @@ Lanelet2VectorMapDisplay::Lanelet2VectorMapDisplay()
 : m_marker_common(this),
   m_z_offset_property{
     "Z Offset", 0.05F, "Vertical offset [m] applied to lane/border lines above ground pointclouds",
+    this, SLOT(onStyleChanged())},
+  m_hide_arrows_and_ids_property{
+    "Hide Arrows & IDs", true,
+    "Suppress direction arrows, lane start bounds, and ID text across road/shoulder/bicycle lanes",
     this, SLOT(onStyleChanged())},
   m_road_border_override_property{
     "Road Borders", true, "Override style of road_borders / curbstone", this,
@@ -175,7 +301,7 @@ Lanelet2VectorMapDisplay::Lanelet2VectorMapDisplay()
     this},
   m_road_border_width_property{
     "Width",
-    0.07F,
+    0.085F,
     "Ribbon width [m] for road_borders (default map node is 0.20m)",
     &m_road_border_override_property,
     SLOT(onStyleChanged()),
@@ -269,6 +395,24 @@ Lanelet2VectorMapDisplay::Lanelet2VectorMapDisplay()
     &m_road_fill_override_property,
     SLOT(onStyleChanged()),
     this},
+  m_bicycle_lane_override_property{
+    "Bicycle Lane Fill", true,
+    "Override color/alpha of bicycle_lane_lanelets so it stays distinct from cyan predicted paths",
+    this, SLOT(onStyleChanged())},
+  m_bicycle_lane_color_property{
+    "Color",
+    QColor{25, 70, 165},
+    "Deep royal-blue pavement tint for bicycle_lane_lanelets",
+    &m_bicycle_lane_override_property,
+    SLOT(onStyleChanged()),
+    this},
+  m_bicycle_lane_alpha_property{
+    "Alpha",
+    0.16F,
+    "Linear opacity for bicycle_lane_lanelets polygon fill",
+    &m_bicycle_lane_override_property,
+    SLOT(onStyleChanged()),
+    this},
   m_traffic_light_override_property{
     "Traffic Lights", true,
     "Render hologram housing plate, neon bezel, and smoked lenses for traffic lights", this,
@@ -321,6 +465,7 @@ Lanelet2VectorMapDisplay::Lanelet2VectorMapDisplay()
   m_center_line_override_property.setDisableChildrenIfFalse(true);
   m_stopline_override_property.setDisableChildrenIfFalse(true);
   m_road_fill_override_property.setDisableChildrenIfFalse(true);
+  m_bicycle_lane_override_property.setDisableChildrenIfFalse(true);
   m_traffic_light_override_property.setDisableChildrenIfFalse(true);
 
   m_road_border_alpha_property.setMin(0.0F);
@@ -345,6 +490,9 @@ Lanelet2VectorMapDisplay::Lanelet2VectorMapDisplay()
 
   m_road_fill_alpha_property.setMin(0.0F);
   m_road_fill_alpha_property.setMax(1.0F);
+
+  m_bicycle_lane_alpha_property.setMin(0.0F);
+  m_bicycle_lane_alpha_property.setMax(1.0F);
 
   m_traffic_light_plate_alpha_property.setMin(0.0F);
   m_traffic_light_plate_alpha_property.setMax(1.0F);
@@ -423,6 +571,7 @@ void Lanelet2VectorMapDisplay::applyStylesAndPublish()
   m_marker_common.clearMarkers();
 
   const double z_off = static_cast<double>(m_z_offset_property.getFloat());
+  const bool hide_clutter = m_hide_arrows_and_ids_property.getBool();
 
   const bool override_rb = m_road_border_override_property.getBool();
   const auto rb_color =
@@ -447,6 +596,10 @@ void Lanelet2VectorMapDisplay::applyStylesAndPublish()
   const bool override_rf = m_road_fill_override_property.getBool();
   const auto rf_color =
     toColorRGBA(m_road_fill_color_property.getColor(), m_road_fill_alpha_property.getFloat());
+
+  const bool override_bl = m_bicycle_lane_override_property.getBool();
+  const auto bl_color = toColorRGBA(
+    m_bicycle_lane_color_property.getColor(), m_bicycle_lane_alpha_property.getFloat());
 
   const bool override_tl = m_traffic_light_override_property.getBool();
   const auto tl_plate_color = toColorRGBA(
@@ -561,18 +714,45 @@ void Lanelet2VectorMapDisplay::applyStylesAndPublish()
   lens_ring_marker.color.a = tl_border_color.a * 0.58F;
   bool has_lens_header = false;
 
+  BorderSpatialGrid border_grid;
+  for (const auto & orig : m_last_msg->markers) {
+    if (orig.ns == "road_borders" || orig.ns == "curbstone") {
+      collectRibbonSegmentsToGrid(orig, border_grid);
+    }
+  }
+
   auto styled = std::make_shared<MarkerArray>();
   styled->markers.reserve(m_last_msg->markers.size());
 
   std::vector<Marker> foreground_markers;
   foreground_markers.reserve(m_last_msg->markers.size());
+  std::vector<Marker> border_markers;
+  border_markers.reserve(8);
 
   for (const auto & orig : m_last_msg->markers) {
+    const std::string & ns = orig.ns;
+
+    if (
+      hide_clutter &&
+      (isClutterArrowOrIdNamespace(ns) || ns == "bicycle_lane_center_lane_line" ||
+       ns == "shoulder_center_lane_line")) {
+      continue;
+    }
+
     Marker m = orig;
-    const std::string & ns = m.ns;
 
     if (isSurfaceFillNamespace(ns)) {
-      if (override_rf && (ns == "road_lanelets" || ns == "shoulder_road_lanelets")) {
+      if (ns == "bicycle_lane_lanelets") {
+        if (override_bl) {
+          applyZOffset(m, 0.004);
+          m.color = bl_color;
+          // Keep marker.color.a = 1.0 so TriangleListMarker uses linear vertex alpha directly
+          if (m.type == Marker::TRIANGLE_LIST && !m.points.empty()) {
+            m.color.a = 1.0F;
+            m.colors.assign(m.points.size(), bl_color);
+          }
+        }
+      } else if (override_rf && (ns == "road_lanelets" || ns == "shoulder_road_lanelets")) {
         applyMarkerColor(m, rf_color);
       }
       // Surface fills stay at base Z (below lane lines) and are queued first
@@ -661,26 +841,35 @@ void Lanelet2VectorMapDisplay::applyStylesAndPublish()
 
     if (ns == "road_borders" || ns == "curbstone") {
       if (override_rb) {
-        resizeRibbonAndApplyZOffset(m, rb_width, z_off);
+        resizeRibbonAndApplyZOffset(m, rb_width, z_off + 0.006);
         applyMarkerColor(m, rb_color);
       } else {
-        applyZOffset(m, z_off);
+        applyZOffset(m, z_off + 0.006);
       }
+      border_markers.push_back(std::move(m));
+      continue;
     } else if (
       ns == "left_lane_bound" || ns == "right_lane_bound" || ns == "shoulder_left_lane_bound" ||
-      ns == "shoulder_right_lane_bound" || ns == "partitions") {
+      ns == "shoulder_right_lane_bound" || ns == "bicycle_lane_left_lane_bound" ||
+      ns == "bicycle_lane_right_lane_bound" || ns == "partitions") {
+      stripOverlappingBorderSegments(m, border_grid);
+      if (m.points.empty()) {
+        continue;
+      }
       if (override_lb) {
         resizeRibbonAndApplyZOffset(m, lb_width, z_off);
         applyMarkerColor(m, lb_color);
       } else {
         applyZOffset(m, z_off);
       }
-    } else if (ns == "center_lane_line" || ns == "shoulder_center_lane_line") {
+    } else if (
+      ns == "center_lane_line" || ns == "shoulder_center_lane_line" ||
+      ns == "bicycle_lane_center_lane_line") {
       if (override_cl) {
-        resizeRibbonAndApplyZOffset(m, cl_width, z_off);
+        resizeRibbonAndApplyZOffset(m, cl_width, z_off * 0.85);
         applyMarkerColor(m, cl_color);
       } else {
-        applyZOffset(m, z_off);
+        applyZOffset(m, z_off * 0.85);
       }
     } else if (ns == "stop_lines") {
       if (override_sl) {
@@ -769,6 +958,9 @@ void Lanelet2VectorMapDisplay::applyStylesAndPublish()
   }
 
   for (auto & m : foreground_markers) {
+    styled->markers.push_back(std::move(m));
+  }
+  for (auto & m : border_markers) {
     styled->markers.push_back(std::move(m));
   }
 

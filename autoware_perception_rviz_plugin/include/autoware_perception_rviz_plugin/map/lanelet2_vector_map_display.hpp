@@ -68,6 +68,7 @@ private:
   MarkerArray::ConstSharedPtr m_last_msg;
 
   rviz_common::properties::FloatProperty m_z_offset_property;
+  rviz_common::properties::BoolProperty m_hide_arrows_and_ids_property;
 
   rviz_common::properties::BoolProperty m_road_border_override_property;
   rviz_common::properties::ColorProperty m_road_border_color_property;
@@ -92,6 +93,10 @@ private:
   rviz_common::properties::BoolProperty m_road_fill_override_property;
   rviz_common::properties::ColorProperty m_road_fill_color_property;
   rviz_common::properties::FloatProperty m_road_fill_alpha_property;
+
+  rviz_common::properties::BoolProperty m_bicycle_lane_override_property;
+  rviz_common::properties::ColorProperty m_bicycle_lane_color_property;
+  rviz_common::properties::FloatProperty m_bicycle_lane_alpha_property;
 
   rviz_common::properties::BoolProperty m_traffic_light_override_property;
   rviz_common::properties::ColorProperty m_traffic_light_plate_color_property;
