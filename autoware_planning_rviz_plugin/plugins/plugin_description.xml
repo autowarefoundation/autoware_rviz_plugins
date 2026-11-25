@@ -34,6 +34,11 @@
     base_class_type="rviz_common::Display">
     <description>Display external max velocity limit</description>
   </class>
+  <class name="rviz_plugins/MissionRouteGoal"
+    type="rviz_plugins::MissionRouteGoalDisplay"
+    base_class_type="rviz_common::Display">
+    <description>Hologram navigation route line and 3D goal beacon display</description>
+  </class>
   <class name="rviz_plugins/MissionCheckpointTool"
     type="rviz_plugins::MissionCheckpointTool"
     base_class_type="rviz_common::Tool">

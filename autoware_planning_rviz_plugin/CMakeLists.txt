@@ -36,12 +36,19 @@ ament_auto_add_library(autoware_planning_rviz_plugin SHARED
   src/pose_with_uuid_stamped/display.cpp
   include/autoware_planning_rviz_plugin/mission_checkpoint/mission_checkpoint.hpp
   src/mission_checkpoint/mission_checkpoint.cpp
+  include/autoware_planning_rviz_plugin/mission_route_goal/mission_route_goal_display.hpp
+  src/mission_route_goal/mission_route_goal_display.cpp
   src/tools/max_velocity.cpp
 )
 
 target_link_libraries(autoware_planning_rviz_plugin
   ${QT_LIBRARIES}
 )
+
+if(TARGET rviz_ogre_vendor::OgreMain)
+  get_target_property(OGRE_INCLUDE_DIRS rviz_ogre_vendor::OgreMain INTERFACE_INCLUDE_DIRECTORIES)
+  target_include_directories(autoware_planning_rviz_plugin SYSTEM PRIVATE ${OGRE_INCLUDE_DIRS})
+endif()
 
 # Export the plugin to be imported by rviz2
 pluginlib_export_plugin_description_file(rviz_common plugins/plugin_description.xml)
