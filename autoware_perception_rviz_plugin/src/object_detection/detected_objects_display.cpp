@@ -33,15 +33,14 @@ void DetectedObjectsDisplay::processMessage(DetectedObjects::ConstSharedPtr msg)
   clear_markers();
   int id = 0;
   for (const auto & object : msg->objects) {
-    // Get marker for shape
-    auto shape_marker = get_shape_marker_ptr(
+    // Get markers for shape (supports single marker or wireframe+fill in Hologram 3D mode)
+    const auto shape_markers = get_shape_marker_ptrs(
       object.shape, object.kinematics.pose_with_covariance.pose.position,
       object.kinematics.pose_with_covariance.pose.orientation, object.classification,
       get_line_width(),
       object.kinematics.orientation_availability ==
         autoware_perception_msgs::msg::DetectedObjectKinematics::AVAILABLE);
-    if (shape_marker) {
-      auto shape_marker_ptr = shape_marker.value();
+    for (const auto & shape_marker_ptr : shape_markers) {
       shape_marker_ptr->header = msg->header;
       shape_marker_ptr->id = id++;
       add_marker(shape_marker_ptr);

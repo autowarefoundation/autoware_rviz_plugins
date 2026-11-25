@@ -526,7 +526,7 @@ visualization_msgs::msg::Marker::SharedPtr get_shape_marker_ptr(
   const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
   const std_msgs::msg::ColorRGBA & color_rgba, const double & line_width,
   const bool & is_orientation_available, const ObjectFillType fill_type,
-  const bool & display_footprint)
+  const bool & display_footprint, const bool & show_direction_indicator)
 {
   auto marker_ptr = std::make_shared<Marker>();
   marker_ptr->ns = std::string("shape");
@@ -544,15 +544,29 @@ visualization_msgs::msg::Marker::SharedPtr get_shape_marker_ptr(
       if (display_footprint && !shape_msg.footprint.points.empty()) {
         calc_polygon_line_list(shape_msg, marker_ptr->points);
       }
+      if (show_direction_indicator) {
+        if (is_orientation_available) {
+          calc_bounding_box_direction_line_list(shape_msg, marker_ptr->points);
+        } else {
+          calc_bounding_box_orientation_line_list(shape_msg, marker_ptr->points);
+        }
+      }
     } else if (fill_type == ObjectFillType::Fill) {
       marker_ptr->type = visualization_msgs::msg::Marker::CUBE;
       marker_ptr->scale = shape_msg.dimensions;
       marker_ptr->color.a = std::min(color_rgba.a, max_fill_alpha);
-    }
-    if (is_orientation_available) {
-      calc_bounding_box_direction_line_list(shape_msg, marker_ptr->points);
-    } else {
-      calc_bounding_box_orientation_line_list(shape_msg, marker_ptr->points);
+    } else if (fill_type == ObjectFillType::HologramFill) {
+      marker_ptr->type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
+      marker_ptr->scale.x = 1.0;
+      marker_ptr->scale.y = 1.0;
+      marker_ptr->scale.z = 1.0;
+      std_msgs::msg::ColorRGBA capped_color = color_rgba;
+      capped_color.a = std::min(color_rgba.a, max_fill_alpha);
+      // TriangleListMarker multiplies vertex_color.a * marker.color.a, so keep marker.color.a = 1.0
+      marker_ptr->color = capped_color;
+      marker_ptr->color.a = 1.0F;
+      calc_bounding_box_triangle_list(
+        shape_msg, capped_color, marker_ptr->points, marker_ptr->colors);
     }
   } else if (shape_msg.type == Shape::CYLINDER) {
     if (fill_type == ObjectFillType::Skeleton) {
@@ -562,10 +576,53 @@ visualization_msgs::msg::Marker::SharedPtr get_shape_marker_ptr(
       marker_ptr->type = visualization_msgs::msg::Marker::CYLINDER;
       marker_ptr->scale = shape_msg.dimensions;
       marker_ptr->color.a = std::min(color_rgba.a, max_fill_alpha);
+    } else if (fill_type == ObjectFillType::HologramFill) {
+      marker_ptr->type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
+      marker_ptr->scale.x = 1.0;
+      marker_ptr->scale.y = 1.0;
+      marker_ptr->scale.z = 1.0;
+      std_msgs::msg::ColorRGBA capped_color = color_rgba;
+      capped_color.a = std::min(color_rgba.a, max_fill_alpha);
+      marker_ptr->color = capped_color;
+      marker_ptr->color.a = 1.0F;
+      calc_cylinder_triangle_list(shape_msg, capped_color, marker_ptr->points, marker_ptr->colors);
     }
   } else {  // including shape_msg.type == Shape::POLYGON
-    marker_ptr->type = visualization_msgs::msg::Marker::LINE_LIST;
-    calc_polygon_line_list(shape_msg, marker_ptr->points);
+    if (
+      (fill_type == ObjectFillType::Fill || fill_type == ObjectFillType::HologramFill) &&
+      shape_msg.footprint.points.size() >= 3) {
+      marker_ptr->type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
+      marker_ptr->scale.x = 1.0;
+      marker_ptr->scale.y = 1.0;
+      marker_ptr->scale.z = 1.0;
+      std_msgs::msg::ColorRGBA capped_color = color_rgba;
+      capped_color.a = std::min(color_rgba.a, max_fill_alpha);
+      marker_ptr->color = capped_color;
+      calc_polygon_triangle_list(shape_msg, marker_ptr->points);
+      if (fill_type == ObjectFillType::HologramFill) {
+        marker_ptr->color.a = 1.0F;
+        marker_ptr->colors.reserve(marker_ptr->points.size());
+        auto shaded = [&capped_color](const float factor) {
+          std_msgs::msg::ColorRGBA c = capped_color;
+          c.r = std::min(1.0F, c.r * factor);
+          c.g = std::min(1.0F, c.g * factor);
+          c.b = std::min(1.0F, c.b * factor);
+          return c;
+        };
+        // calc_polygon_triangle_list emits 12 vertices per edge: 3 top, 3 bottom, 6 side
+        for (size_t i = 0; i + 11 < marker_ptr->points.size(); i += 12) {
+          const auto top_c = shaded(1.00F);
+          const auto bot_c = shaded(0.76F);
+          const auto side_c = shaded(0.88F);
+          marker_ptr->colors.insert(marker_ptr->colors.end(), 3, top_c);
+          marker_ptr->colors.insert(marker_ptr->colors.end(), 3, bot_c);
+          marker_ptr->colors.insert(marker_ptr->colors.end(), 6, side_c);
+        }
+      }
+    } else {
+      marker_ptr->type = visualization_msgs::msg::Marker::LINE_LIST;
+      calc_polygon_line_list(shape_msg, marker_ptr->points);
+    }
   }
 
   marker_ptr->action = visualization_msgs::msg::Marker::MODIFY;
@@ -815,6 +872,136 @@ void calc_bounding_box_line_list(
     {0, 1}, {1, 2}, {2, 3}, {3, 0}, {4, 5}, {5, 6}, {6, 7}, {7, 4}, {0, 4}, {1, 5}, {2, 6}, {3, 7},
   };
   calc_line_list_from_points(point_list, point_pairs, 12, points);
+}
+
+void calc_bounding_box_triangle_list(
+  const autoware_perception_msgs::msg::Shape & shape, const std_msgs::msg::ColorRGBA & base_color,
+  std::vector<geometry_msgs::msg::Point> & points, std::vector<std_msgs::msg::ColorRGBA> & colors)
+{
+  constexpr double shrink = 0.994;
+  const double hx = shape.dimensions.x * 0.5 * shrink;
+  const double hy = shape.dimensions.y * 0.5 * shrink;
+  const double hz = shape.dimensions.z * 0.5 * shrink;
+
+  const double v[8][3] = {
+    {hx, hy, hz},     // 0: front-left-top
+    {hx, -hy, hz},    // 1: front-right-top
+    {-hx, -hy, hz},   // 2: rear-right-top
+    {-hx, hy, hz},    // 3: rear-left-top
+    {hx, hy, -hz},    // 4: front-left-bottom
+    {hx, -hy, -hz},   // 5: front-right-bottom
+    {-hx, -hy, -hz},  // 6: rear-right-bottom
+    {-hx, hy, -hz},   // 7: rear-left-bottom
+  };
+
+  struct FaceQuad
+  {
+    int idx[4];
+    float shade;
+  };
+
+  // All 6 faces with gentle unlit shading so every face stays clearly colored regardless of
+  // camera/light direction while preserving 3D depth cues.
+  const FaceQuad faces[6] = {
+    {{0, 3, 2, 1}, 1.00F},  // Top (+z)
+    {{4, 5, 6, 7}, 0.76F},  // Bottom (-z)
+    {{0, 1, 5, 4}, 0.92F},  // Front (+x)
+    {{2, 3, 7, 6}, 0.92F},  // Rear (-x)
+    {{3, 0, 4, 7}, 0.86F},  // Left (+y)
+    {{1, 2, 6, 5}, 0.86F},  // Right (-y)
+  };
+
+  points.reserve(points.size() + 36);
+  colors.reserve(colors.size() + 36);
+
+  auto push_vtx = [&](const int corner, const std_msgs::msg::ColorRGBA & c) {
+    geometry_msgs::msg::Point p;
+    p.x = v[corner][0];
+    p.y = v[corner][1];
+    p.z = v[corner][2];
+    points.push_back(p);
+    colors.push_back(c);
+  };
+
+  for (const auto & f : faces) {
+    std_msgs::msg::ColorRGBA c = base_color;
+    c.r = std::min(1.0F, c.r * f.shade);
+    c.g = std::min(1.0F, c.g * f.shade);
+    c.b = std::min(1.0F, c.b * f.shade);
+
+    push_vtx(f.idx[0], c);
+    push_vtx(f.idx[1], c);
+    push_vtx(f.idx[2], c);
+
+    push_vtx(f.idx[0], c);
+    push_vtx(f.idx[2], c);
+    push_vtx(f.idx[3], c);
+  }
+}
+
+void calc_cylinder_triangle_list(
+  const autoware_perception_msgs::msg::Shape & shape, const std_msgs::msg::ColorRGBA & base_color,
+  std::vector<geometry_msgs::msg::Point> & points, std::vector<std_msgs::msg::ColorRGBA> & colors)
+{
+  constexpr double shrink = 0.994;
+  constexpr int n = 20;
+  const double radius = shape.dimensions.x * 0.5 * shrink;
+  const double hz = shape.dimensions.z * 0.5 * shrink;
+
+  auto shaded = [&base_color](const float factor) {
+    std_msgs::msg::ColorRGBA c = base_color;
+    c.r = std::min(1.0F, c.r * factor);
+    c.g = std::min(1.0F, c.g * factor);
+    c.b = std::min(1.0F, c.b * factor);
+    return c;
+  };
+
+  const auto top_c = shaded(1.00F);
+  const auto bot_c = shaded(0.76F);
+  const auto side_c = shaded(0.88F);
+
+  points.reserve(points.size() + n * 12);
+  colors.reserve(colors.size() + n * 12);
+
+  auto push_pt =
+    [&](const double x, const double y, const double z, const std_msgs::msg::ColorRGBA & c) {
+      geometry_msgs::msg::Point p;
+      p.x = x;
+      p.y = y;
+      p.z = z;
+      points.push_back(p);
+      colors.push_back(c);
+    };
+
+  for (int i = 0; i < n; ++i) {
+    const double a0 = (static_cast<double>(i) / static_cast<double>(n)) * 2.0 * M_PI +
+                      M_PI / static_cast<double>(n);
+    const double a1 = (static_cast<double>(i + 1) / static_cast<double>(n)) * 2.0 * M_PI +
+                      M_PI / static_cast<double>(n);
+    const double x0 = std::cos(a0) * radius;
+    const double y0 = std::sin(a0) * radius;
+    const double x1 = std::cos(a1) * radius;
+    const double y1 = std::sin(a1) * radius;
+
+    // Top cap
+    push_pt(0.0, 0.0, hz, top_c);
+    push_pt(x0, y0, hz, top_c);
+    push_pt(x1, y1, hz, top_c);
+
+    // Bottom cap
+    push_pt(0.0, 0.0, -hz, bot_c);
+    push_pt(x1, y1, -hz, bot_c);
+    push_pt(x0, y0, -hz, bot_c);
+
+    // Side quad
+    push_pt(x0, y0, -hz, side_c);
+    push_pt(x1, y1, -hz, side_c);
+    push_pt(x1, y1, hz, side_c);
+
+    push_pt(x0, y0, -hz, side_c);
+    push_pt(x1, y1, hz, side_c);
+    push_pt(x0, y0, hz, side_c);
+  }
 }
 
 void calc_bounding_box_direction_line_list(
@@ -1068,6 +1255,59 @@ void calc_polygon_line_list(
   for (const auto & corner : footprint) {
     push_point(corner.x, corner.y, top_z);
     push_point(corner.x, corner.y, bottom_z);
+  }
+}
+
+void calc_polygon_triangle_list(
+  const autoware_perception_msgs::msg::Shape & shape,
+  std::vector<geometry_msgs::msg::Point> & points)
+{
+  const auto & footprint = shape.footprint.points;
+  if (footprint.size() < 3) {
+    return;
+  }
+  const double top_z = shape.dimensions.z * 0.5;
+  const double bottom_z = -shape.dimensions.z * 0.5;
+
+  double center_x = 0.0;
+  double center_y = 0.0;
+  for (const auto & pt : footprint) {
+    center_x += pt.x;
+    center_y += pt.y;
+  }
+  center_x /= static_cast<double>(footprint.size());
+  center_y /= static_cast<double>(footprint.size());
+
+  auto push_point = [&points](const double x, const double y, const double z) {
+    geometry_msgs::msg::Point point;
+    point.x = x;
+    point.y = y;
+    point.z = z;
+    points.push_back(point);
+  };
+
+  for (size_t i = 0; i < footprint.size(); ++i) {
+    const auto & curr = footprint.at(i);
+    const auto & next = footprint.at((i + 1) % footprint.size());
+
+    // Top face triangle
+    push_point(center_x, center_y, top_z);
+    push_point(curr.x, curr.y, top_z);
+    push_point(next.x, next.y, top_z);
+
+    // Bottom face triangle
+    push_point(center_x, center_y, bottom_z);
+    push_point(next.x, next.y, bottom_z);
+    push_point(curr.x, curr.y, bottom_z);
+
+    // Side quad (two triangles)
+    push_point(curr.x, curr.y, bottom_z);
+    push_point(next.x, next.y, bottom_z);
+    push_point(next.x, next.y, top_z);
+
+    push_point(curr.x, curr.y, bottom_z);
+    push_point(next.x, next.y, top_z);
+    push_point(curr.x, curr.y, top_z);
   }
 }
 

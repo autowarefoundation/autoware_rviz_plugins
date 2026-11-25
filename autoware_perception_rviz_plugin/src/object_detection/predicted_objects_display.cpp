@@ -78,14 +78,15 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
         object_pose = &(best_path->path.at(offset));
       }
     }
-    // Get marker for shape
-    auto shape_marker = get_shape_marker_ptr(
+    // Get markers for shape (supports single marker or wireframe+fill in Hologram 3D mode)
+    const auto shape_markers = get_shape_marker_ptrs(
       object.shape, object_pose->position, object_pose->orientation, object.classification,
       get_line_width(), true);
-    if (shape_marker) {
-      auto marker_ptr = shape_marker.value();
+    int32_t shape_sub_idx = 0;
+    for (const auto & marker_ptr : shape_markers) {
       marker_ptr->header = msg->header;
-      marker_ptr->id = uuid_to_marker_id(object.object_id);
+      marker_ptr->id = uuid_to_marker_id(object.object_id) + shape_sub_idx * 1000000;
+      ++shape_sub_idx;
       markers.push_back(marker_ptr);
     }
 

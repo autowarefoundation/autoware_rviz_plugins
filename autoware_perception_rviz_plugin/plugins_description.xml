@@ -29,4 +29,17 @@
     <description>Traffic light display plugin for Autoware</description>
   </class>
 
+  <class name="autoware_perception_rviz_plugin/Lanelet2VectorMap"
+         type="autoware::rviz_plugins::map::Lanelet2VectorMapDisplay"
+         base_class_type="rviz_common::Display">
+    <description>Lanelet2 vector map MarkerArray display with customizable road border and lane line colors/widths</description>
+    <message_type>visualization_msgs/msg/MarkerArray</message_type>
+  </class>
+
+  <class name="autoware_perception_rviz_plugin/CoolThemeToggleTool"
+         type="autoware::rviz_plugins::tools::CoolThemeToggleTool"
+         base_class_type="rviz_common::Tool">
+    <description>One-click toolbar toggle between Default Autoware RViz theme and Cool Hologram theme</description>
+  </class>
+
 </library>

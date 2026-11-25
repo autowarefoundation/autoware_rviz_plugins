@@ -35,6 +35,7 @@
 #include <OgreSceneManager.h>
 #include <OgreSceneNode.h>
 
+#include <algorithm>
 #include <deque>
 #include <limits>
 #include <memory>
@@ -118,6 +119,9 @@ public:
     property_mid_color_("Mid Velocity Color", QColor("#208AAE"), "", &property_path_view_),
     property_max_color_("Max Velocity Color", QColor("#00E678"), "", &property_path_view_),
     property_fade_out_distance_{"Fade Out Distance", 0.0, "[m]", &property_path_view_},
+    property_path_z_offset_{"Z Offset", 0.05, "[m]", &property_path_view_},
+    property_path_holo_style_{"Hologram Style", false, "", &property_path_view_},
+    property_path_holo_center_ratio_{"Center Alpha Ratio", 0.38, "", &property_path_view_},
     property_vel_max_{"Color Border Vel Max", 3.0, "[m/s]", this},
     // velocity
     property_velocity_view_{"View Velocity", true, "", this},
@@ -150,6 +154,8 @@ public:
     property_path_width_.setMin(0.0);
     property_path_alpha_.setMin(0.0);
     property_path_alpha_.setMax(1.0);
+    property_path_holo_center_ratio_.setMin(0.0);
+    property_path_holo_center_ratio_.setMax(1.0);
     property_vel_max_.setMin(0.0);
     // velocity
     property_velocity_alpha_.setMin(0.0);
@@ -167,6 +173,23 @@ public:
     // initialize point
     property_point_alpha_.setMin(0.0);
     property_point_alpha_.setMax(1.0);
+
+    auto redraw_last_msg = [this]() {
+      if (this->initialized() && last_msg_ptr_) {
+        processMessage(last_msg_ptr_);
+        if (this->context_) {
+          this->context_->queueRender();
+        }
+      }
+    };
+    for (rviz_common::properties::Property * prop :
+         std::initializer_list<rviz_common::properties::Property *>{
+           &property_path_view_, &property_path_width_view_, &property_path_width_,
+           &property_path_alpha_, &property_min_color_, &property_mid_color_, &property_max_color_,
+           &property_fade_out_distance_, &property_path_z_offset_, &property_path_holo_style_,
+           &property_path_holo_center_ratio_, &property_velocity_view_}) {
+      QObject::connect(prop, &rviz_common::properties::Property::changed, redraw_last_msg);
+    }
 
     updateVehicleInfo();
   }
@@ -204,6 +227,10 @@ public:
     velocity_manual_object_->setDynamic(true);
     footprint_manual_object_->setDynamic(true);
     point_manual_object_->setDynamic(true);
+    path_manual_object_->setRenderQueueGroup(Ogre::RENDER_QUEUE_MAIN - 1);
+    velocity_manual_object_->setRenderQueueGroup(Ogre::RENDER_QUEUE_MAIN);
+    footprint_manual_object_->setRenderQueueGroup(Ogre::RENDER_QUEUE_MAIN);
+    point_manual_object_->setRenderQueueGroup(Ogre::RENDER_QUEUE_MAIN);
     this->scene_node_->attachObject(path_manual_object_);
     this->scene_node_->attachObject(velocity_manual_object_);
     this->scene_node_->attachObject(footprint_manual_object_);
@@ -300,14 +327,33 @@ protected:
     }
 
     Ogre::MaterialPtr material = Ogre::MaterialManager::getSingleton().getByName(
-      "BaseWhiteNoLighting", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+      "AutowarePathRibbonMaterial", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+    if (!material) {
+      Ogre::MaterialPtr base_material = Ogre::MaterialManager::getSingleton().getByName(
+        "BaseWhiteNoLighting", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+      material = base_material->clone("AutowarePathRibbonMaterial");
+    }
     material->setSceneBlending(Ogre::SBT_TRANSPARENT_ALPHA);
     material->setDepthWriteEnabled(false);
+    material->setDepthCheckEnabled(true);
+    material->setCullingMode(Ogre::CULL_NONE);
 
-    path_manual_object_->estimateVertexCount(msg_ptr->points.size() * 2);
+    const bool holo_style = property_path_holo_style_.getBool();
+    if (holo_style) {
+      path_manual_object_->estimateVertexCount(msg_ptr->points.size() * 7);
+      if (msg_ptr->points.size() >= 2) {
+        path_manual_object_->estimateIndexCount((msg_ptr->points.size() - 1) * 24);
+      }
+      path_manual_object_->begin(
+        "AutowarePathRibbonMaterial", Ogre::RenderOperation::OT_TRIANGLE_LIST);
+    } else {
+      path_manual_object_->estimateVertexCount(msg_ptr->points.size() * 2);
+      path_manual_object_->begin(
+        "AutowarePathRibbonMaterial", Ogre::RenderOperation::OT_TRIANGLE_STRIP);
+    }
     velocity_manual_object_->estimateVertexCount(msg_ptr->points.size());
-    path_manual_object_->begin("BaseWhiteNoLighting", Ogre::RenderOperation::OT_TRIANGLE_STRIP);
-    velocity_manual_object_->begin("BaseWhiteNoLighting", Ogre::RenderOperation::OT_LINE_STRIP);
+    velocity_manual_object_->begin(
+      "AutowarePathRibbonMaterial", Ogre::RenderOperation::OT_LINE_STRIP);
 
     if (msg_ptr->points.size() > velocity_texts_.size()) {
       for (size_t i = velocity_texts_.size(); i < msg_ptr->points.size(); i++) {
@@ -393,6 +439,12 @@ protected:
       }
     }
 
+    const float path_z_offset = property_path_z_offset_.getFloat();
+    const float base_alpha = property_path_alpha_.getFloat();
+    const float half_w = 0.5f * (right - left);
+    const float center_y = 0.5f * (right + left);
+    const float edge_w = std::min(0.055f, half_w * 0.16f);
+
     // Forward iteration to visualize path
     for (size_t point_idx = 0; point_idx < msg_ptr->points.size(); point_idx++) {
       const auto & path_point = msg_ptr->points.at(point_idx);
@@ -410,36 +462,46 @@ protected:
         color = *dynamic_color_ptr;
         color.a = alphas.at(point_idx);
 
-        Eigen::Vector3f vec_in;
-        Eigen::Vector3f vec_out;
-        Eigen::Quaternionf quat_yaw_reverse(0, 0, 0, 1);
-        {
-          vec_in << 0, right, 0;
-          Eigen::Quaternionf quat(
-            pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
-          if (!isDrivingForward(msg_ptr->points, point_idx)) {
-            quat *= quat_yaw_reverse;
-          }
-          vec_out = quat * vec_in;
-          path_manual_object_->position(
-            static_cast<float>(pose.position.x) + vec_out.x(),
-            static_cast<float>(pose.position.y) + vec_out.y(),
-            static_cast<float>(pose.position.z) + vec_out.z());
-          path_manual_object_->colour(color);
+        Eigen::Quaternionf quat(
+          pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
+        if (!isDrivingForward(msg_ptr->points, point_idx)) {
+          quat *= Eigen::Quaternionf(0, 0, 0, 1);
         }
-        {
-          vec_in << 0, left, 0;
-          Eigen::Quaternionf quat(
-            pose.orientation.w, pose.orientation.x, pose.orientation.y, pose.orientation.z);
-          if (!isDrivingForward(msg_ptr->points, point_idx)) {
-            quat *= quat_yaw_reverse;
-          }
-          vec_out = quat * vec_in;
+
+        auto add_vertex = [&](const float lat_offset, const Ogre::ColourValue & vcol) {
+          const Eigen::Vector3f vec_out = quat * Eigen::Vector3f(0.0f, lat_offset, 0.0f);
           path_manual_object_->position(
             static_cast<float>(pose.position.x) + vec_out.x(),
             static_cast<float>(pose.position.y) + vec_out.y(),
-            static_cast<float>(pose.position.z) + vec_out.z());
-          path_manual_object_->colour(color);
+            static_cast<float>(pose.position.z) + vec_out.z() + path_z_offset);
+          path_manual_object_->colour(vcol);
+        };
+
+        if (holo_style) {
+          const float fade_ratio =
+            (base_alpha > 1e-4f) ? (alphas.at(point_idx) / base_alpha) : 0.0f;
+          const float center_ratio = property_path_holo_center_ratio_.getFloat();
+          const float inner_ratio = std::min(1.0f, std::max(0.75f, center_ratio + 0.40f));
+          const float edge_alpha = std::min(0.90f, base_alpha * 2.5f) * fade_ratio;
+          const float inner_alpha = (base_alpha * inner_ratio) * fade_ratio;
+          const float center_alpha = (base_alpha * center_ratio) * fade_ratio;
+
+          const Ogre::ColourValue edge_col(
+            std::min(1.0f, color.r + 0.18f), std::min(1.0f, color.g + 0.15f),
+            std::min(1.0f, color.b + 0.22f), edge_alpha);
+          const Ogre::ColourValue inner_col(color.r, color.g, color.b, inner_alpha);
+          const Ogre::ColourValue center_col(color.r, color.g, color.b, center_alpha);
+
+          add_vertex(right, edge_col);
+          add_vertex(right - edge_w, edge_col);
+          add_vertex(right - edge_w, inner_col);
+          add_vertex(center_y, center_col);
+          add_vertex(left + edge_w, inner_col);
+          add_vertex(left + edge_w, edge_col);
+          add_vertex(left, edge_col);
+        } else {
+          add_vertex(right, color);
+          add_vertex(left, color);
         }
       }
 
@@ -517,6 +579,17 @@ protected:
       }
     }
 
+    if (property_path_view_.getBool() && holo_style && msg_ptr->points.size() >= 2) {
+      for (size_t i = 0; i + 1 < msg_ptr->points.size(); ++i) {
+        const uint32_t b = static_cast<uint32_t>(i * 7);
+        const uint32_t n = static_cast<uint32_t>((i + 1) * 7);
+        for (const uint32_t k : {0U, 2U, 3U, 5U}) {
+          path_manual_object_->triangle(b + k, n + k, b + k + 1);
+          path_manual_object_->triangle(b + k + 1, n + k, n + k + 1);
+        }
+      }
+    }
+
     path_manual_object_->end();
     velocity_manual_object_->end();
   }
@@ -528,14 +601,23 @@ protected:
     }
 
     Ogre::MaterialPtr material = Ogre::MaterialManager::getSingleton().getByName(
-      "BaseWhiteNoLighting", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+      "AutowarePathRibbonMaterial", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+    if (!material) {
+      Ogre::MaterialPtr base_material = Ogre::MaterialManager::getSingleton().getByName(
+        "BaseWhiteNoLighting", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+      material = base_material->clone("AutowarePathRibbonMaterial");
+    }
     material->setSceneBlending(Ogre::SBT_TRANSPARENT_ALPHA);
     material->setDepthWriteEnabled(false);
+    material->setDepthCheckEnabled(true);
+    material->setCullingMode(Ogre::CULL_NONE);
 
     footprint_manual_object_->estimateVertexCount(msg_ptr->points.size() * 4 * 2);
-    footprint_manual_object_->begin("BaseWhiteNoLighting", Ogre::RenderOperation::OT_LINE_LIST);
+    footprint_manual_object_->begin(
+      "AutowarePathRibbonMaterial", Ogre::RenderOperation::OT_LINE_LIST);
     point_manual_object_->estimateVertexCount(msg_ptr->points.size() * 3 * 8);
-    point_manual_object_->begin("BaseWhiteNoLighting", Ogre::RenderOperation::OT_TRIANGLE_LIST);
+    point_manual_object_->begin(
+      "AutowarePathRibbonMaterial", Ogre::RenderOperation::OT_TRIANGLE_LIST);
 
     preVisualizePathFootprintDetail(msg_ptr);
 
@@ -659,6 +741,9 @@ protected:
   rviz_common::properties::ColorProperty property_max_color_;
   // Last x meters of the path will fade out to transparent
   rviz_common::properties::FloatProperty property_fade_out_distance_;
+  rviz_common::properties::FloatProperty property_path_z_offset_;
+  rviz_common::properties::BoolProperty property_path_holo_style_;
+  rviz_common::properties::FloatProperty property_path_holo_center_ratio_;
 
   rviz_common::properties::FloatProperty property_vel_max_;
   rviz_common::properties::BoolProperty property_velocity_view_;

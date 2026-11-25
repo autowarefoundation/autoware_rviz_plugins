@@ -96,6 +96,7 @@ private Q_SLOTS:
 
 private:  // NOLINT
   // Display methods
+  void clearDisplayObjects();
   void hideAllDisplays();
   void updateTrafficLightText(const TrafficLightInfo & info, const std::string & state_text);
   void updateTrafficLightBulbs(
@@ -135,6 +136,7 @@ private:  // NOLINT
   // Data storage
   lanelet::LaneletMapPtr lanelet_map_;
   std_msgs::msg::Header lanelet_map_header_;
+  bool lanelet_map_dirty_{false};
 
   autoware_perception_msgs::msg::TrafficLightGroupArray::ConstSharedPtr traffic_light_groups_;
   rclcpp::Time last_traffic_light_received_time_;

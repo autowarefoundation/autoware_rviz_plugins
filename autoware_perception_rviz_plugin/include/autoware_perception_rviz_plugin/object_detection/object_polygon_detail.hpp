@@ -59,7 +59,7 @@ struct ObjectPropertyValues
 };
 
 // Control object marker visualization
-enum class ObjectFillType { Skeleton, Fill };
+enum class ObjectFillType { Skeleton, Fill, HologramFill };
 
 // Logger name shared by all helpers and display classes in this plugin.
 constexpr char kLoggerName[] = "ObjectPolygonDisplayBase";
@@ -105,8 +105,8 @@ get_shape_marker_ptr(
   const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
   const std_msgs::msg::ColorRGBA & color_rgba, const double & line_width,
   const bool & is_orientation_available = true,
-  const ObjectFillType fill_type = ObjectFillType::Skeleton,
-  const bool & display_footprint = false);
+  const ObjectFillType fill_type = ObjectFillType::Skeleton, const bool & display_footprint = false,
+  const bool & show_direction_indicator = true);
 
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC visualization_msgs::msg::Marker::SharedPtr
 get_2d_shape_marker_ptr(
@@ -219,6 +219,14 @@ AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_bounding_box_line_list(
   const autoware_perception_msgs::msg::Shape & shape,
   std::vector<geometry_msgs::msg::Point> & points);
 
+AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_bounding_box_triangle_list(
+  const autoware_perception_msgs::msg::Shape & shape, const std_msgs::msg::ColorRGBA & base_color,
+  std::vector<geometry_msgs::msg::Point> & points, std::vector<std_msgs::msg::ColorRGBA> & colors);
+
+AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_cylinder_triangle_list(
+  const autoware_perception_msgs::msg::Shape & shape, const std_msgs::msg::ColorRGBA & base_color,
+  std::vector<geometry_msgs::msg::Point> & points, std::vector<std_msgs::msg::ColorRGBA> & colors);
+
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_bounding_box_direction_line_list(
   const autoware_perception_msgs::msg::Shape & shape,
   std::vector<geometry_msgs::msg::Point> & points);
@@ -252,6 +260,10 @@ AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_circle_line_list(
   std::vector<geometry_msgs::msg::Point> & points, const int n);
 
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_polygon_line_list(
+  const autoware_perception_msgs::msg::Shape & shape,
+  std::vector<geometry_msgs::msg::Point> & points);
+
+AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_polygon_triangle_list(
   const autoware_perception_msgs::msg::Shape & shape,
   std::vector<geometry_msgs::msg::Point> & points);
 
