@@ -248,8 +248,7 @@ visualization_msgs::msg::Marker::SharedPtr get_hologram_predicted_path_marker_pt
     const double my1 = tangents[seg_idx + 1].y() * seg_len;
     return {
       h00 * c0.x + h10 * mx0 + h01 * c1.x + h11 * mx1,
-      h00 * c0.y + h10 * my0 + h01 * c1.y + h11 * my1,
-      c0.z + (c1.z - c0.z) * t_param,
+      h00 * c0.y + h10 * my0 + h01 * c1.y + h11 * my1, c0.z + (c1.z - c0.z) * t_param,
       c0.s + seg_len * t_param};
   };
 
@@ -319,8 +318,7 @@ visualization_msgs::msg::Marker::SharedPtr get_hologram_predicted_path_marker_pt
     }
   }
 
-  const double obj_w_factor =
-    std::clamp(static_cast<double>(shape.dimensions.y) / 1.8, 0.52, 1.20);
+  const double obj_w_factor = std::clamp(static_cast<double>(shape.dimensions.y) / 1.8, 0.52, 1.20);
   const double branch_w_factor = options.is_primary ? 1.0 : 0.74;
   const double base_half_w = std::max(0.05, options.width * 0.5 * obj_w_factor * branch_w_factor);
 
@@ -418,12 +416,9 @@ visualization_msgs::msg::Marker::SharedPtr get_hologram_predicted_path_marker_pt
   marker_ptr->colors.reserve((n_samp - 1) * 24 + 96);
 
   auto push_quad_ccw = [&](
-                         const geometry_msgs::msg::Point & a0,
-                         const std_msgs::msg::ColorRGBA & ca0,
-                         const geometry_msgs::msg::Point & b0,
-                         const std_msgs::msg::ColorRGBA & cb0,
-                         const geometry_msgs::msg::Point & b1,
-                         const std_msgs::msg::ColorRGBA & cb1,
+                         const geometry_msgs::msg::Point & a0, const std_msgs::msg::ColorRGBA & ca0,
+                         const geometry_msgs::msg::Point & b0, const std_msgs::msg::ColorRGBA & cb0,
+                         const geometry_msgs::msg::Point & b1, const std_msgs::msg::ColorRGBA & cb1,
                          const geometry_msgs::msg::Point & a1,
                          const std_msgs::msg::ColorRGBA & ca1) {
     // a0, a1 on left (+N side); b0, b1 on right (-N side) -> CCW (+Z upward normal)
@@ -488,9 +483,8 @@ visualization_msgs::msg::Marker::SharedPtr get_hologram_predicted_path_marker_pt
       const double nx = -ty;
       const double ny = tx;
 
-      const double hw =
-        sections[search_idx].half_w +
-        (sections[search_idx + 1].half_w - sections[search_idx].half_w) * frac;
+      const double hw = sections[search_idx].half_w +
+                        (sections[search_idx + 1].half_w - sections[search_idx].half_w) * frac;
       const float env =
         sections[search_idx].env +
         (sections[search_idx + 1].env - sections[search_idx].env) * static_cast<float>(frac);
@@ -509,14 +503,14 @@ visualization_msgs::msg::Marker::SharedPtr get_hologram_predicted_path_marker_pt
 
       const auto tip_f = make_pt(px + tx * hs, py + ty * hs, pz);
       const auto tip_b = make_pt(px - tx * hs, py - ty * hs, pz);
-      const auto wl_f =
-        make_pt(px - tx * (wing_back - hs) + nx * wing_y, py - ty * (wing_back - hs) + ny * wing_y, pz);
-      const auto wl_b =
-        make_pt(px - tx * (wing_back + hs) + nx * wing_y, py - ty * (wing_back + hs) + ny * wing_y, pz);
-      const auto wr_f =
-        make_pt(px - tx * (wing_back - hs) - nx * wing_y, py - ty * (wing_back - hs) - ny * wing_y, pz);
-      const auto wr_b =
-        make_pt(px - tx * (wing_back + hs) - nx * wing_y, py - ty * (wing_back + hs) - ny * wing_y, pz);
+      const auto wl_f = make_pt(
+        px - tx * (wing_back - hs) + nx * wing_y, py - ty * (wing_back - hs) + ny * wing_y, pz);
+      const auto wl_b = make_pt(
+        px - tx * (wing_back + hs) + nx * wing_y, py - ty * (wing_back + hs) + ny * wing_y, pz);
+      const auto wr_f = make_pt(
+        px - tx * (wing_back - hs) - nx * wing_y, py - ty * (wing_back - hs) - ny * wing_y, pz);
+      const auto wr_b = make_pt(
+        px - tx * (wing_back + hs) - nx * wing_y, py - ty * (wing_back + hs) - ny * wing_y, pz);
 
       // Left chevron arm (CCW +Z normal)
       push_quad_ccw(wl_b, wing_col, tip_b, tip_col, tip_f, tip_col, wl_f, wing_col);

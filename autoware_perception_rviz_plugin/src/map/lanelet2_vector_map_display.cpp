@@ -598,8 +598,8 @@ void Lanelet2VectorMapDisplay::applyStylesAndPublish()
     toColorRGBA(m_road_fill_color_property.getColor(), m_road_fill_alpha_property.getFloat());
 
   const bool override_bl = m_bicycle_lane_override_property.getBool();
-  const auto bl_color = toColorRGBA(
-    m_bicycle_lane_color_property.getColor(), m_bicycle_lane_alpha_property.getFloat());
+  const auto bl_color =
+    toColorRGBA(m_bicycle_lane_color_property.getColor(), m_bicycle_lane_alpha_property.getFloat());
 
   const bool override_tl = m_traffic_light_override_property.getBool();
   const auto tl_plate_color = toColorRGBA(
@@ -733,9 +733,8 @@ void Lanelet2VectorMapDisplay::applyStylesAndPublish()
     const std::string & ns = orig.ns;
 
     if (
-      hide_clutter &&
-      (isClutterArrowOrIdNamespace(ns) || ns == "bicycle_lane_center_lane_line" ||
-       ns == "shoulder_center_lane_line")) {
+      hide_clutter && (isClutterArrowOrIdNamespace(ns) || ns == "bicycle_lane_center_lane_line" ||
+                       ns == "shoulder_center_lane_line")) {
       continue;
     }
 

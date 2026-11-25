@@ -489,8 +489,9 @@ void TrafficLightDisplay::updateTrafficLightBulbs(
         emissive = Ogre::ColourValue(0.04F, 0.72F, 0.24F, 1.0F);
       }
       bulb_display->setColor(color);
-      if (auto mat = bulb_display->getMaterial();
-          mat && mat->getNumTechniques() > 0 && mat->getTechnique(0)->getNumPasses() > 0) {
+      if (
+        auto mat = bulb_display->getMaterial();
+        mat && mat->getNumTechniques() > 0 && mat->getTechnique(0)->getNumPasses() > 0) {
         mat->getTechnique(0)->getPass(0)->setSelfIllumination(emissive);
       }
 

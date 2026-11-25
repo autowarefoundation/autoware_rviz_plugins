@@ -262,8 +262,8 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
         std::vector<PathSignature> accepted_sigs;
         accepted_sigs.reserve(3);
 
-        auto compute_sig = [horizon_sec](
-                             const autoware_perception_msgs::msg::PredictedPath & p) -> PathSignature {
+        auto compute_sig =
+          [horizon_sec](const autoware_perception_msgs::msg::PredictedPath & p) -> PathSignature {
           const size_t n = p.path.size();
           const double dt =
             static_cast<double>(p.time_step.sec) + static_cast<double>(p.time_step.nanosec) * 1e-9;

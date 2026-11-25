@@ -15,21 +15,23 @@
 #include "autoware_planning_rviz_plugin/mission_route_goal/mission_route_goal_display.hpp"
 
 #include <Eigen/Core>
-#include <OgreCamera.h>
-#include <OgreVector3.h>
 #include <pluginlib/class_list_macros.hpp>
 #include <rviz_common/display_context.hpp>
 #include <rviz_common/frame_manager_iface.hpp>
 #include <rviz_common/ros_integration/ros_node_abstraction_iface.hpp>
 #include <rviz_common/view_controller.hpp>
 #include <rviz_common/view_manager.hpp>
-#include <tf2/utils.h>
+
 #include <tf2_geometry_msgs/tf2_geometry_msgs.hpp>
 
 #include <boost/archive/binary_iarchive.hpp>
+
+#include <OgreCamera.h>
+#include <OgreVector3.h>
 #include <lanelet2_core/LaneletMap.h>
 #include <lanelet2_core/primitives/Lanelet.h>
 #include <lanelet2_io/io_handlers/Serialize.h>
+#include <tf2/utils.h>
 
 #include <algorithm>
 #include <cmath>
@@ -157,37 +159,59 @@ MissionRouteGoalDisplay::MissionRouteGoalDisplay()
     "Route Line", false, "Render hologram navigation line along the mission route", this,
     SLOT(onStyleChanged())},
   m_route_color_property{
-    "Route Color", QColor{0, 225, 165}, "Color of the navigation route guide line",
+    "Route Color",          QColor{0, 225, 165},    "Color of the navigation route guide line",
     &m_show_route_property, SLOT(onStyleChanged()), this},
-  m_route_alpha_property{
-    "Route Alpha", 0.65F, "Opacity of the navigation route guide line", &m_show_route_property,
-    SLOT(onStyleChanged()), this},
+  m_route_alpha_property{"Route Alpha",
+                         0.65F,
+                         "Opacity of the navigation route guide line",
+                         &m_show_route_property,
+                         SLOT(onStyleChanged()),
+                         this},
   m_route_width_property{
-    "Route Width", 0.20F, "Width [m] of the navigation route guide line", &m_show_route_property,
-    SLOT(onStyleChanged()), this},
+    "Route Width",
+    0.20F,
+    "Width [m] of the navigation route guide line",
+    &m_show_route_property,
+    SLOT(onStyleChanged()),
+    this},
   m_trim_passed_property{
-    "Trim Passed Route", true, "Automatically trim route segments behind ego base_link",
-    &m_show_route_property, SLOT(onStyleChanged()), this},
+    "Trim Passed Route",
+    true,
+    "Automatically trim route segments behind ego base_link",
+    &m_show_route_property,
+    SLOT(onStyleChanged()),
+    this},
   m_z_offset_property{
     "Z Offset", 0.068F, "Vertical offset [m] above road surface", this, SLOT(onStyleChanged())},
   m_show_goal_property{
     "Goal Beacon", true, "Render minimal hologram goal circle on the road surface", this,
     SLOT(onStyleChanged())},
   m_goal_color_property{
-    "Goal Color", QColor{0, 235, 165}, "Color of the hologram goal circle",
+    "Goal Color",          QColor{0, 235, 165},    "Color of the hologram goal circle",
     &m_show_goal_property, SLOT(onStyleChanged()), this},
   m_goal_alpha_property{
-    "Goal Alpha", 0.90F, "Opacity of the hologram goal circle", &m_show_goal_property,
+    "Goal Alpha",           0.90F, "Opacity of the hologram goal circle", &m_show_goal_property,
     SLOT(onStyleChanged()), this},
-  m_goal_radius_property{
-    "Ring Radius", 1.20F, "Outer radius [m] of the ground goal circle", &m_show_goal_property,
-    SLOT(onStyleChanged()), this},
+  m_goal_radius_property{"Ring Radius",
+                         1.20F,
+                         "Outer radius [m] of the ground goal circle",
+                         &m_show_goal_property,
+                         SLOT(onStyleChanged()),
+                         this},
   m_beacon_height_property{
-    "Beacon Height", 0.0F, "Optional vertical light pillar height [m] (0 = flat circle only)",
-    &m_show_goal_property, SLOT(onStyleChanged()), this},
+    "Beacon Height",
+    0.0F,
+    "Optional vertical light pillar height [m] (0 = flat circle only)",
+    &m_show_goal_property,
+    SLOT(onStyleChanged()),
+    this},
   m_show_distance_text_property{
-    "Show Distance Text", false, "Show GOAL label and remaining distance above goal",
-    &m_show_goal_property, SLOT(onStyleChanged()), this}
+    "Show Distance Text",
+    false,
+    "Show GOAL label and remaining distance above goal",
+    &m_show_goal_property,
+    SLOT(onStyleChanged()),
+    this}
 {
   m_show_route_property.setDisableChildrenIfFalse(true);
   m_show_goal_property.setDisableChildrenIfFalse(true);
@@ -346,8 +370,7 @@ void MissionRouteGoalDisplay::onMapBin(
   std::lock_guard<std::mutex> lock(m_mutex);
   if (m_route_msg && !m_route_msg->segments.empty() && m_lanelet_map) {
     const auto first_id = m_route_msg->segments.front().preferred_primitive.id;
-    if (
-      m_lanelet_map->laneletLayer.exists(first_id) && !decoded->laneletLayer.exists(first_id)) {
+    if (m_lanelet_map->laneletLayer.exists(first_id) && !decoded->laneletLayer.exists(first_id)) {
       return;
     }
   }
@@ -446,8 +469,7 @@ void MissionRouteGoalDisplay::rebuildRouteCenterline()
   if (best_d2 < 36.0) {
     const auto & a = combined[best_seg];
     const auto & b = combined[best_seg + 1];
-    RawPt proj{
-      a.x + (b.x - a.x) * best_t, a.y + (b.y - a.y) * best_t, a.z + (b.z - a.z) * best_t};
+    RawPt proj{a.x + (b.x - a.x) * best_t, a.y + (b.y - a.y) * best_t, a.z + (b.z - a.z) * best_t};
     combined.resize(best_seg + 1);
     if (std::hypot(proj.x - combined.back().x, proj.y - combined.back().y) >= 0.05) {
       combined.push_back(proj);
@@ -501,8 +523,9 @@ void MissionRouteGoalDisplay::update(float wall_dt, float ros_dt)
   if (dynamic_needed && context_ && context_->getFrameManager()) {
     Ogre::Vector3 pos;
     Ogre::Quaternion ori;
-    if (context_->getFrameManager()->getTransform(
-          "base_link", rclcpp::Time(0, 0, RCL_ROS_TIME), pos, ori)) {
+    if (
+      context_->getFrameManager()->getTransform(
+        "base_link", rclcpp::Time(0, 0, RCL_ROS_TIME), pos, ori)) {
       has_ego = true;
       ego_x = static_cast<double>(pos.x);
       ego_y = static_cast<double>(pos.y);
@@ -615,7 +638,9 @@ void MissionRouteGoalDisplay::publishVisualMarkers(
   }
 
   // Optional Route Line (disabled by default)
-  if (m_show_route_property.getBool() && m_route_pts.size() >= 2 && start_idx + 1 < m_route_pts.size()) {
+  if (
+    m_show_route_property.getBool() && m_route_pts.size() >= 2 &&
+    start_idx + 1 < m_route_pts.size()) {
     std::vector<RouteSamplePt> active;
     active.reserve(m_route_pts.size() - start_idx + 1);
     if (start_seg_t > 1e-3) {
@@ -625,12 +650,15 @@ void MissionRouteGoalDisplay::publishVisualMarkers(
         {a.x + (b.x - a.x) * start_seg_t, a.y + (b.y - a.y) * start_seg_t,
          a.z + (b.z - a.z) * start_seg_t, a.s + (b.s - a.s) * start_seg_t, a.tx, a.ty});
       for (size_t i = start_idx + 1; i < m_route_pts.size(); ++i) {
-        if (std::hypot(m_route_pts[i].x - active.back().x, m_route_pts[i].y - active.back().y) >= 0.05) {
+        if (
+          std::hypot(m_route_pts[i].x - active.back().x, m_route_pts[i].y - active.back().y) >=
+          0.05) {
           active.push_back(m_route_pts[i]);
         }
       }
     } else {
-      active.assign(m_route_pts.begin() + static_cast<std::ptrdiff_t>(start_idx), m_route_pts.end());
+      active.assign(
+        m_route_pts.begin() + static_cast<std::ptrdiff_t>(start_idx), m_route_pts.end());
     }
 
     if (active.size() >= 2) {
@@ -736,8 +764,8 @@ void MissionRouteGoalDisplay::publishVisualMarkers(
       goal_tris, gx, gy, gz + 0.002, outer_r, ring_w_outer,
       makeCol(br, bg, bb, std::min(0.98F, g_alpha * 1.02F)), makeCol(gr, gg, gb, 0.0F), kSegments);
     appendSmoothHologramRing(
-      goal_tris, gx, gy, gz + 0.002, inner_r, ring_w_inner,
-      makeCol(br, bg, bb, g_alpha * 0.68F), makeCol(gr, gg, gb, 0.0F), kSegments);
+      goal_tris, gx, gy, gz + 0.002, inner_r, ring_w_inner, makeCol(br, bg, bb, g_alpha * 0.68F),
+      makeCol(gr, gg, gb, 0.0F), kSegments);
 
     // Optional light pillar (disabled by default: Beacon Height = 0.0)
     if (pillar_h > 0.2) {

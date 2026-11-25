@@ -139,8 +139,7 @@ public:
       "Predicted path rendering style (Default wireframe or Hologram tapered ribbon).",
       &m_path_group_property},
     m_path_width_property{
-      "Path Width", 0.38F, "Base ribbon width [m] in Hologram path mode.",
-      &m_path_group_property},
+      "Path Width", 0.38F, "Base ribbon width [m] in Hologram path mode.", &m_path_group_property},
     m_path_alpha_property{
       "Path Alpha", 0.75F, "Peak opacity of Hologram predicted path ribbon.",
       &m_path_group_property},
