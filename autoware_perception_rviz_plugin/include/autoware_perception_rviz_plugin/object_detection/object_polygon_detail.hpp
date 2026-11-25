@@ -187,11 +187,27 @@ get_yaw_rate_covariance_marker_ptr(
   const geometry_msgs::msg::TwistWithCovariance & twist_with_covariance,
   const double & confidence_interval_coefficient, const double & line_width);
 
+struct HologramPathOptions
+{
+  double width{0.38};
+  float alpha{0.75F};
+  double horizon_sec{6.5};
+  double max_length{45.0};
+  bool is_primary{true};
+  float relative_confidence{1.0F};
+};
+
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC visualization_msgs::msg::Marker::SharedPtr
 get_predicted_path_marker_ptr(
   const autoware_perception_msgs::msg::Shape & shape,
   const autoware_perception_msgs::msg::PredictedPath & predicted_path,
   const std_msgs::msg::ColorRGBA & predicted_path_color, const bool is_simple = false);
+
+AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC visualization_msgs::msg::Marker::SharedPtr
+get_hologram_predicted_path_marker_ptr(
+  const autoware_perception_msgs::msg::Shape & shape,
+  const autoware_perception_msgs::msg::PredictedPath & predicted_path,
+  const std_msgs::msg::ColorRGBA & class_color, const HologramPathOptions & options);
 
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC visualization_msgs::msg::Marker::SharedPtr
 get_predicted_path_footprint_marker_ptr(

@@ -15,7 +15,9 @@
 #include "autoware_perception_rviz_plugin/object_detection/predicted_objects_display.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <memory>
+#include <numeric>
 #include <set>
 #include <vector>
 
@@ -236,17 +238,99 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
 
     // Add marker for each candidate path
     int32_t path_count = 0;
-    for (const auto & predicted_path : object.kinematics.predicted_paths) {
-      // Get marker for predicted path
-      auto predicted_path_marker =
-        get_predicted_path_marker_ptr(object.object_id, object.shape, predicted_path);
-      if (predicted_path_marker) {
-        auto predicted_path_marker_ptr = predicted_path_marker.value();
-        predicted_path_marker_ptr->header = msg->header;
-        predicted_path_marker_ptr->id =
-          uuid_to_marker_id(object.object_id) + path_count * PATH_ID_CONSTANT;
-        path_count++;
-        markers.push_back(predicted_path_marker_ptr);
+    if (is_hologram_path_style()) {
+      const auto & paths = object.kinematics.predicted_paths;
+      if (!paths.empty()) {
+        std::vector<size_t> sorted_indices(paths.size());
+        std::iota(sorted_indices.begin(), sorted_indices.end(), 0);
+        std::stable_sort(
+          sorted_indices.begin(), sorted_indices.end(),
+          [&paths](size_t a, size_t b) { return paths[a].confidence > paths[b].confidence; });
+
+        const float max_conf = std::max(1e-4F, paths[sorted_indices.front()].confidence);
+        const float min_conf = get_path_min_confidence();
+        const double horizon_sec = get_path_horizon_sec();
+        const auto class_color = get_color_rgba(object.classification);
+
+        struct PathSignature
+        {
+          double mid_x;
+          double mid_y;
+          double end_x;
+          double end_y;
+        };
+        std::vector<PathSignature> accepted_sigs;
+        accepted_sigs.reserve(3);
+
+        auto compute_sig = [horizon_sec](
+                             const autoware_perception_msgs::msg::PredictedPath & p) -> PathSignature {
+          const size_t n = p.path.size();
+          const double dt =
+            static_cast<double>(p.time_step.sec) + static_cast<double>(p.time_step.nanosec) * 1e-9;
+          size_t end_idx = n - 1;
+          if (dt > 1e-4 && horizon_sec > 0.0) {
+            end_idx = std::min(end_idx, static_cast<size_t>(std::ceil(horizon_sec / dt)));
+          }
+          const size_t mid_idx = end_idx / 2;
+          return {
+            p.path[mid_idx].position.x, p.path[mid_idx].position.y, p.path[end_idx].position.x,
+            p.path[end_idx].position.y};
+        };
+
+        for (const size_t idx : sorted_indices) {
+          if (accepted_sigs.size() >= 3) {
+            break;
+          }
+          const auto & predicted_path = paths[idx];
+          if (predicted_path.path.size() < 2) {
+            continue;
+          }
+          if (!accepted_sigs.empty() && predicted_path.confidence < min_conf) {
+            continue;
+          }
+
+          const auto sig = compute_sig(predicted_path);
+          bool is_duplicate = false;
+          for (const auto & prev : accepted_sigs) {
+            if (
+              std::hypot(sig.mid_x - prev.mid_x, sig.mid_y - prev.mid_y) < 0.40 &&
+              std::hypot(sig.end_x - prev.end_x, sig.end_y - prev.end_y) < 0.45) {
+              is_duplicate = true;
+              break;
+            }
+          }
+          if (is_duplicate) {
+            continue;
+          }
+
+          const bool is_primary = accepted_sigs.empty();
+          const float rel_conf = std::clamp(predicted_path.confidence / max_conf, 0.0F, 1.0F);
+          auto predicted_path_marker = get_hologram_predicted_path_marker_ptr(
+            object.shape, predicted_path, class_color, is_primary, rel_conf);
+          if (predicted_path_marker) {
+            accepted_sigs.push_back(sig);
+            auto predicted_path_marker_ptr = predicted_path_marker.value();
+            predicted_path_marker_ptr->header = msg->header;
+            predicted_path_marker_ptr->id =
+              uuid_to_marker_id(object.object_id) + path_count * PATH_ID_CONSTANT;
+            path_count++;
+            markers.push_back(predicted_path_marker_ptr);
+          }
+        }
+      }
+    } else {
+      for (const auto & predicted_path : object.kinematics.predicted_paths) {
+        // Get marker for predicted path
+        auto predicted_path_marker =
+          get_predicted_path_marker_ptr(object.object_id, object.shape, predicted_path);
+        if (predicted_path_marker) {
+          auto predicted_path_marker_ptr = predicted_path_marker.value();
+          predicted_path_marker_ptr->header = msg->header;
+          predicted_path_marker_ptr->id =
+            uuid_to_marker_id(object.object_id) + path_count * PATH_ID_CONSTANT;
+          path_count++;
+          markers.push_back(predicted_path_marker_ptr);
+        }
       }
     }
 

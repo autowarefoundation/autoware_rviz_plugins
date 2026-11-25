@@ -99,6 +99,435 @@ visualization_msgs::msg::Marker::SharedPtr get_predicted_path_marker_ptr(
   return marker_ptr;
 }
 
+visualization_msgs::msg::Marker::SharedPtr get_hologram_predicted_path_marker_ptr(
+  const autoware_perception_msgs::msg::Shape & shape,
+  const autoware_perception_msgs::msg::PredictedPath & predicted_path,
+  const std_msgs::msg::ColorRGBA & class_color, const HologramPathOptions & options)
+{
+  if (predicted_path.path.size() < 2) {
+    return nullptr;
+  }
+
+  struct CtrlPt
+  {
+    double x;
+    double y;
+    double z;
+    double s;
+  };
+
+  const double dt = static_cast<double>(predicted_path.time_step.sec) +
+                    static_cast<double>(predicted_path.time_step.nanosec) * 1e-9;
+  const double max_time = options.horizon_sec > 0.0 ? options.horizon_sec : 1e9;
+  const double max_len = options.max_length > 0.0 ? options.max_length : 1e9;
+  const double ground_z_offset = -static_cast<double>(shape.dimensions.z) * 0.5 + 0.032;
+
+  std::vector<CtrlPt> ctrl;
+  ctrl.reserve(predicted_path.path.size());
+
+  const auto & p0 = predicted_path.path.front().position;
+  ctrl.push_back({p0.x, p0.y, p0.z + ground_z_offset, 0.0});
+
+  double prev_raw_x = p0.x;
+  double prev_raw_y = p0.y;
+  double prev_raw_z = p0.z + ground_z_offset;
+  double prev_time = 0.0;
+  double cum_raw_s = 0.0;
+
+  for (size_t idx = 1; idx < predicted_path.path.size(); ++idx) {
+    const auto & pos = predicted_path.path.at(idx).position;
+    const double cur_x = pos.x;
+    const double cur_y = pos.y;
+    const double cur_z = pos.z + ground_z_offset;
+    const double cur_time = (dt > 1e-4) ? (static_cast<double>(idx) * dt) : 0.0;
+
+    const double raw_dx = cur_x - prev_raw_x;
+    const double raw_dy = cur_y - prev_raw_y;
+    const double raw_seg = std::hypot(raw_dx, raw_dy);
+
+    double clip_ratio = 1.0;
+    bool clipped = false;
+    if (dt > 1e-4 && cur_time > max_time && cur_time > prev_time) {
+      clip_ratio = std::min(clip_ratio, (max_time - prev_time) / (cur_time - prev_time));
+      clipped = true;
+    }
+    if (raw_seg > 1e-6 && cum_raw_s + raw_seg > max_len) {
+      clip_ratio = std::min(clip_ratio, (max_len - cum_raw_s) / raw_seg);
+      clipped = true;
+    }
+    clip_ratio = std::clamp(clip_ratio, 0.0, 1.0);
+
+    const double target_x = prev_raw_x + raw_dx * clip_ratio;
+    const double target_y = prev_raw_y + raw_dy * clip_ratio;
+    const double target_z = prev_raw_z + (cur_z - prev_raw_z) * clip_ratio;
+
+    const double ctrl_dx = target_x - ctrl.back().x;
+    const double ctrl_dy = target_y - ctrl.back().y;
+    const double ctrl_seg = std::hypot(ctrl_dx, ctrl_dy);
+    if (ctrl_seg >= 0.04 || (clipped && ctrl_seg >= 0.01)) {
+      ctrl.push_back({target_x, target_y, target_z, ctrl.back().s + ctrl_seg});
+    }
+
+    cum_raw_s += raw_seg * clip_ratio;
+    prev_raw_x = cur_x;
+    prev_raw_y = cur_y;
+    prev_raw_z = cur_z;
+    prev_time = cur_time;
+
+    if (clipped) {
+      break;
+    }
+  }
+
+  if (ctrl.size() < 2) {
+    return nullptr;
+  }
+
+  const double total_len = ctrl.back().s;
+  const double min_visible_len =
+    std::max(0.45, static_cast<double>(shape.dimensions.x) * 0.28 + 0.35);
+  if (total_len < min_visible_len) {
+    return nullptr;
+  }
+
+  const double start_s =
+    std::clamp(static_cast<double>(shape.dimensions.x) * 0.26, 0.0, total_len * 0.32);
+  const double visible_len = total_len - start_s;
+  if (visible_len < 0.30) {
+    return nullptr;
+  }
+
+  // Compute smooth unit tangents at control points for cubic Hermite resampling
+  const size_t n_ctrl = ctrl.size();
+  std::vector<Eigen::Vector2d> tangents(n_ctrl, Eigen::Vector2d(1.0, 0.0));
+  for (size_t i = 0; i < n_ctrl; ++i) {
+    Eigen::Vector2d t_vec(0.0, 0.0);
+    if (i > 0) {
+      Eigen::Vector2d d_prev(ctrl[i].x - ctrl[i - 1].x, ctrl[i].y - ctrl[i - 1].y);
+      const double n_prev = d_prev.norm();
+      if (n_prev > 1e-6) {
+        t_vec += d_prev / n_prev;
+      }
+    }
+    if (i + 1 < n_ctrl) {
+      Eigen::Vector2d d_next(ctrl[i + 1].x - ctrl[i].x, ctrl[i + 1].y - ctrl[i].y);
+      const double n_next = d_next.norm();
+      if (n_next > 1e-6) {
+        t_vec += d_next / n_next;
+      }
+    }
+    const double t_norm = t_vec.norm();
+    if (t_norm > 1e-6) {
+      tangents[i] = t_vec / t_norm;
+    }
+  }
+
+  struct SamplePt
+  {
+    double x;
+    double y;
+    double z;
+    double s;
+    double tx;
+    double ty;
+  };
+
+  auto eval_hermite = [&](size_t seg_idx, double t_param) -> CtrlPt {
+    const auto & c0 = ctrl[seg_idx];
+    const auto & c1 = ctrl[seg_idx + 1];
+    const double seg_len = c1.s - c0.s;
+    const double t2 = t_param * t_param;
+    const double t3 = t2 * t_param;
+    const double h00 = 2.0 * t3 - 3.0 * t2 + 1.0;
+    const double h10 = t3 - 2.0 * t2 + t_param;
+    const double h01 = -2.0 * t3 + 3.0 * t2;
+    const double h11 = t3 - t2;
+    const double mx0 = tangents[seg_idx].x() * seg_len;
+    const double my0 = tangents[seg_idx].y() * seg_len;
+    const double mx1 = tangents[seg_idx + 1].x() * seg_len;
+    const double my1 = tangents[seg_idx + 1].y() * seg_len;
+    return {
+      h00 * c0.x + h10 * mx0 + h01 * c1.x + h11 * mx1,
+      h00 * c0.y + h10 * my0 + h01 * c1.y + h11 * my1,
+      c0.z + (c1.z - c0.z) * t_param,
+      c0.s + seg_len * t_param};
+  };
+
+  std::vector<SamplePt> samples;
+  samples.reserve(n_ctrl * 3 + 4);
+
+  for (size_t seg_idx = 0; seg_idx + 1 < n_ctrl; ++seg_idx) {
+    const double s0 = ctrl[seg_idx].s;
+    const double s1 = ctrl[seg_idx + 1].s;
+    const double seg_len = s1 - s0;
+    if (seg_len < 1e-5 || s1 <= start_s) {
+      continue;
+    }
+
+    const double t_begin = (s0 < start_s) ? std::clamp((start_s - s0) / seg_len, 0.0, 1.0) : 0.0;
+    const double rem_len = seg_len * (1.0 - t_begin);
+    const int n_sub = std::clamp(static_cast<int>(std::ceil(rem_len / 0.35)), 1, 16);
+
+    if (samples.empty()) {
+      const auto first_pt = eval_hermite(seg_idx, t_begin);
+      samples.push_back({first_pt.x, first_pt.y, first_pt.z, first_pt.s, 1.0, 0.0});
+    }
+
+    for (int step = 1; step <= n_sub; ++step) {
+      const double t_param =
+        t_begin + (1.0 - t_begin) * (static_cast<double>(step) / static_cast<double>(n_sub));
+      const auto pt = eval_hermite(seg_idx, t_param);
+      const double d_prev = std::hypot(pt.x - samples.back().x, pt.y - samples.back().y);
+      if (d_prev >= 0.015) {
+        samples.push_back({pt.x, pt.y, pt.z, samples.back().s + d_prev, 1.0, 0.0});
+      }
+    }
+  }
+
+  if (samples.size() < 2) {
+    return nullptr;
+  }
+
+  const double actual_start_s = samples.front().s;
+  const double actual_vis_len = samples.back().s - actual_start_s;
+  if (actual_vis_len < 0.25) {
+    return nullptr;
+  }
+
+  // Compute smooth unit tangents on the dense sample curve
+  const size_t n_samp = samples.size();
+  for (size_t i = 0; i < n_samp; ++i) {
+    double dx = 0.0;
+    double dy = 0.0;
+    if (i == 0) {
+      dx = samples[1].x - samples[0].x;
+      dy = samples[1].y - samples[0].y;
+    } else if (i + 1 == n_samp) {
+      dx = samples[i].x - samples[i - 1].x;
+      dy = samples[i].y - samples[i - 1].y;
+    } else {
+      dx = samples[i + 1].x - samples[i - 1].x;
+      dy = samples[i + 1].y - samples[i - 1].y;
+    }
+    const double norm = std::hypot(dx, dy);
+    if (norm > 1e-6) {
+      samples[i].tx = dx / norm;
+      samples[i].ty = dy / norm;
+    } else if (i > 0) {
+      samples[i].tx = samples[i - 1].tx;
+      samples[i].ty = samples[i - 1].ty;
+    }
+  }
+
+  const double obj_w_factor =
+    std::clamp(static_cast<double>(shape.dimensions.y) / 1.8, 0.52, 1.20);
+  const double branch_w_factor = options.is_primary ? 1.0 : 0.74;
+  const double base_half_w = std::max(0.05, options.width * 0.5 * obj_w_factor * branch_w_factor);
+
+  const float conf_alpha_scale =
+    options.is_primary ? 1.0F : std::clamp(options.relative_confidence * 0.62F, 0.22F, 0.58F);
+  const float peak_alpha = std::clamp(options.alpha * conf_alpha_scale, 0.05F, 1.0F);
+  const double fade_in_len = std::clamp(actual_vis_len * 0.14, 0.25, 0.80);
+
+  const float cr = std::clamp(class_color.r * 1.08F + 0.04F, 0.0F, 1.0F);
+  const float cg = std::clamp(class_color.g * 1.08F + 0.04F, 0.0F, 1.0F);
+  const float cb = std::clamp(class_color.b * 1.08F + 0.04F, 0.0F, 1.0F);
+
+  const float er = std::clamp(cr * 0.60F + 0.40F, 0.0F, 1.0F);
+  const float eg = std::clamp(cg * 0.60F + 0.40F, 0.0F, 1.0F);
+  const float eb = std::clamp(cb * 0.60F + 0.40F, 0.0F, 1.0F);
+
+  const float vr = std::clamp(cr * 0.38F + 0.62F, 0.0F, 1.0F);
+  const float vg = std::clamp(cg * 0.38F + 0.62F, 0.0F, 1.0F);
+  const float vb = std::clamp(cb * 0.38F + 0.62F, 0.0F, 1.0F);
+
+  auto make_pt = [](double x, double y, double z) {
+    geometry_msgs::msg::Point p;
+    p.x = x;
+    p.y = y;
+    p.z = z;
+    return p;
+  };
+  auto make_col = [](float r, float g, float b, float a) {
+    std_msgs::msg::ColorRGBA c;
+    c.r = r;
+    c.g = g;
+    c.b = b;
+    c.a = std::clamp(a, 0.0F, 1.0F);
+    return c;
+  };
+
+  struct CrossSection
+  {
+    geometry_msgs::msg::Point l_out;
+    geometry_msgs::msg::Point l_in;
+    geometry_msgs::msg::Point center;
+    geometry_msgs::msg::Point r_in;
+    geometry_msgs::msg::Point r_out;
+    std_msgs::msg::ColorRGBA edge_col;
+    std_msgs::msg::ColorRGBA inner_col;
+    std_msgs::msg::ColorRGBA center_col;
+    double half_w;
+    float env;
+  };
+
+  std::vector<CrossSection> sections(n_samp);
+  for (size_t i = 0; i < n_samp; ++i) {
+    const auto & sp = samples[i];
+    const double rel_s = sp.s - actual_start_s;
+    const double u = std::clamp(rel_s / actual_vis_len, 0.0, 1.0);
+
+    const double half_w = base_half_w * (1.0 - 0.50 * u);
+    const double edge_w = std::clamp(half_w * 0.22, 0.012, 0.032);
+    const double inner_w = std::max(0.0, half_w - edge_w);
+
+    const double fin = std::clamp(rel_s / fade_in_len, 0.25, 1.0);
+    const double fout = std::pow(std::max(0.0, 1.0 - std::pow(u, 1.85)), 1.15);
+    const float env = static_cast<float>(fin * fout);
+    const float a = env * peak_alpha;
+
+    const double nx = -sp.ty;
+    const double ny = sp.tx;
+
+    sections[i].l_out = make_pt(sp.x + nx * half_w, sp.y + ny * half_w, sp.z);
+    sections[i].l_in = make_pt(sp.x + nx * inner_w, sp.y + ny * inner_w, sp.z);
+    sections[i].center = make_pt(sp.x, sp.y, sp.z);
+    sections[i].r_in = make_pt(sp.x - nx * inner_w, sp.y - ny * inner_w, sp.z);
+    sections[i].r_out = make_pt(sp.x - nx * half_w, sp.y - ny * half_w, sp.z);
+
+    sections[i].edge_col = make_col(er, eg, eb, std::min(0.96F, a * 1.18F));
+    sections[i].inner_col = make_col(cr, cg, cb, a * 0.24F);
+    sections[i].center_col = make_col(cr, cg, cb, a * 0.44F);
+    sections[i].half_w = half_w;
+    sections[i].env = env;
+  }
+
+  auto marker_ptr = std::make_shared<Marker>();
+  marker_ptr->type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
+  marker_ptr->ns = std::string("path_hologram");
+  marker_ptr->action = visualization_msgs::msg::Marker::MODIFY;
+  marker_ptr->lifetime = rclcpp::Duration::from_seconds(0.15);
+  marker_ptr->pose = initPose();
+  marker_ptr->scale.x = 1.0;
+  marker_ptr->scale.y = 1.0;
+  marker_ptr->scale.z = 1.0;
+  // Keep marker.color opaque white so RViz2 TriangleListMarker uses per-vertex alpha directly
+  marker_ptr->color = make_col(1.0F, 1.0F, 1.0F, 1.0F);
+
+  marker_ptr->points.reserve((n_samp - 1) * 24 + 96);
+  marker_ptr->colors.reserve((n_samp - 1) * 24 + 96);
+
+  auto push_quad_ccw = [&](
+                         const geometry_msgs::msg::Point & a0,
+                         const std_msgs::msg::ColorRGBA & ca0,
+                         const geometry_msgs::msg::Point & b0,
+                         const std_msgs::msg::ColorRGBA & cb0,
+                         const geometry_msgs::msg::Point & b1,
+                         const std_msgs::msg::ColorRGBA & cb1,
+                         const geometry_msgs::msg::Point & a1,
+                         const std_msgs::msg::ColorRGBA & ca1) {
+    // a0, a1 on left (+N side); b0, b1 on right (-N side) -> CCW (+Z upward normal)
+    marker_ptr->points.push_back(a0);
+    marker_ptr->colors.push_back(ca0);
+    marker_ptr->points.push_back(b0);
+    marker_ptr->colors.push_back(cb0);
+    marker_ptr->points.push_back(b1);
+    marker_ptr->colors.push_back(cb1);
+
+    marker_ptr->points.push_back(a0);
+    marker_ptr->colors.push_back(ca0);
+    marker_ptr->points.push_back(b1);
+    marker_ptr->colors.push_back(cb1);
+    marker_ptr->points.push_back(a1);
+    marker_ptr->colors.push_back(ca1);
+  };
+
+  for (size_t i = 0; i + 1 < n_samp; ++i) {
+    const auto & s0 = sections[i];
+    const auto & s1 = sections[i + 1];
+
+    push_quad_ccw(
+      s0.l_out, s0.edge_col, s0.l_in, s0.inner_col, s1.l_in, s1.inner_col, s1.l_out, s1.edge_col);
+    push_quad_ccw(
+      s0.l_in, s0.inner_col, s0.center, s0.center_col, s1.center, s1.center_col, s1.l_in,
+      s1.inner_col);
+    push_quad_ccw(
+      s0.center, s0.center_col, s0.r_in, s0.inner_col, s1.r_in, s1.inner_col, s1.center,
+      s1.center_col);
+    push_quad_ccw(
+      s0.r_in, s0.inner_col, s0.r_out, s0.edge_col, s1.r_out, s1.edge_col, s1.r_in, s1.inner_col);
+  }
+
+  // Forward V-chevrons ('>') along primary / high-confidence branches
+  if ((options.is_primary || options.relative_confidence >= 0.65F) && actual_vis_len >= 1.1) {
+    const double chevron_step = std::clamp(base_half_w * 12.5, 1.50, 2.75);
+    const double s_chevron_start = actual_start_s + std::min(chevron_step * 0.45, 0.90);
+    const double s_chevron_end = samples.back().s - std::min(chevron_step * 0.25, 0.45);
+
+    size_t search_idx = 0;
+    for (double sc = s_chevron_start; sc <= s_chevron_end; sc += chevron_step) {
+      while (search_idx + 2 < n_samp && samples[search_idx + 1].s < sc) {
+        ++search_idx;
+      }
+      const auto & sp0 = samples[search_idx];
+      const auto & sp1 = samples[search_idx + 1];
+      const double seg_ds = std::max(1e-6, sp1.s - sp0.s);
+      const double frac = std::clamp((sc - sp0.s) / seg_ds, 0.0, 1.0);
+
+      const double px = sp0.x + (sp1.x - sp0.x) * frac;
+      const double py = sp0.y + (sp1.y - sp0.y) * frac;
+      const double pz = sp0.z + (sp1.z - sp0.z) * frac + 0.003;
+
+      double tx = sp0.tx + (sp1.tx - sp0.tx) * frac;
+      double ty = sp0.ty + (sp1.ty - sp0.ty) * frac;
+      const double t_norm = std::hypot(tx, ty);
+      if (t_norm > 1e-6) {
+        tx /= t_norm;
+        ty /= t_norm;
+      }
+      const double nx = -ty;
+      const double ny = tx;
+
+      const double hw =
+        sections[search_idx].half_w +
+        (sections[search_idx + 1].half_w - sections[search_idx].half_w) * frac;
+      const float env =
+        sections[search_idx].env +
+        (sections[search_idx + 1].env - sections[search_idx].env) * static_cast<float>(frac);
+
+      const float chev_a = std::clamp(env * peak_alpha * 1.30F, 0.0F, 0.98F);
+      if (chev_a < 0.04F) {
+        continue;
+      }
+
+      const double wing_y = hw * 0.66;
+      const double wing_back = wing_y * 0.90;
+      const double hs = std::clamp(hw * 0.15, 0.015, 0.032);
+
+      const auto tip_col = make_col(vr, vg, vb, chev_a);
+      const auto wing_col = make_col(er, eg, eb, chev_a * 0.72F);
+
+      const auto tip_f = make_pt(px + tx * hs, py + ty * hs, pz);
+      const auto tip_b = make_pt(px - tx * hs, py - ty * hs, pz);
+      const auto wl_f =
+        make_pt(px - tx * (wing_back - hs) + nx * wing_y, py - ty * (wing_back - hs) + ny * wing_y, pz);
+      const auto wl_b =
+        make_pt(px - tx * (wing_back + hs) + nx * wing_y, py - ty * (wing_back + hs) + ny * wing_y, pz);
+      const auto wr_f =
+        make_pt(px - tx * (wing_back - hs) - nx * wing_y, py - ty * (wing_back - hs) - ny * wing_y, pz);
+      const auto wr_b =
+        make_pt(px - tx * (wing_back + hs) - nx * wing_y, py - ty * (wing_back + hs) - ny * wing_y, pz);
+
+      // Left chevron arm (CCW +Z normal)
+      push_quad_ccw(wl_b, wing_col, tip_b, tip_col, tip_f, tip_col, wl_f, wing_col);
+      // Right chevron arm (CCW +Z normal)
+      push_quad_ccw(tip_b, tip_col, wr_b, wing_col, wr_f, wing_col, tip_f, tip_col);
+    }
+  }
+
+  return marker_ptr;
+}
+
 visualization_msgs::msg::Marker::SharedPtr get_predicted_path_footprint_marker_ptr(
   const autoware_perception_msgs::msg::Shape & shape,
   const autoware_perception_msgs::msg::PredictedPath & predicted_path,

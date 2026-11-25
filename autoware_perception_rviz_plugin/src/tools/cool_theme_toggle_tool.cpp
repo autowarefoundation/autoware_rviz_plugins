@@ -317,6 +317,12 @@ std::vector<CoolThemeToggleTool::Rule> CoolThemeToggleTool::buildRules() const
     rules.push_back({p({"Vector", "Twist"}), false, true});
     rules.push_back({p({"Covariance", "Pose"}), false, true});
     rules.push_back({p({"Path", "Path Confidence"}), false, true});
+    rules.push_back({p({"Path", "Path Style"}), "Hologram", "Default"});
+    rules.push_back({p({"Path", "Path Width"}), 0.38, 0.38});
+    rules.push_back({p({"Path", "Path Alpha"}), 0.75, 0.75});
+    rules.push_back({p({"Path", "Path Horizon"}), 6.5, 6.5});
+    rules.push_back({p({"Path", "Path Max Length"}), 45.0, 45.0});
+    rules.push_back({p({"Path", "Path Min Confidence"}), 0.10, 0.10});
     rules.push_back({p({"Per Class Color", "CAR"}), "0; 190; 255", "30; 144; 255"});
     rules.push_back({p({"Per Class Color", "BUS"}), "0; 220; 255", "30; 144; 255"});
     rules.push_back({p({"Per Class Color", "PEDESTRIAN"}), "255; 175; 0", "255; 192; 203"});

@@ -134,6 +134,26 @@ public:
       "Path Footprint", false,
       "Enable/disable predicted path footprint (bounding box) visualization",
       &m_path_group_property},
+    m_path_style_property{
+      "Path Style", "Default",
+      "Predicted path rendering style (Default wireframe or Hologram tapered ribbon).",
+      &m_path_group_property},
+    m_path_width_property{
+      "Path Width", 0.38F, "Base ribbon width [m] in Hologram path mode.",
+      &m_path_group_property},
+    m_path_alpha_property{
+      "Path Alpha", 0.75F, "Peak opacity of Hologram predicted path ribbon.",
+      &m_path_group_property},
+    m_path_horizon_property{
+      "Path Horizon", 6.5F, "Maximum prediction time horizon [s] rendered in Hologram path mode.",
+      &m_path_group_property},
+    m_path_max_length_property{
+      "Path Max Length", 45.0F, "Maximum arc length [m] rendered in Hologram path mode.",
+      &m_path_group_property},
+    m_path_min_confidence_property{
+      "Path Min Confidence", 0.10F,
+      "Minimum confidence threshold for secondary branches in Hologram path mode.",
+      &m_path_group_property},
 
     m_display_existence_probability_property{
       "Existence Probability", false, "Enable/disable existence probability visualization",
@@ -150,6 +170,19 @@ public:
 
     m_fill_alpha_property.setMin(0.0F);
     m_fill_alpha_property.setMax(1.0F);
+
+    m_path_style_property.addOption("Default", 0);
+    m_path_style_property.addOption("Hologram", 1);
+    m_path_width_property.setMin(0.05F);
+    m_path_width_property.setMax(2.0F);
+    m_path_alpha_property.setMin(0.0F);
+    m_path_alpha_property.setMax(1.0F);
+    m_path_horizon_property.setMin(0.5F);
+    m_path_horizon_property.setMax(15.0F);
+    m_path_max_length_property.setMin(2.0F);
+    m_path_max_length_property.setMax(150.0F);
+    m_path_min_confidence_property.setMin(0.0F);
+    m_path_min_confidence_property.setMax(1.0F);
 
     m_simple_visualize_mode_property = new rviz_common::properties::EnumProperty(
       "Path Resolution", "Normal",
@@ -489,6 +522,14 @@ protected:
     }
   }
 
+  bool is_hologram_path_style() const { return m_path_style_property.getOptionInt() == 1; }
+
+  float get_path_min_confidence() const { return m_path_min_confidence_property.getFloat(); }
+
+  double get_path_horizon_sec() const { return m_path_horizon_property.getFloat(); }
+
+  double get_path_max_length() const { return m_path_max_length_property.getFloat(); }
+
   std::optional<Marker::SharedPtr> get_predicted_path_marker_ptr(
     const unique_identifier_msgs::msg::UUID & uuid,
     const autoware_perception_msgs::msg::Shape & shape,
@@ -503,6 +544,30 @@ protected:
     } else {
       return std::nullopt;
     }
+  }
+
+  std::optional<Marker::SharedPtr> get_hologram_predicted_path_marker_ptr(
+    const autoware_perception_msgs::msg::Shape & shape,
+    const autoware_perception_msgs::msg::PredictedPath & predicted_path,
+    const std_msgs::msg::ColorRGBA & class_color, const bool is_primary,
+    const float relative_confidence) const
+  {
+    if (!m_display_predicted_paths_property.getBool()) {
+      return std::nullopt;
+    }
+    detail::HologramPathOptions opts;
+    opts.width = m_path_width_property.getFloat();
+    opts.alpha = m_path_alpha_property.getFloat();
+    opts.horizon_sec = m_path_horizon_property.getFloat();
+    opts.max_length = m_path_max_length_property.getFloat();
+    opts.is_primary = is_primary;
+    opts.relative_confidence = relative_confidence;
+    auto marker =
+      detail::get_hologram_predicted_path_marker_ptr(shape, predicted_path, class_color, opts);
+    if (!marker) {
+      return std::nullopt;
+    }
+    return marker;
   }
 
   std::optional<Marker::SharedPtr> get_predicted_path_footprint_marker_ptr(
@@ -744,6 +809,12 @@ private:
   rviz_common::properties::BoolProperty m_display_path_confidence_property;
   // Property to enable/disable predicted path footprint (bounding box) visualization
   rviz_common::properties::BoolProperty m_display_predicted_path_footprint_property;
+  mutable rviz_common::properties::EnumProperty m_path_style_property;
+  rviz_common::properties::FloatProperty m_path_width_property;
+  rviz_common::properties::FloatProperty m_path_alpha_property;
+  rviz_common::properties::FloatProperty m_path_horizon_property;
+  rviz_common::properties::FloatProperty m_path_max_length_property;
+  rviz_common::properties::FloatProperty m_path_min_confidence_property;
 
   rviz_common::properties::BoolProperty m_display_existence_probability_property;
 
