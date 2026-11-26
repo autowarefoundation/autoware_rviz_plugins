@@ -499,8 +499,9 @@ void TrafficLightDisplay::updateTrafficLightBulbs(
           emissive = Ogre::ColourValue(0.04F, 0.72F, 0.24F, 1.0F);
         }
         bulb_display->setColor(color);
-        if (auto mat = bulb_display->getMaterial();
-            mat && mat->getNumTechniques() > 0 && mat->getTechnique(0)->getNumPasses() > 0) {
+        if (
+          auto mat = bulb_display->getMaterial();
+          mat && mat->getNumTechniques() > 0 && mat->getTechnique(0)->getNumPasses() > 0) {
           mat->getTechnique(0)->getPass(0)->setSelfIllumination(emissive);
         }
       } else {
@@ -514,9 +515,10 @@ void TrafficLightDisplay::updateTrafficLightBulbs(
         bulb_display->setColor(color);
       }
 
-      bulb_display->setPosition(Ogre::Vector3(
-        static_cast<float>(bulb.position.x), static_cast<float>(bulb.position.y),
-        static_cast<float>(bulb.position.z)));
+      bulb_display->setPosition(
+        Ogre::Vector3(
+          static_cast<float>(bulb.position.x), static_cast<float>(bulb.position.y),
+          static_cast<float>(bulb.position.z)));
       bulb_display->setScale(Ogre::Vector3(radius, radius, radius));
       traffic_light_bulb_displays_[bulb.id] = std::move(bulb_display);
     } else {
