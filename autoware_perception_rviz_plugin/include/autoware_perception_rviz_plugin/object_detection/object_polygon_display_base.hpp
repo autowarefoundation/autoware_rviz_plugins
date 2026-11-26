@@ -144,14 +144,15 @@ public:
       "Path Alpha", 0.75F, "Peak opacity of Hologram predicted path ribbon.",
       &m_path_group_property},
     m_path_horizon_property{
-      "Path Horizon", 6.5F, "Maximum prediction time horizon [s] rendered in Hologram path mode.",
+      "Path Horizon", 0.0F,
+      "Maximum prediction time horizon [s] in Hologram path mode (0 = unlimited).",
       &m_path_group_property},
     m_path_max_length_property{
-      "Path Max Length", 45.0F, "Maximum arc length [m] rendered in Hologram path mode.",
+      "Path Max Length", 0.0F, "Maximum arc length [m] in Hologram path mode (0 = unlimited).",
       &m_path_group_property},
     m_path_min_confidence_property{
-      "Path Min Confidence", 0.10F,
-      "Minimum confidence threshold for secondary branches in Hologram path mode.",
+      "Path Min Confidence", 0.0F,
+      "Minimum confidence threshold for candidate paths in Hologram path mode.",
       &m_path_group_property},
 
     m_display_existence_probability_property{
@@ -176,10 +177,10 @@ public:
     m_path_width_property.setMax(2.0F);
     m_path_alpha_property.setMin(0.0F);
     m_path_alpha_property.setMax(1.0F);
-    m_path_horizon_property.setMin(0.5F);
-    m_path_horizon_property.setMax(15.0F);
-    m_path_max_length_property.setMin(2.0F);
-    m_path_max_length_property.setMax(150.0F);
+    m_path_horizon_property.setMin(0.0F);
+    m_path_horizon_property.setMax(20.0F);
+    m_path_max_length_property.setMin(0.0F);
+    m_path_max_length_property.setMax(200.0F);
     m_path_min_confidence_property.setMin(0.0F);
     m_path_min_confidence_property.setMax(1.0F);
 
@@ -548,8 +549,7 @@ protected:
   std::optional<Marker::SharedPtr> get_hologram_predicted_path_marker_ptr(
     const autoware_perception_msgs::msg::Shape & shape,
     const autoware_perception_msgs::msg::PredictedPath & predicted_path,
-    const std_msgs::msg::ColorRGBA & class_color, const bool is_primary,
-    const float relative_confidence) const
+    const std_msgs::msg::ColorRGBA & class_color, const float relative_confidence) const
   {
     if (!m_display_predicted_paths_property.getBool()) {
       return std::nullopt;
@@ -559,7 +559,6 @@ protected:
     opts.alpha = m_path_alpha_property.getFloat();
     opts.horizon_sec = m_path_horizon_property.getFloat();
     opts.max_length = m_path_max_length_property.getFloat();
-    opts.is_primary = is_primary;
     opts.relative_confidence = relative_confidence;
     auto marker =
       detail::get_hologram_predicted_path_marker_ptr(shape, predicted_path, class_color, opts);

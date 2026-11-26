@@ -117,6 +117,8 @@ private:  // NOLINT
   std::unique_ptr<rviz_common::properties::FloatProperty> font_size_property_;
   std::unique_ptr<rviz_common::properties::ColorProperty> text_color_property_;
   std::unique_ptr<rviz_common::properties::FloatProperty> bulb_radius_property_;
+  std::unique_ptr<rviz_common::properties::BoolProperty> emissive_glow_property_;
+  bool last_emissive_glow_{false};
 
   // Subscribers
   rclcpp::Subscription<autoware_map_msgs::msg::LaneletMapBin>::SharedPtr lanelet_map_sub_;

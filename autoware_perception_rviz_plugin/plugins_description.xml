@@ -36,10 +36,4 @@
     <message_type>visualization_msgs/msg/MarkerArray</message_type>
   </class>
 
-  <class name="autoware_perception_rviz_plugin/CoolThemeToggleTool"
-         type="autoware::rviz_plugins::tools::CoolThemeToggleTool"
-         base_class_type="rviz_common::Tool">
-    <description>One-click toolbar toggle between Default Autoware RViz theme and Cool Hologram theme</description>
-  </class>
-
 </library>

@@ -523,9 +523,8 @@ void MissionRouteGoalDisplay::update(float wall_dt, float ros_dt)
   if (dynamic_needed && context_ && context_->getFrameManager()) {
     Ogre::Vector3 pos;
     Ogre::Quaternion ori;
-    if (
-      context_->getFrameManager()->getTransform(
-        "base_link", rclcpp::Time(0, 0, RCL_ROS_TIME), pos, ori)) {
+    if (context_->getFrameManager()->getTransform(
+          "base_link", rclcpp::Time(0, 0, RCL_ROS_TIME), pos, ori)) {
       has_ego = true;
       ego_x = static_cast<double>(pos.x);
       ego_y = static_cast<double>(pos.y);

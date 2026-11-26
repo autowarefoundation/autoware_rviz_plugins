@@ -34,12 +34,12 @@ namespace map
 
 namespace
 {
-std_msgs::msg::ColorRGBA toColorRGBA(const QColor & qcolor, const float alpha)
+std_msgs::msg::ColorRGBA toColorRGBA(const QColor & qt_color, const float alpha)
 {
   std_msgs::msg::ColorRGBA c;
-  c.r = static_cast<float>(qcolor.redF());
-  c.g = static_cast<float>(qcolor.greenF());
-  c.b = static_cast<float>(qcolor.blueF());
+  c.r = static_cast<float>(qt_color.redF());
+  c.g = static_cast<float>(qt_color.greenF());
+  c.b = static_cast<float>(qt_color.blueF());
   c.a = alpha;
   return c;
 }

@@ -191,9 +191,8 @@ struct HologramPathOptions
 {
   double width{0.38};
   float alpha{0.75F};
-  double horizon_sec{6.5};
-  double max_length{45.0};
-  bool is_primary{true};
+  double horizon_sec{0.0};
+  double max_length{0.0};
   float relative_confidence{1.0F};
 };
 

@@ -330,6 +330,9 @@ void TrafficLightDisplay::onInitialize()
   bulb_radius_property_ = std::make_unique<rviz_common::properties::FloatProperty>(
     "Bulb Radius", 0.4, "Radius in meters for traffic light bulb visualization", this);
   bulb_radius_property_->setMin(0.1);
+
+  emissive_glow_property_ = std::make_unique<rviz_common::properties::BoolProperty>(
+    "Emissive Glow", false, "Apply self-illuminated neon glow to traffic light bulbs", this);
 }
 
 void TrafficLightDisplay::setupRosSubscriptions()
@@ -470,35 +473,50 @@ void TrafficLightDisplay::updateTrafficLightBulbs(
 {
   // Note: This method is called from update() which already holds property_mutex_
   const float radius = bulb_radius_property_->getFloat();
+  const bool emissive_glow = emissive_glow_property_ && emissive_glow_property_->getBool();
+  if (emissive_glow != last_emissive_glow_) {
+    traffic_light_bulb_displays_.clear();
+    last_emissive_glow_ = emissive_glow;
+  }
   auto current_bulbs = info.getBlightBulbs(elements);
   for (const auto & bulb : current_bulbs) {
     if (traffic_light_bulb_displays_.find(bulb.id) == traffic_light_bulb_displays_.end()) {
       auto bulb_display = std::make_unique<rviz_rendering::Shape>(
         rviz_rendering::Shape::Type::Sphere, scene_manager_, scene_node_);
 
-      Ogre::ColourValue color(0.8F, 0.9F, 1.0F, 1.0F);
-      Ogre::ColourValue emissive(0.4F, 0.45F, 0.5F, 1.0F);
-      if (bulb.color == "red") {
-        color = Ogre::ColourValue(1.0F, 0.12F, 0.16F, 1.0F);
-        emissive = Ogre::ColourValue(0.70F, 0.05F, 0.08F, 1.0F);
-      } else if (bulb.color == "yellow") {
-        color = Ogre::ColourValue(1.0F, 0.65F, 0.05F, 1.0F);
-        emissive = Ogre::ColourValue(0.70F, 0.42F, 0.02F, 1.0F);
-      } else if (bulb.color == "green") {
-        color = Ogre::ColourValue(0.05F, 1.0F, 0.36F, 1.0F);
-        emissive = Ogre::ColourValue(0.04F, 0.72F, 0.24F, 1.0F);
-      }
-      bulb_display->setColor(color);
-      if (
-        auto mat = bulb_display->getMaterial();
-        mat && mat->getNumTechniques() > 0 && mat->getTechnique(0)->getNumPasses() > 0) {
-        mat->getTechnique(0)->getPass(0)->setSelfIllumination(emissive);
+      Ogre::ColourValue color;
+      if (emissive_glow) {
+        color = Ogre::ColourValue(0.8F, 0.9F, 1.0F, 1.0F);
+        Ogre::ColourValue emissive(0.4F, 0.45F, 0.5F, 1.0F);
+        if (bulb.color == "red") {
+          color = Ogre::ColourValue(1.0F, 0.12F, 0.16F, 1.0F);
+          emissive = Ogre::ColourValue(0.70F, 0.05F, 0.08F, 1.0F);
+        } else if (bulb.color == "yellow") {
+          color = Ogre::ColourValue(1.0F, 0.65F, 0.05F, 1.0F);
+          emissive = Ogre::ColourValue(0.70F, 0.42F, 0.02F, 1.0F);
+        } else if (bulb.color == "green") {
+          color = Ogre::ColourValue(0.05F, 1.0F, 0.36F, 1.0F);
+          emissive = Ogre::ColourValue(0.04F, 0.72F, 0.24F, 1.0F);
+        }
+        bulb_display->setColor(color);
+        if (auto mat = bulb_display->getMaterial();
+            mat && mat->getNumTechniques() > 0 && mat->getTechnique(0)->getNumPasses() > 0) {
+          mat->getTechnique(0)->getPass(0)->setSelfIllumination(emissive);
+        }
+      } else {
+        if (bulb.color == "red") {
+          color = Ogre::ColourValue(1.0F, 0.0F, 0.0F, 1.0F);
+        } else if (bulb.color == "yellow") {
+          color = Ogre::ColourValue(1.0F, 0.5F, 0.0F, 1.0F);
+        } else if (bulb.color == "green") {
+          color = Ogre::ColourValue(0.0F, 1.0F, 0.0F, 1.0F);
+        }
+        bulb_display->setColor(color);
       }
 
-      bulb_display->setPosition(
-        Ogre::Vector3(
-          static_cast<float>(bulb.position.x), static_cast<float>(bulb.position.y),
-          static_cast<float>(bulb.position.z)));
+      bulb_display->setPosition(Ogre::Vector3(
+        static_cast<float>(bulb.position.x), static_cast<float>(bulb.position.y),
+        static_cast<float>(bulb.position.z)));
       bulb_display->setScale(Ogre::Vector3(radius, radius, radius));
       traffic_light_bulb_displays_[bulb.id] = std::move(bulb_display);
     } else {

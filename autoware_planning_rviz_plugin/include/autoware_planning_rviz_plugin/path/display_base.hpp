@@ -119,9 +119,9 @@ public:
     property_mid_color_("Mid Velocity Color", QColor("#208AAE"), "", &property_path_view_),
     property_max_color_("Max Velocity Color", QColor("#00E678"), "", &property_path_view_),
     property_fade_out_distance_{"Fade Out Distance", 0.0, "[m]", &property_path_view_},
-    property_path_z_offset_{"Z Offset", 0.05, "[m]", &property_path_view_},
-    property_path_holo_style_{"Hologram Style", false, "", &property_path_view_},
-    property_path_holo_center_ratio_{"Center Alpha Ratio", 0.38, "", &property_path_view_},
+    property_path_z_offset_{"Z Offset", 0.0, "[m]", &property_path_view_},
+    property_path_hologram_style_{"Hologram Style", false, "", &property_path_view_},
+    property_path_hologram_center_ratio_{"Center Alpha Ratio", 0.38, "", &property_path_view_},
     property_vel_max_{"Color Border Vel Max", 3.0, "[m/s]", this},
     // velocity
     property_velocity_view_{"View Velocity", true, "", this},
@@ -154,8 +154,8 @@ public:
     property_path_width_.setMin(0.0);
     property_path_alpha_.setMin(0.0);
     property_path_alpha_.setMax(1.0);
-    property_path_holo_center_ratio_.setMin(0.0);
-    property_path_holo_center_ratio_.setMax(1.0);
+    property_path_hologram_center_ratio_.setMin(0.0);
+    property_path_hologram_center_ratio_.setMax(1.0);
     property_vel_max_.setMin(0.0);
     // velocity
     property_velocity_alpha_.setMin(0.0);
@@ -186,8 +186,8 @@ public:
          std::initializer_list<rviz_common::properties::Property *>{
            &property_path_view_, &property_path_width_view_, &property_path_width_,
            &property_path_alpha_, &property_min_color_, &property_mid_color_, &property_max_color_,
-           &property_fade_out_distance_, &property_path_z_offset_, &property_path_holo_style_,
-           &property_path_holo_center_ratio_, &property_velocity_view_}) {
+           &property_fade_out_distance_, &property_path_z_offset_, &property_path_hologram_style_,
+           &property_path_hologram_center_ratio_, &property_velocity_view_}) {
       QObject::connect(prop, &rviz_common::properties::Property::changed, redraw_last_msg);
     }
 
@@ -227,10 +227,6 @@ public:
     velocity_manual_object_->setDynamic(true);
     footprint_manual_object_->setDynamic(true);
     point_manual_object_->setDynamic(true);
-    path_manual_object_->setRenderQueueGroup(Ogre::RENDER_QUEUE_MAIN - 1);
-    velocity_manual_object_->setRenderQueueGroup(Ogre::RENDER_QUEUE_MAIN);
-    footprint_manual_object_->setRenderQueueGroup(Ogre::RENDER_QUEUE_MAIN);
-    point_manual_object_->setRenderQueueGroup(Ogre::RENDER_QUEUE_MAIN);
     this->scene_node_->attachObject(path_manual_object_);
     this->scene_node_->attachObject(velocity_manual_object_);
     this->scene_node_->attachObject(footprint_manual_object_);
@@ -326,20 +322,21 @@ protected:
       return;
     }
 
-    Ogre::MaterialPtr material = Ogre::MaterialManager::getSingleton().getByName(
-      "AutowarePathRibbonMaterial", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
-    if (!material) {
-      Ogre::MaterialPtr base_material = Ogre::MaterialManager::getSingleton().getByName(
-        "BaseWhiteNoLighting", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
-      material = base_material->clone("AutowarePathRibbonMaterial");
-    }
-    material->setSceneBlending(Ogre::SBT_TRANSPARENT_ALPHA);
-    material->setDepthWriteEnabled(false);
-    material->setDepthCheckEnabled(true);
-    material->setCullingMode(Ogre::CULL_NONE);
+    const bool hologram_style = property_path_hologram_style_.getBool();
+    if (hologram_style) {
+      path_manual_object_->setRenderQueueGroup(Ogre::RENDER_QUEUE_MAIN - 1);
+      Ogre::MaterialPtr hologram_material = Ogre::MaterialManager::getSingleton().getByName(
+        "AutowarePathRibbonMaterial", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+      if (!hologram_material) {
+        Ogre::MaterialPtr base_material = Ogre::MaterialManager::getSingleton().getByName(
+          "BaseWhiteNoLighting", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+        hologram_material = base_material->clone("AutowarePathRibbonMaterial");
+      }
+      hologram_material->setSceneBlending(Ogre::SBT_TRANSPARENT_ALPHA);
+      hologram_material->setDepthWriteEnabled(false);
+      hologram_material->setDepthCheckEnabled(true);
+      hologram_material->setCullingMode(Ogre::CULL_NONE);
 
-    const bool holo_style = property_path_holo_style_.getBool();
-    if (holo_style) {
       path_manual_object_->estimateVertexCount(msg_ptr->points.size() * 7);
       if (msg_ptr->points.size() >= 2) {
         path_manual_object_->estimateIndexCount((msg_ptr->points.size() - 1) * 24);
@@ -347,13 +344,21 @@ protected:
       path_manual_object_->begin(
         "AutowarePathRibbonMaterial", Ogre::RenderOperation::OT_TRIANGLE_LIST);
     } else {
+      path_manual_object_->setRenderQueueGroup(Ogre::RENDER_QUEUE_MAIN);
+      Ogre::MaterialPtr material = Ogre::MaterialManager::getSingleton().getByName(
+        "BaseWhiteNoLighting", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+      material->setSceneBlending(Ogre::SBT_TRANSPARENT_ALPHA);
+      material->setDepthWriteEnabled(false);
+
       path_manual_object_->estimateVertexCount(msg_ptr->points.size() * 2);
-      path_manual_object_->begin(
-        "AutowarePathRibbonMaterial", Ogre::RenderOperation::OT_TRIANGLE_STRIP);
+      path_manual_object_->begin("BaseWhiteNoLighting", Ogre::RenderOperation::OT_TRIANGLE_STRIP);
     }
+    Ogre::MaterialPtr base_mat = Ogre::MaterialManager::getSingleton().getByName(
+      "BaseWhiteNoLighting", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
+    base_mat->setSceneBlending(Ogre::SBT_TRANSPARENT_ALPHA);
+    base_mat->setDepthWriteEnabled(false);
     velocity_manual_object_->estimateVertexCount(msg_ptr->points.size());
-    velocity_manual_object_->begin(
-      "AutowarePathRibbonMaterial", Ogre::RenderOperation::OT_LINE_STRIP);
+    velocity_manual_object_->begin("BaseWhiteNoLighting", Ogre::RenderOperation::OT_LINE_STRIP);
 
     if (msg_ptr->points.size() > velocity_texts_.size()) {
       for (size_t i = velocity_texts_.size(); i < msg_ptr->points.size(); i++) {
@@ -477,10 +482,10 @@ protected:
           path_manual_object_->colour(vcol);
         };
 
-        if (holo_style) {
+        if (hologram_style) {
           const float fade_ratio =
             (base_alpha > 1e-4f) ? (alphas.at(point_idx) / base_alpha) : 0.0f;
-          const float center_ratio = property_path_holo_center_ratio_.getFloat();
+          const float center_ratio = property_path_hologram_center_ratio_.getFloat();
           const float inner_ratio = std::min(1.0f, std::max(0.75f, center_ratio + 0.40f));
           const float edge_alpha = std::min(0.90f, base_alpha * 2.5f) * fade_ratio;
           const float inner_alpha = (base_alpha * inner_ratio) * fade_ratio;
@@ -579,7 +584,7 @@ protected:
       }
     }
 
-    if (property_path_view_.getBool() && holo_style && msg_ptr->points.size() >= 2) {
+    if (property_path_view_.getBool() && hologram_style && msg_ptr->points.size() >= 2) {
       for (size_t i = 0; i + 1 < msg_ptr->points.size(); ++i) {
         const uint32_t b = static_cast<uint32_t>(i * 7);
         const uint32_t n = static_cast<uint32_t>((i + 1) * 7);
@@ -601,23 +606,14 @@ protected:
     }
 
     Ogre::MaterialPtr material = Ogre::MaterialManager::getSingleton().getByName(
-      "AutowarePathRibbonMaterial", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
-    if (!material) {
-      Ogre::MaterialPtr base_material = Ogre::MaterialManager::getSingleton().getByName(
-        "BaseWhiteNoLighting", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
-      material = base_material->clone("AutowarePathRibbonMaterial");
-    }
+      "BaseWhiteNoLighting", Ogre::ResourceGroupManager::DEFAULT_RESOURCE_GROUP_NAME);
     material->setSceneBlending(Ogre::SBT_TRANSPARENT_ALPHA);
     material->setDepthWriteEnabled(false);
-    material->setDepthCheckEnabled(true);
-    material->setCullingMode(Ogre::CULL_NONE);
 
     footprint_manual_object_->estimateVertexCount(msg_ptr->points.size() * 4 * 2);
-    footprint_manual_object_->begin(
-      "AutowarePathRibbonMaterial", Ogre::RenderOperation::OT_LINE_LIST);
+    footprint_manual_object_->begin("BaseWhiteNoLighting", Ogre::RenderOperation::OT_LINE_LIST);
     point_manual_object_->estimateVertexCount(msg_ptr->points.size() * 3 * 8);
-    point_manual_object_->begin(
-      "AutowarePathRibbonMaterial", Ogre::RenderOperation::OT_TRIANGLE_LIST);
+    point_manual_object_->begin("BaseWhiteNoLighting", Ogre::RenderOperation::OT_TRIANGLE_LIST);
 
     preVisualizePathFootprintDetail(msg_ptr);
 
@@ -742,8 +738,8 @@ protected:
   // Last x meters of the path will fade out to transparent
   rviz_common::properties::FloatProperty property_fade_out_distance_;
   rviz_common::properties::FloatProperty property_path_z_offset_;
-  rviz_common::properties::BoolProperty property_path_holo_style_;
-  rviz_common::properties::FloatProperty property_path_holo_center_ratio_;
+  rviz_common::properties::BoolProperty property_path_hologram_style_;
+  rviz_common::properties::FloatProperty property_path_hologram_center_ratio_;
 
   rviz_common::properties::FloatProperty property_vel_max_;
   rviz_common::properties::BoolProperty property_velocity_view_;
