@@ -11,6 +11,7 @@
     - source: .github/workflows/cancel-previous-workflows.yaml
     - source: .github/workflows/clang-tidy-pr-comments.yaml
     - source: .github/workflows/clang-tidy-pr-comments-manually.yaml
+    - source: .github/workflows/comment-docs-artifact.yaml
     - source: .github/workflows/comment-on-pr.yaml
     - source: .github/workflows/delete-closed-pr-docs.yaml
     - source: .github/workflows/deploy-docs.yaml
