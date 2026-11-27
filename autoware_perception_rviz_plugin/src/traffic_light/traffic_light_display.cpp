@@ -117,8 +117,10 @@ std::vector<TrafficLightInfo> getTrafficLightInfo(
     TrafficLightInfo traffic_light_info;
     traffic_light_info.id = id;
     traffic_light_info.linestring = *traffic_light_linestring.lineString();
-    traffic_light_info.height =
-      traffic_light_linestring.lineString()->attribute("height").as<double>();
+    if (traffic_light_linestring.lineString()->hasAttribute("height")) {
+      traffic_light_info.height =
+        traffic_light_linestring.lineString()->attribute("height").as<double>();
+    }
 
     for (const auto & bulb : traffic_light->lightBulbs()) {
       for (const auto & point : bulb) {
@@ -273,7 +275,11 @@ Point3d TrafficLightInfo::getLinestringCenter() const
 
 TrafficLightDisplay::TrafficLightDisplay() = default;
 
-TrafficLightDisplay::~TrafficLightDisplay() = default;
+TrafficLightDisplay::~TrafficLightDisplay()
+{
+  std::lock_guard<std::mutex> lock_property(property_mutex_);
+  clearDisplayObjects();
+}
 
 void TrafficLightDisplay::onInitialize()
 {
@@ -324,6 +330,9 @@ void TrafficLightDisplay::onInitialize()
   bulb_radius_property_ = std::make_unique<rviz_common::properties::FloatProperty>(
     "Bulb Radius", 0.4, "Radius in meters for traffic light bulb visualization", this);
   bulb_radius_property_->setMin(0.1);
+
+  emissive_glow_property_ = std::make_unique<rviz_common::properties::BoolProperty>(
+    "Emissive Glow", false, "Apply self-illuminated neon glow to traffic light bulbs", this);
 }
 
 void TrafficLightDisplay::setupRosSubscriptions()
@@ -359,27 +368,46 @@ void TrafficLightDisplay::onDisable()
   }
 }
 
+void TrafficLightDisplay::clearDisplayObjects()
+{
+  // Caller must hold property_mutex_
+  for (auto & [id, text_node] : traffic_light_text_nodes_) {
+    if (text_node) {
+      text_node->detachAllObjects();
+      if (scene_manager_) {
+        scene_manager_->destroySceneNode(text_node);
+      }
+    }
+  }
+  traffic_light_text_nodes_.clear();
+  traffic_light_text_displays_.clear();
+  traffic_light_bulb_displays_.clear();
+}
+
 void TrafficLightDisplay::reset()
 {
-  std::lock_guard<std::mutex> lock_property(property_mutex_);
-  std::lock_guard<std::mutex> lock_lanelet(lanelet_map_mutex_);
-  std::lock_guard<std::mutex> lock_traffic(traffic_light_mutex_);
+  {
+    std::lock_guard<std::mutex> lock_property(property_mutex_);
+    std::lock_guard<std::mutex> lock_traffic(traffic_light_mutex_);
 
-  rviz_common::Display::reset();
+    rviz_common::Display::reset();
 
-  // Clear all display objects
-  traffic_light_text_displays_.clear();
-  traffic_light_text_nodes_.clear();
-  traffic_light_bulb_displays_.clear();
+    // Clear visual objects and transient signal state, while keeping lanelet_map_ and
+    // active subscriptions intact across ROS clock jumps (e.g. rosbag start / loop).
+    clearDisplayObjects();
+    traffic_light_groups_.reset();
+    last_traffic_light_received_time_ = rclcpp::Time();
+  }
 
-  // Reset data
-  lanelet_map_.reset();
-  traffic_light_groups_.reset();
-  last_traffic_light_received_time_ = rclcpp::Time();
-
-  // Reset subscriptions
-  lanelet_map_sub_.reset();
-  traffic_light_group_array_sub_.reset();
+  if (isEnabled()) {
+    std::lock_guard<std::mutex> lock_property(property_mutex_);
+    if (!lanelet_map_sub_) {
+      topic_updated_lanelet_map();
+    }
+    if (!traffic_light_group_array_sub_) {
+      topic_updated_traffic_light();
+    }
+  }
 }
 
 void TrafficLightDisplay::hideAllDisplays()
@@ -444,6 +472,12 @@ void TrafficLightDisplay::updateTrafficLightBulbs(
   const std::vector<autoware_perception_msgs::msg::TrafficLightElement> & elements)
 {
   // Note: This method is called from update() which already holds property_mutex_
+  const float radius = bulb_radius_property_->getFloat();
+  const bool emissive_glow = emissive_glow_property_ && emissive_glow_property_->getBool();
+  if (emissive_glow != last_emissive_glow_) {
+    traffic_light_bulb_displays_.clear();
+    last_emissive_glow_ = emissive_glow;
+  }
   auto current_bulbs = info.getBlightBulbs(elements);
   for (const auto & bulb : current_bulbs) {
     if (traffic_light_bulb_displays_.find(bulb.id) == traffic_light_bulb_displays_.end()) {
@@ -451,22 +485,44 @@ void TrafficLightDisplay::updateTrafficLightBulbs(
         rviz_rendering::Shape::Type::Sphere, scene_manager_, scene_node_);
 
       Ogre::ColourValue color;
-      if (bulb.color == "red") {
-        color = Ogre::ColourValue(1.0, 0.0, 0.0, 1.0);
-      } else if (bulb.color == "yellow") {
-        color = Ogre::ColourValue(1.0, 0.5, 0.0, 1.0);
-      } else if (bulb.color == "green") {
-        color = Ogre::ColourValue(0.0, 1.0, 0.0, 1.0);
+      if (emissive_glow) {
+        color = Ogre::ColourValue(0.8F, 0.9F, 1.0F, 1.0F);
+        Ogre::ColourValue emissive(0.4F, 0.45F, 0.5F, 1.0F);
+        if (bulb.color == "red") {
+          color = Ogre::ColourValue(1.0F, 0.12F, 0.16F, 1.0F);
+          emissive = Ogre::ColourValue(0.70F, 0.05F, 0.08F, 1.0F);
+        } else if (bulb.color == "yellow") {
+          color = Ogre::ColourValue(1.0F, 0.65F, 0.05F, 1.0F);
+          emissive = Ogre::ColourValue(0.70F, 0.42F, 0.02F, 1.0F);
+        } else if (bulb.color == "green") {
+          color = Ogre::ColourValue(0.05F, 1.0F, 0.36F, 1.0F);
+          emissive = Ogre::ColourValue(0.04F, 0.72F, 0.24F, 1.0F);
+        }
+        bulb_display->setColor(color);
+        if (
+          auto mat = bulb_display->getMaterial();
+          mat && mat->getNumTechniques() > 0 && mat->getTechnique(0)->getNumPasses() > 0) {
+          mat->getTechnique(0)->getPass(0)->setSelfIllumination(emissive);
+        }
+      } else {
+        if (bulb.color == "red") {
+          color = Ogre::ColourValue(1.0F, 0.0F, 0.0F, 1.0F);
+        } else if (bulb.color == "yellow") {
+          color = Ogre::ColourValue(1.0F, 0.5F, 0.0F, 1.0F);
+        } else if (bulb.color == "green") {
+          color = Ogre::ColourValue(0.0F, 1.0F, 0.0F, 1.0F);
+        }
+        bulb_display->setColor(color);
       }
-      bulb_display->setColor(color);
 
       bulb_display->setPosition(
         Ogre::Vector3(
           static_cast<float>(bulb.position.x), static_cast<float>(bulb.position.y),
           static_cast<float>(bulb.position.z)));
-      const float radius = bulb_radius_property_->getFloat();
       bulb_display->setScale(Ogre::Vector3(radius, radius, radius));
       traffic_light_bulb_displays_[bulb.id] = std::move(bulb_display);
+    } else {
+      traffic_light_bulb_displays_[bulb.id]->setScale(Ogre::Vector3(radius, radius, radius));
     }
     traffic_light_bulb_displays_[bulb.id]->getEntity()->setVisible(show_bulb_property_->getBool());
   }
@@ -479,6 +535,12 @@ void TrafficLightDisplay::update(float wall_dt, float ros_dt)
 
   std::lock_guard<std::mutex> lock_lanelet(lanelet_map_mutex_);
   std::lock_guard<std::mutex> lock_traffic(traffic_light_mutex_);
+
+  if (lanelet_map_dirty_) {
+    std::lock_guard<std::mutex> lock_property(property_mutex_);
+    clearDisplayObjects();
+    lanelet_map_dirty_ = false;
+  }
 
   if (!lanelet_map_ || !traffic_light_groups_) {
     return;
@@ -546,6 +608,7 @@ void TrafficLightDisplay::onLaneletMapReceived(
   std::lock_guard<std::mutex> lock(lanelet_map_mutex_);
   lanelet_map_header_ = msg->header;
   lanelet_map_ = impl::from_autoware_map_msgs(*msg);
+  lanelet_map_dirty_ = true;
 }
 
 void TrafficLightDisplay::onTrafficLightGroupArrayReceived(

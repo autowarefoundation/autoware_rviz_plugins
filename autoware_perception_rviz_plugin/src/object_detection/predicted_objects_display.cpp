@@ -15,7 +15,9 @@
 #include "autoware_perception_rviz_plugin/object_detection/predicted_objects_display.hpp"
 
 #include <algorithm>
+#include <cmath>
 #include <memory>
+#include <numeric>
 #include <set>
 #include <vector>
 
@@ -78,14 +80,15 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
         object_pose = &(best_path->path.at(offset));
       }
     }
-    // Get marker for shape
-    auto shape_marker = get_shape_marker_ptr(
+    // Get markers for shape (supports single marker or wireframe+fill in Hologram 3D mode)
+    const auto shape_markers = get_shape_marker_ptrs(
       object.shape, object_pose->position, object_pose->orientation, object.classification,
       get_line_width(), true);
-    if (shape_marker) {
-      auto marker_ptr = shape_marker.value();
+    int32_t shape_sub_idx = 0;
+    for (const auto & marker_ptr : shape_markers) {
       marker_ptr->header = msg->header;
-      marker_ptr->id = uuid_to_marker_id(object.object_id);
+      marker_ptr->id = uuid_to_marker_id(object.object_id) + shape_sub_idx * 1000000;
+      ++shape_sub_idx;
       markers.push_back(marker_ptr);
     }
 
@@ -235,17 +238,44 @@ std::vector<visualization_msgs::msg::Marker::SharedPtr> PredictedObjectsDisplay:
 
     // Add marker for each candidate path
     int32_t path_count = 0;
-    for (const auto & predicted_path : object.kinematics.predicted_paths) {
-      // Get marker for predicted path
-      auto predicted_path_marker =
-        get_predicted_path_marker_ptr(object.object_id, object.shape, predicted_path);
-      if (predicted_path_marker) {
-        auto predicted_path_marker_ptr = predicted_path_marker.value();
-        predicted_path_marker_ptr->header = msg->header;
-        predicted_path_marker_ptr->id =
-          uuid_to_marker_id(object.object_id) + path_count * PATH_ID_CONSTANT;
-        path_count++;
-        markers.push_back(predicted_path_marker_ptr);
+    if (is_hologram_path_style()) {
+      const auto & paths = object.kinematics.predicted_paths;
+      float max_conf = 1e-4F;
+      for (const auto & p : paths) {
+        max_conf = std::max(max_conf, p.confidence);
+      }
+      const float min_conf = get_path_min_confidence();
+      const auto class_color = get_color_rgba(object.classification);
+
+      for (const auto & predicted_path : paths) {
+        if (predicted_path.path.size() < 2 || predicted_path.confidence < min_conf) {
+          continue;
+        }
+        const float rel_conf = std::clamp(predicted_path.confidence / max_conf, 0.0F, 1.0F);
+        auto predicted_path_marker = get_hologram_predicted_path_marker_ptr(
+          object.shape, predicted_path, class_color, rel_conf);
+        if (predicted_path_marker) {
+          auto predicted_path_marker_ptr = predicted_path_marker.value();
+          predicted_path_marker_ptr->header = msg->header;
+          predicted_path_marker_ptr->id =
+            uuid_to_marker_id(object.object_id) + path_count * PATH_ID_CONSTANT;
+          path_count++;
+          markers.push_back(predicted_path_marker_ptr);
+        }
+      }
+    } else {
+      for (const auto & predicted_path : object.kinematics.predicted_paths) {
+        // Get marker for predicted path
+        auto predicted_path_marker =
+          get_predicted_path_marker_ptr(object.object_id, object.shape, predicted_path);
+        if (predicted_path_marker) {
+          auto predicted_path_marker_ptr = predicted_path_marker.value();
+          predicted_path_marker_ptr->header = msg->header;
+          predicted_path_marker_ptr->id =
+            uuid_to_marker_id(object.object_id) + path_count * PATH_ID_CONSTANT;
+          path_count++;
+          markers.push_back(predicted_path_marker_ptr);
+        }
       }
     }
 

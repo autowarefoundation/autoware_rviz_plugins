@@ -59,7 +59,7 @@ struct ObjectPropertyValues
 };
 
 // Control object marker visualization
-enum class ObjectFillType { Skeleton, Fill };
+enum class ObjectFillType { Skeleton, Fill, HologramFill };
 
 // Logger name shared by all helpers and display classes in this plugin.
 constexpr char kLoggerName[] = "ObjectPolygonDisplayBase";
@@ -105,8 +105,8 @@ get_shape_marker_ptr(
   const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
   const std_msgs::msg::ColorRGBA & color_rgba, const double & line_width,
   const bool & is_orientation_available = true,
-  const ObjectFillType fill_type = ObjectFillType::Skeleton,
-  const bool & display_footprint = false);
+  const ObjectFillType fill_type = ObjectFillType::Skeleton, const bool & display_footprint = false,
+  const bool & show_direction_indicator = true);
 
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC visualization_msgs::msg::Marker::SharedPtr
 get_2d_shape_marker_ptr(
@@ -187,11 +187,26 @@ get_yaw_rate_covariance_marker_ptr(
   const geometry_msgs::msg::TwistWithCovariance & twist_with_covariance,
   const double & confidence_interval_coefficient, const double & line_width);
 
+struct HologramPathOptions
+{
+  double width{0.38};
+  float alpha{0.75F};
+  double horizon_sec{0.0};
+  double max_length{0.0};
+  float relative_confidence{1.0F};
+};
+
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC visualization_msgs::msg::Marker::SharedPtr
 get_predicted_path_marker_ptr(
   const autoware_perception_msgs::msg::Shape & shape,
   const autoware_perception_msgs::msg::PredictedPath & predicted_path,
   const std_msgs::msg::ColorRGBA & predicted_path_color, const bool is_simple = false);
+
+AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC visualization_msgs::msg::Marker::SharedPtr
+get_hologram_predicted_path_marker_ptr(
+  const autoware_perception_msgs::msg::Shape & shape,
+  const autoware_perception_msgs::msg::PredictedPath & predicted_path,
+  const std_msgs::msg::ColorRGBA & class_color, const HologramPathOptions & options);
 
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC visualization_msgs::msg::Marker::SharedPtr
 get_predicted_path_footprint_marker_ptr(
@@ -218,6 +233,14 @@ AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_covariance_eigen_vectors(
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_bounding_box_line_list(
   const autoware_perception_msgs::msg::Shape & shape,
   std::vector<geometry_msgs::msg::Point> & points);
+
+AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_bounding_box_triangle_list(
+  const autoware_perception_msgs::msg::Shape & shape, const std_msgs::msg::ColorRGBA & base_color,
+  std::vector<geometry_msgs::msg::Point> & points, std::vector<std_msgs::msg::ColorRGBA> & colors);
+
+AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_cylinder_triangle_list(
+  const autoware_perception_msgs::msg::Shape & shape, const std_msgs::msg::ColorRGBA & base_color,
+  std::vector<geometry_msgs::msg::Point> & points, std::vector<std_msgs::msg::ColorRGBA> & colors);
 
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_bounding_box_direction_line_list(
   const autoware_perception_msgs::msg::Shape & shape,
@@ -254,6 +277,10 @@ AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_circle_line_list(
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_polygon_line_list(
   const autoware_perception_msgs::msg::Shape & shape,
   std::vector<geometry_msgs::msg::Point> & points);
+
+AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC bool calc_polygon_triangle_list(
+  const autoware_perception_msgs::msg::Shape & shape, const std_msgs::msg::ColorRGBA & base_color,
+  std::vector<geometry_msgs::msg::Point> & points, std::vector<std_msgs::msg::ColorRGBA> & colors);
 
 AUTOWARE_PERCEPTION_RVIZ_PLUGIN_PUBLIC void calc_2d_polygon_bottom_line_list(
   const autoware_perception_msgs::msg::Shape & shape,

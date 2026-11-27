@@ -27,6 +27,7 @@
 #include <autoware_perception_msgs/msg/object_classification.hpp>
 #include <unique_identifier_msgs/msg/uuid.hpp>
 
+#include <algorithm>
 #include <memory>
 #include <string>
 #include <unordered_map>
@@ -59,7 +60,13 @@ public:
 
   // Shape rendering mode: merges polygon dimensionality (3D/2D) and fill style into one selector.
   // 2D has no filled variant (get_2d_shape_marker_ptr draws a wireframe only).
-  enum class ShapeType { SkeletonThreeD = 0, SkeletonTwoD = 1, Fill = 2, None = 3 };
+  enum class ShapeType {
+    SkeletonThreeD = 0,
+    SkeletonTwoD = 1,
+    Fill = 2,
+    None = 3,
+    HologramThreeD = 4
+  };
 
   explicit ObjectPolygonDisplayBase(const std::string & default_topic)
   : m_marker_common(this),
@@ -81,6 +88,9 @@ public:
       "Covariance", QVariant(), "Covariance ellipse visualizations", this},
     m_shape_type_property{
       "Shape Type", "Skeleton 3D", "Shape rendering mode: polygon dimensionality and fill style",
+      &m_shape_group_property},
+    m_fill_alpha_property{
+      "Fill Alpha", 0.36F, "Opacity of filled faces when Shape Type is Hologram 3D",
       &m_shape_group_property},
     m_display_bbox_footprint_property{
       "BBox Footprint", false,
@@ -124,6 +134,26 @@ public:
       "Path Footprint", false,
       "Enable/disable predicted path footprint (bounding box) visualization",
       &m_path_group_property},
+    m_path_style_property{
+      "Path Style", "Default",
+      "Predicted path rendering style (Default wireframe or Hologram tapered ribbon).",
+      &m_path_group_property},
+    m_path_width_property{
+      "Path Width", 0.38F, "Base ribbon width [m] in Hologram path mode.", &m_path_group_property},
+    m_path_alpha_property{
+      "Path Alpha", 0.75F, "Peak opacity of Hologram predicted path ribbon.",
+      &m_path_group_property},
+    m_path_horizon_property{
+      "Path Horizon", 0.0F,
+      "Maximum prediction time horizon [s] in Hologram path mode (0 = unlimited).",
+      &m_path_group_property},
+    m_path_max_length_property{
+      "Path Max Length", 0.0F, "Maximum arc length [m] in Hologram path mode (0 = unlimited).",
+      &m_path_group_property},
+    m_path_min_confidence_property{
+      "Path Min Confidence", 0.0F,
+      "Minimum confidence threshold for candidate paths in Hologram path mode.",
+      &m_path_group_property},
 
     m_display_existence_probability_property{
       "Existence Probability", false, "Enable/disable existence probability visualization",
@@ -135,7 +165,24 @@ public:
     m_shape_type_property.addOption("Skeleton 3D", static_cast<int>(ShapeType::SkeletonThreeD));
     m_shape_type_property.addOption("Skeleton 2D", static_cast<int>(ShapeType::SkeletonTwoD));
     m_shape_type_property.addOption("Fill", static_cast<int>(ShapeType::Fill));
+    m_shape_type_property.addOption("Hologram 3D", static_cast<int>(ShapeType::HologramThreeD));
     m_shape_type_property.addOption("None", static_cast<int>(ShapeType::None));
+
+    m_fill_alpha_property.setMin(0.0F);
+    m_fill_alpha_property.setMax(1.0F);
+
+    m_path_style_property.addOption("Default", 0);
+    m_path_style_property.addOption("Hologram", 1);
+    m_path_width_property.setMin(0.05F);
+    m_path_width_property.setMax(2.0F);
+    m_path_alpha_property.setMin(0.0F);
+    m_path_alpha_property.setMax(1.0F);
+    m_path_horizon_property.setMin(0.0F);
+    m_path_horizon_property.setMax(20.0F);
+    m_path_max_length_property.setMin(0.0F);
+    m_path_max_length_property.setMax(200.0F);
+    m_path_min_confidence_property.setMin(0.0F);
+    m_path_min_confidence_property.setMax(1.0F);
 
     m_simple_visualize_mode_property = new rviz_common::properties::EnumProperty(
       "Path Resolution", "Normal",
@@ -233,7 +280,11 @@ protected:
       case ShapeType::SkeletonThreeD:
         return detail::get_shape_marker_ptr(
           shape_msg, centroid, orientation, color_rgba, line_width, is_orientation_available,
-          detail::ObjectFillType::Skeleton, display_footprint);
+          detail::ObjectFillType::Skeleton, display_footprint, true);
+      case ShapeType::HologramThreeD:
+        return detail::get_shape_marker_ptr(
+          shape_msg, centroid, orientation, color_rgba, line_width, is_orientation_available,
+          detail::ObjectFillType::Skeleton, display_footprint, false);
       case ShapeType::Fill:
         return detail::get_shape_marker_ptr(
           shape_msg, centroid, orientation, color_rgba, line_width, is_orientation_available,
@@ -246,6 +297,57 @@ protected:
       default:
         return std::nullopt;
     }
+  }
+
+  template <typename ClassificationContainerT>
+  std::vector<Marker::SharedPtr> get_shape_marker_ptrs(
+    const autoware_perception_msgs::msg::Shape & shape_msg,
+    const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
+    const ClassificationContainerT & labels, const double & line_width,
+    const bool & is_orientation_available) const
+  {
+    std::vector<Marker::SharedPtr> result;
+    const auto selected_type = static_cast<ShapeType>(m_shape_type_property.getOptionInt());
+
+    if (selected_type == ShapeType::HologramThreeD) {
+      const std_msgs::msg::ColorRGBA base_color = get_color_rgba(labels);
+      std_msgs::msg::ColorRGBA wire_color = base_color;
+      wire_color.r = std::min(1.0F, base_color.r * 0.70F + 0.30F);
+      wire_color.g = std::min(1.0F, base_color.g * 0.70F + 0.30F);
+      wire_color.b = std::min(1.0F, base_color.b * 0.70F + 0.30F);
+      wire_color.a = 1.0F;
+
+      std_msgs::msg::ColorRGBA fill_color = base_color;
+      fill_color.a = m_fill_alpha_property.getFloat();
+      const bool display_footprint = m_display_bbox_footprint_property.getBool();
+
+      auto wire_marker = detail::get_shape_marker_ptr(
+        shape_msg, centroid, orientation, wire_color, line_width, is_orientation_available,
+        detail::ObjectFillType::Skeleton, display_footprint, false);
+      if (wire_marker) {
+        result.push_back(wire_marker);
+      }
+
+      if (fill_color.a > 0.0F) {
+        auto fill_marker = detail::get_shape_marker_ptr(
+          shape_msg, centroid, orientation, fill_color, line_width, is_orientation_available,
+          detail::ObjectFillType::HologramFill, false, false);
+        if (
+          fill_marker && fill_marker->type == visualization_msgs::msg::Marker::TRIANGLE_LIST &&
+          !fill_marker->points.empty()) {
+          fill_marker->ns = std::string("shape");
+          result.push_back(fill_marker);
+        }
+      }
+      return result;
+    }
+
+    auto single = get_shape_marker_ptr(
+      shape_msg, centroid, orientation, labels, line_width, is_orientation_available);
+    if (single) {
+      result.push_back(single.value());
+    }
+    return result;
   }
 
   template <typename ClassificationContainerT>
@@ -422,6 +524,14 @@ protected:
     }
   }
 
+  bool is_hologram_path_style() const { return m_path_style_property.getOptionInt() == 1; }
+
+  float get_path_min_confidence() const { return m_path_min_confidence_property.getFloat(); }
+
+  double get_path_horizon_sec() const { return m_path_horizon_property.getFloat(); }
+
+  double get_path_max_length() const { return m_path_max_length_property.getFloat(); }
+
   std::optional<Marker::SharedPtr> get_predicted_path_marker_ptr(
     const unique_identifier_msgs::msg::UUID & uuid,
     const autoware_perception_msgs::msg::Shape & shape,
@@ -436,6 +546,28 @@ protected:
     } else {
       return std::nullopt;
     }
+  }
+
+  std::optional<Marker::SharedPtr> get_hologram_predicted_path_marker_ptr(
+    const autoware_perception_msgs::msg::Shape & shape,
+    const autoware_perception_msgs::msg::PredictedPath & predicted_path,
+    const std_msgs::msg::ColorRGBA & class_color, const float relative_confidence) const
+  {
+    if (!m_display_predicted_paths_property.getBool()) {
+      return std::nullopt;
+    }
+    detail::HologramPathOptions opts;
+    opts.width = m_path_width_property.getFloat();
+    opts.alpha = m_path_alpha_property.getFloat();
+    opts.horizon_sec = m_path_horizon_property.getFloat();
+    opts.max_length = m_path_max_length_property.getFloat();
+    opts.relative_confidence = relative_confidence;
+    auto marker =
+      detail::get_hologram_predicted_path_marker_ptr(shape, predicted_path, class_color, opts);
+    if (!marker) {
+      return std::nullopt;
+    }
+    return marker;
   }
 
   std::optional<Marker::SharedPtr> get_predicted_path_footprint_marker_ptr(
@@ -638,6 +770,7 @@ private:
   // group. mutable because rviz's EnumProperty::getOptionInt() is not const-qualified but is read
   // from the const get_shape_marker_ptr().
   mutable rviz_common::properties::EnumProperty m_shape_type_property;
+  rviz_common::properties::FloatProperty m_fill_alpha_property;
   // Map to store the per-class color property keyed by classification label
   PolygonPropertyMap m_polygon_properties;
   // Predicted-path/footprint sampling density (Normal/Simple); nested under Show Path
@@ -676,6 +809,12 @@ private:
   rviz_common::properties::BoolProperty m_display_path_confidence_property;
   // Property to enable/disable predicted path footprint (bounding box) visualization
   rviz_common::properties::BoolProperty m_display_predicted_path_footprint_property;
+  mutable rviz_common::properties::EnumProperty m_path_style_property;
+  rviz_common::properties::FloatProperty m_path_width_property;
+  rviz_common::properties::FloatProperty m_path_alpha_property;
+  rviz_common::properties::FloatProperty m_path_horizon_property;
+  rviz_common::properties::FloatProperty m_path_max_length_property;
+  rviz_common::properties::FloatProperty m_path_min_confidence_property;
 
   rviz_common::properties::BoolProperty m_display_existence_probability_property;
 

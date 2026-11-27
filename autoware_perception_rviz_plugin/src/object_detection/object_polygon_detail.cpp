@@ -99,6 +99,198 @@ visualization_msgs::msg::Marker::SharedPtr get_predicted_path_marker_ptr(
   return marker_ptr;
 }
 
+visualization_msgs::msg::Marker::SharedPtr get_hologram_predicted_path_marker_ptr(
+  const autoware_perception_msgs::msg::Shape & shape,
+  const autoware_perception_msgs::msg::PredictedPath & predicted_path,
+  const std_msgs::msg::ColorRGBA & class_color, const HologramPathOptions & options)
+{
+  if (predicted_path.path.size() < 2) {
+    return nullptr;
+  }
+
+  struct PathPt
+  {
+    double x;
+    double y;
+    double z;
+    double s;
+    double tx;
+    double ty;
+  };
+
+  const double dt = static_cast<double>(predicted_path.time_step.sec) +
+                    static_cast<double>(predicted_path.time_step.nanosec) * 1e-9;
+  const double max_time = options.horizon_sec > 0.0 ? options.horizon_sec : 1e9;
+  const double max_len = options.max_length > 0.0 ? options.max_length : 1e9;
+  const double ground_z_offset = -static_cast<double>(shape.dimensions.z) * 0.5 + 0.05;
+
+  std::vector<PathPt> pts;
+  pts.reserve(predicted_path.path.size());
+
+  const auto & p0 = predicted_path.path.front().position;
+  pts.push_back({p0.x, p0.y, p0.z + ground_z_offset, 0.0, 1.0, 0.0});
+
+  double prev_x = p0.x;
+  double prev_y = p0.y;
+  double prev_z = p0.z + ground_z_offset;
+  double prev_time = 0.0;
+
+  for (size_t idx = 1; idx < predicted_path.path.size(); ++idx) {
+    const auto & pos = predicted_path.path.at(idx).position;
+    const double cur_x = pos.x;
+    const double cur_y = pos.y;
+    const double cur_z = pos.z + ground_z_offset;
+    const double cur_time = (dt > 1e-4) ? (static_cast<double>(idx) * dt) : 0.0;
+
+    const double dx = cur_x - prev_x;
+    const double dy = cur_y - prev_y;
+    const double seg = std::hypot(dx, dy);
+
+    double clip_ratio = 1.0;
+    bool clipped = false;
+    if (dt > 1e-4 && cur_time > max_time && cur_time > prev_time) {
+      clip_ratio = std::min(clip_ratio, (max_time - prev_time) / (cur_time - prev_time));
+      clipped = true;
+    }
+    if (seg > 1e-6 && pts.back().s + seg > max_len) {
+      clip_ratio = std::min(clip_ratio, (max_len - pts.back().s) / seg);
+      clipped = true;
+    }
+    clip_ratio = std::clamp(clip_ratio, 0.0, 1.0);
+
+    const double tx = prev_x + dx * clip_ratio;
+    const double ty = prev_y + dy * clip_ratio;
+    const double tz = prev_z + (cur_z - prev_z) * clip_ratio;
+    const double ds = std::hypot(tx - pts.back().x, ty - pts.back().y);
+    if (ds >= 1e-3) {
+      pts.push_back({tx, ty, tz, pts.back().s + ds, 1.0, 0.0});
+    }
+
+    prev_x = cur_x;
+    prev_y = cur_y;
+    prev_z = cur_z;
+    prev_time = cur_time;
+    if (clipped) {
+      break;
+    }
+  }
+
+  if (pts.size() < 2 || pts.back().s < 0.05) {
+    return nullptr;
+  }
+
+  const size_t n_pts = pts.size();
+  for (size_t i = 0; i < n_pts; ++i) {
+    const size_t i0 = (i == 0) ? 0 : i - 1;
+    const size_t i1 = (i + 1 == n_pts) ? n_pts - 1 : i + 1;
+    const double dx = pts[i1].x - pts[i0].x;
+    const double dy = pts[i1].y - pts[i0].y;
+    const double norm = std::hypot(dx, dy);
+    if (norm > 1e-6) {
+      pts[i].tx = dx / norm;
+      pts[i].ty = dy / norm;
+    } else if (i > 0) {
+      pts[i].tx = pts[i - 1].tx;
+      pts[i].ty = pts[i - 1].ty;
+    }
+  }
+
+  const double total_len = pts.back().s;
+  const double base_half_w = std::max(0.04, options.width * 0.5);
+  const float conf_scale = std::clamp(options.relative_confidence, 0.25F, 1.0F);
+  const float peak_alpha = std::clamp(options.alpha * conf_scale, 0.05F, 1.0F);
+
+  const float er = std::clamp(class_color.r * 0.65F + 0.35F, 0.0F, 1.0F);
+  const float eg = std::clamp(class_color.g * 0.65F + 0.35F, 0.0F, 1.0F);
+  const float eb = std::clamp(class_color.b * 0.65F + 0.35F, 0.0F, 1.0F);
+
+  auto make_pt = [](double x, double y, double z) {
+    geometry_msgs::msg::Point p;
+    p.x = x;
+    p.y = y;
+    p.z = z;
+    return p;
+  };
+  auto make_col = [](float r, float g, float b, float a) {
+    std_msgs::msg::ColorRGBA c;
+    c.r = r;
+    c.g = g;
+    c.b = b;
+    c.a = std::clamp(a, 0.0F, 1.0F);
+    return c;
+  };
+
+  struct Section
+  {
+    geometry_msgs::msg::Point left;
+    geometry_msgs::msg::Point center;
+    geometry_msgs::msg::Point right;
+    std_msgs::msg::ColorRGBA edge_col;
+    std_msgs::msg::ColorRGBA center_col;
+  };
+
+  std::vector<Section> sections(n_pts);
+  for (size_t i = 0; i < n_pts; ++i) {
+    const double u = std::clamp(pts[i].s / total_len, 0.0, 1.0);
+    const double half_w = base_half_w * (1.0 - 0.45 * u);
+    const float a = static_cast<float>(1.0 - 0.85 * u) * peak_alpha;
+    const double nx = -pts[i].ty;
+    const double ny = pts[i].tx;
+
+    sections[i].left = make_pt(pts[i].x + nx * half_w, pts[i].y + ny * half_w, pts[i].z);
+    sections[i].center = make_pt(pts[i].x, pts[i].y, pts[i].z);
+    sections[i].right = make_pt(pts[i].x - nx * half_w, pts[i].y - ny * half_w, pts[i].z);
+    sections[i].edge_col = make_col(er, eg, eb, a);
+    sections[i].center_col = make_col(class_color.r, class_color.g, class_color.b, a * 0.40F);
+  }
+
+  auto marker_ptr = std::make_shared<Marker>();
+  marker_ptr->type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
+  marker_ptr->ns = std::string("path_hologram");
+  marker_ptr->action = visualization_msgs::msg::Marker::MODIFY;
+  marker_ptr->lifetime = rclcpp::Duration::from_seconds(0.15);
+  marker_ptr->pose = initPose();
+  marker_ptr->scale.x = 1.0;
+  marker_ptr->scale.y = 1.0;
+  marker_ptr->scale.z = 1.0;
+  marker_ptr->color = make_col(1.0F, 1.0F, 1.0F, 1.0F);
+  marker_ptr->points.reserve((n_pts - 1) * 12);
+  marker_ptr->colors.reserve((n_pts - 1) * 12);
+
+  auto push_quad = [&](
+                     const geometry_msgs::msg::Point & a0, const std_msgs::msg::ColorRGBA & ca0,
+                     const geometry_msgs::msg::Point & b0, const std_msgs::msg::ColorRGBA & cb0,
+                     const geometry_msgs::msg::Point & b1, const std_msgs::msg::ColorRGBA & cb1,
+                     const geometry_msgs::msg::Point & a1, const std_msgs::msg::ColorRGBA & ca1) {
+    marker_ptr->points.push_back(a0);
+    marker_ptr->colors.push_back(ca0);
+    marker_ptr->points.push_back(b0);
+    marker_ptr->colors.push_back(cb0);
+    marker_ptr->points.push_back(b1);
+    marker_ptr->colors.push_back(cb1);
+
+    marker_ptr->points.push_back(a0);
+    marker_ptr->colors.push_back(ca0);
+    marker_ptr->points.push_back(b1);
+    marker_ptr->colors.push_back(cb1);
+    marker_ptr->points.push_back(a1);
+    marker_ptr->colors.push_back(ca1);
+  };
+
+  for (size_t i = 0; i + 1 < n_pts; ++i) {
+    const auto & s0 = sections[i];
+    const auto & s1 = sections[i + 1];
+    push_quad(
+      s0.left, s0.edge_col, s0.center, s0.center_col, s1.center, s1.center_col, s1.left,
+      s1.edge_col);
+    push_quad(
+      s0.center, s0.center_col, s0.right, s0.edge_col, s1.right, s1.edge_col, s1.center,
+      s1.center_col);
+  }
+
+  return marker_ptr;
+}
+
 visualization_msgs::msg::Marker::SharedPtr get_predicted_path_footprint_marker_ptr(
   const autoware_perception_msgs::msg::Shape & shape,
   const autoware_perception_msgs::msg::PredictedPath & predicted_path,
@@ -526,7 +718,7 @@ visualization_msgs::msg::Marker::SharedPtr get_shape_marker_ptr(
   const geometry_msgs::msg::Point & centroid, const geometry_msgs::msg::Quaternion & orientation,
   const std_msgs::msg::ColorRGBA & color_rgba, const double & line_width,
   const bool & is_orientation_available, const ObjectFillType fill_type,
-  const bool & display_footprint)
+  const bool & display_footprint, const bool & show_direction_indicator)
 {
   auto marker_ptr = std::make_shared<Marker>();
   marker_ptr->ns = std::string("shape");
@@ -544,15 +736,29 @@ visualization_msgs::msg::Marker::SharedPtr get_shape_marker_ptr(
       if (display_footprint && !shape_msg.footprint.points.empty()) {
         calc_polygon_line_list(shape_msg, marker_ptr->points);
       }
+      if (show_direction_indicator) {
+        if (is_orientation_available) {
+          calc_bounding_box_direction_line_list(shape_msg, marker_ptr->points);
+        } else {
+          calc_bounding_box_orientation_line_list(shape_msg, marker_ptr->points);
+        }
+      }
     } else if (fill_type == ObjectFillType::Fill) {
       marker_ptr->type = visualization_msgs::msg::Marker::CUBE;
       marker_ptr->scale = shape_msg.dimensions;
       marker_ptr->color.a = std::min(color_rgba.a, max_fill_alpha);
-    }
-    if (is_orientation_available) {
-      calc_bounding_box_direction_line_list(shape_msg, marker_ptr->points);
-    } else {
-      calc_bounding_box_orientation_line_list(shape_msg, marker_ptr->points);
+    } else if (fill_type == ObjectFillType::HologramFill) {
+      marker_ptr->type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
+      marker_ptr->scale.x = 1.0;
+      marker_ptr->scale.y = 1.0;
+      marker_ptr->scale.z = 1.0;
+      std_msgs::msg::ColorRGBA capped_color = color_rgba;
+      capped_color.a = std::min(color_rgba.a, max_fill_alpha);
+      // TriangleListMarker multiplies vertex_color.a * marker.color.a, so keep marker.color.a = 1.0
+      marker_ptr->color = capped_color;
+      marker_ptr->color.a = 1.0F;
+      calc_bounding_box_triangle_list(
+        shape_msg, capped_color, marker_ptr->points, marker_ptr->colors);
     }
   } else if (shape_msg.type == Shape::CYLINDER) {
     if (fill_type == ObjectFillType::Skeleton) {
@@ -562,10 +768,38 @@ visualization_msgs::msg::Marker::SharedPtr get_shape_marker_ptr(
       marker_ptr->type = visualization_msgs::msg::Marker::CYLINDER;
       marker_ptr->scale = shape_msg.dimensions;
       marker_ptr->color.a = std::min(color_rgba.a, max_fill_alpha);
+    } else if (fill_type == ObjectFillType::HologramFill) {
+      marker_ptr->type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
+      marker_ptr->scale.x = 1.0;
+      marker_ptr->scale.y = 1.0;
+      marker_ptr->scale.z = 1.0;
+      std_msgs::msg::ColorRGBA capped_color = color_rgba;
+      capped_color.a = std::min(color_rgba.a, max_fill_alpha);
+      marker_ptr->color = capped_color;
+      marker_ptr->color.a = 1.0F;
+      calc_cylinder_triangle_list(shape_msg, capped_color, marker_ptr->points, marker_ptr->colors);
     }
   } else {  // including shape_msg.type == Shape::POLYGON
-    marker_ptr->type = visualization_msgs::msg::Marker::LINE_LIST;
-    calc_polygon_line_list(shape_msg, marker_ptr->points);
+    bool built_mesh = false;
+    if (fill_type == ObjectFillType::HologramFill && shape_msg.footprint.points.size() >= 3) {
+      std_msgs::msg::ColorRGBA capped_color = color_rgba;
+      capped_color.a = std::min(color_rgba.a, max_fill_alpha);
+      if (
+        calc_polygon_triangle_list(
+          shape_msg, capped_color, marker_ptr->points, marker_ptr->colors)) {
+        marker_ptr->type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
+        marker_ptr->scale.x = 1.0;
+        marker_ptr->scale.y = 1.0;
+        marker_ptr->scale.z = 1.0;
+        marker_ptr->color = capped_color;
+        marker_ptr->color.a = 1.0F;
+        built_mesh = true;
+      }
+    }
+    if (!built_mesh) {
+      marker_ptr->type = visualization_msgs::msg::Marker::LINE_LIST;
+      calc_polygon_line_list(shape_msg, marker_ptr->points);
+    }
   }
 
   marker_ptr->action = visualization_msgs::msg::Marker::MODIFY;
@@ -815,6 +1049,136 @@ void calc_bounding_box_line_list(
     {0, 1}, {1, 2}, {2, 3}, {3, 0}, {4, 5}, {5, 6}, {6, 7}, {7, 4}, {0, 4}, {1, 5}, {2, 6}, {3, 7},
   };
   calc_line_list_from_points(point_list, point_pairs, 12, points);
+}
+
+void calc_bounding_box_triangle_list(
+  const autoware_perception_msgs::msg::Shape & shape, const std_msgs::msg::ColorRGBA & base_color,
+  std::vector<geometry_msgs::msg::Point> & points, std::vector<std_msgs::msg::ColorRGBA> & colors)
+{
+  constexpr double shrink = 0.994;
+  const double hx = shape.dimensions.x * 0.5 * shrink;
+  const double hy = shape.dimensions.y * 0.5 * shrink;
+  const double hz = shape.dimensions.z * 0.5 * shrink;
+
+  const double v[8][3] = {
+    {hx, hy, hz},     // 0: front-left-top
+    {hx, -hy, hz},    // 1: front-right-top
+    {-hx, -hy, hz},   // 2: rear-right-top
+    {-hx, hy, hz},    // 3: rear-left-top
+    {hx, hy, -hz},    // 4: front-left-bottom
+    {hx, -hy, -hz},   // 5: front-right-bottom
+    {-hx, -hy, -hz},  // 6: rear-right-bottom
+    {-hx, hy, -hz},   // 7: rear-left-bottom
+  };
+
+  struct FaceQuad
+  {
+    int idx[4];
+    float shade;
+  };
+
+  // All 6 faces with gentle unlit shading so every face stays clearly colored regardless of
+  // camera/light direction while preserving 3D depth cues.
+  const FaceQuad faces[6] = {
+    {{0, 3, 2, 1}, 1.00F},  // Top (+z)
+    {{4, 5, 6, 7}, 0.76F},  // Bottom (-z)
+    {{0, 1, 5, 4}, 0.92F},  // Front (+x)
+    {{2, 3, 7, 6}, 0.92F},  // Rear (-x)
+    {{3, 0, 4, 7}, 0.86F},  // Left (+y)
+    {{1, 2, 6, 5}, 0.86F},  // Right (-y)
+  };
+
+  points.reserve(points.size() + 36);
+  colors.reserve(colors.size() + 36);
+
+  auto push_vtx = [&](const int corner, const std_msgs::msg::ColorRGBA & c) {
+    geometry_msgs::msg::Point p;
+    p.x = v[corner][0];
+    p.y = v[corner][1];
+    p.z = v[corner][2];
+    points.push_back(p);
+    colors.push_back(c);
+  };
+
+  for (const auto & f : faces) {
+    std_msgs::msg::ColorRGBA c = base_color;
+    c.r = std::min(1.0F, c.r * f.shade);
+    c.g = std::min(1.0F, c.g * f.shade);
+    c.b = std::min(1.0F, c.b * f.shade);
+
+    push_vtx(f.idx[0], c);
+    push_vtx(f.idx[1], c);
+    push_vtx(f.idx[2], c);
+
+    push_vtx(f.idx[0], c);
+    push_vtx(f.idx[2], c);
+    push_vtx(f.idx[3], c);
+  }
+}
+
+void calc_cylinder_triangle_list(
+  const autoware_perception_msgs::msg::Shape & shape, const std_msgs::msg::ColorRGBA & base_color,
+  std::vector<geometry_msgs::msg::Point> & points, std::vector<std_msgs::msg::ColorRGBA> & colors)
+{
+  constexpr double shrink = 0.994;
+  constexpr int n = 20;
+  const double radius = shape.dimensions.x * 0.5 * shrink;
+  const double hz = shape.dimensions.z * 0.5 * shrink;
+
+  auto shaded = [&base_color](const float factor) {
+    std_msgs::msg::ColorRGBA c = base_color;
+    c.r = std::min(1.0F, c.r * factor);
+    c.g = std::min(1.0F, c.g * factor);
+    c.b = std::min(1.0F, c.b * factor);
+    return c;
+  };
+
+  const auto top_c = shaded(1.00F);
+  const auto bot_c = shaded(0.76F);
+  const auto side_c = shaded(0.88F);
+
+  points.reserve(points.size() + n * 12);
+  colors.reserve(colors.size() + n * 12);
+
+  auto push_pt =
+    [&](const double x, const double y, const double z, const std_msgs::msg::ColorRGBA & c) {
+      geometry_msgs::msg::Point p;
+      p.x = x;
+      p.y = y;
+      p.z = z;
+      points.push_back(p);
+      colors.push_back(c);
+    };
+
+  for (int i = 0; i < n; ++i) {
+    const double a0 = (static_cast<double>(i) / static_cast<double>(n)) * 2.0 * M_PI +
+                      M_PI / static_cast<double>(n);
+    const double a1 = (static_cast<double>(i + 1) / static_cast<double>(n)) * 2.0 * M_PI +
+                      M_PI / static_cast<double>(n);
+    const double x0 = std::cos(a0) * radius;
+    const double y0 = std::sin(a0) * radius;
+    const double x1 = std::cos(a1) * radius;
+    const double y1 = std::sin(a1) * radius;
+
+    // Top cap
+    push_pt(0.0, 0.0, hz, top_c);
+    push_pt(x0, y0, hz, top_c);
+    push_pt(x1, y1, hz, top_c);
+
+    // Bottom cap
+    push_pt(0.0, 0.0, -hz, bot_c);
+    push_pt(x1, y1, -hz, bot_c);
+    push_pt(x0, y0, -hz, bot_c);
+
+    // Side quad
+    push_pt(x0, y0, -hz, side_c);
+    push_pt(x1, y1, -hz, side_c);
+    push_pt(x1, y1, hz, side_c);
+
+    push_pt(x0, y0, -hz, side_c);
+    push_pt(x1, y1, hz, side_c);
+    push_pt(x0, y0, hz, side_c);
+  }
 }
 
 void calc_bounding_box_direction_line_list(
@@ -1069,6 +1433,233 @@ void calc_polygon_line_list(
     push_point(corner.x, corner.y, top_z);
     push_point(corner.x, corner.y, bottom_z);
   }
+}
+
+bool calc_polygon_triangle_list(
+  const autoware_perception_msgs::msg::Shape & shape, const std_msgs::msg::ColorRGBA & base_color,
+  std::vector<geometry_msgs::msg::Point> & points, std::vector<std_msgs::msg::ColorRGBA> & colors)
+{
+  points.clear();
+  colors.clear();
+
+  const auto & raw_footprint = shape.footprint.points;
+  std::vector<Eigen::Vector2d> cleaned;
+  cleaned.reserve(raw_footprint.size());
+  for (const auto & pt : raw_footprint) {
+    if (
+      cleaned.empty() || std::hypot(pt.x - cleaned.back().x(), pt.y - cleaned.back().y()) > 1e-6) {
+      cleaned.emplace_back(pt.x, pt.y);
+    }
+  }
+  if (
+    cleaned.size() >= 2 &&
+    std::hypot(
+      cleaned.front().x() - cleaned.back().x(), cleaned.front().y() - cleaned.back().y()) <= 1e-6) {
+    cleaned.pop_back();
+  }
+  if (cleaned.size() < 3) {
+    return false;
+  }
+
+  auto cross2d =
+    [](const Eigen::Vector2d & a, const Eigen::Vector2d & b, const Eigen::Vector2d & c) {
+      return (b.x() - a.x()) * (c.y() - a.y()) - (b.y() - a.y()) * (c.x() - a.x());
+    };
+
+  // Prune nearly collinear vertices so degenerate mid-edge points do not stall ear clipping
+  std::vector<Eigen::Vector2d> poly;
+  poly.reserve(cleaned.size());
+  for (size_t i = 0; i < cleaned.size(); ++i) {
+    const auto & prev = cleaned[(i + cleaned.size() - 1) % cleaned.size()];
+    const auto & curr = cleaned[i];
+    const auto & next = cleaned[(i + 1) % cleaned.size()];
+    if (std::abs(cross2d(prev, curr, next)) > 1e-9) {
+      poly.push_back(curr);
+    }
+  }
+  if (poly.size() < 3) {
+    return false;
+  }
+
+  // Compute signed area and normalize vertex order to counter-clockwise (CCW)
+  double signed_area2 = 0.0;
+  for (size_t i = 0; i < poly.size(); ++i) {
+    const auto & curr = poly[i];
+    const auto & next = poly[(i + 1) % poly.size()];
+    signed_area2 += curr.x() * next.y() - next.x() * curr.y();
+  }
+  if (std::abs(signed_area2) <= 1e-8) {
+    return false;
+  }
+  if (signed_area2 < 0.0) {
+    std::reverse(poly.begin(), poly.end());
+  }
+
+  // Reject self-intersecting polygons (e.g. bow-tie footprints) so caller falls back to wireframe
+  auto on_segment =
+    [](const Eigen::Vector2d & a, const Eigen::Vector2d & b, const Eigen::Vector2d & p) {
+      return p.x() >= std::min(a.x(), b.x()) - 1e-9 && p.x() <= std::max(a.x(), b.x()) + 1e-9 &&
+             p.y() >= std::min(a.y(), b.y()) - 1e-9 && p.y() <= std::max(a.y(), b.y()) + 1e-9;
+    };
+  auto segments_intersect = [&cross2d, &on_segment](
+                              const Eigen::Vector2d & a, const Eigen::Vector2d & b,
+                              const Eigen::Vector2d & c, const Eigen::Vector2d & d) {
+    const double d1 = cross2d(a, b, c);
+    const double d2 = cross2d(a, b, d);
+    const double d3 = cross2d(c, d, a);
+    const double d4 = cross2d(c, d, b);
+    if (
+      ((d1 > 1e-9 && d2 < -1e-9) || (d1 < -1e-9 && d2 > 1e-9)) &&
+      ((d3 > 1e-9 && d4 < -1e-9) || (d3 < -1e-9 && d4 > 1e-9))) {
+      return true;
+    }
+    if (std::abs(d1) <= 1e-9 && on_segment(a, b, c)) return true;
+    if (std::abs(d2) <= 1e-9 && on_segment(a, b, d)) return true;
+    if (std::abs(d3) <= 1e-9 && on_segment(c, d, a)) return true;
+    if (std::abs(d4) <= 1e-9 && on_segment(c, d, b)) return true;
+    return false;
+  };
+  for (size_t i = 0; i < poly.size(); ++i) {
+    const size_t i_next = (i + 1) % poly.size();
+    for (size_t j = i + 2; j < poly.size(); ++j) {
+      const size_t j_next = (j + 1) % poly.size();
+      if (i == j_next) {
+        continue;
+      }
+      if (segments_intersect(poly[i], poly[i_next], poly[j], poly[j_next])) {
+        return false;
+      }
+    }
+  }
+
+  std::vector<size_t> remaining(poly.size());
+  for (size_t i = 0; i < poly.size(); ++i) {
+    remaining[i] = i;
+  }
+
+  auto point_in_triangle = [&cross2d](
+                             const Eigen::Vector2d & p, const Eigen::Vector2d & a,
+                             const Eigen::Vector2d & b, const Eigen::Vector2d & c) {
+    return cross2d(a, b, p) >= -1e-9 && cross2d(b, c, p) >= -1e-9 && cross2d(c, a, p) >= -1e-9;
+  };
+
+  std::vector<std::array<size_t, 3>> triangles;
+  triangles.reserve(poly.size() - 2);
+
+  while (remaining.size() > 3) {
+    const size_t m = remaining.size();
+    bool ear_found = false;
+    for (size_t k = 0; k < m; ++k) {
+      const size_t i_prev = remaining[(k + m - 1) % m];
+      const size_t i_curr = remaining[k];
+      const size_t i_next = remaining[(k + 1) % m];
+      const auto & a = poly[i_prev];
+      const auto & b = poly[i_curr];
+      const auto & c = poly[i_next];
+
+      if (cross2d(a, b, c) <= 1e-9) {
+        continue;
+      }
+
+      bool contains_other = false;
+      for (size_t j = 0; j < m; ++j) {
+        const size_t i_other = remaining[j];
+        if (i_other == i_prev || i_other == i_curr || i_other == i_next) {
+          continue;
+        }
+        const auto & p = poly[i_other];
+        if (
+          (p - a).squaredNorm() <= 1e-12 || (p - b).squaredNorm() <= 1e-12 ||
+          (p - c).squaredNorm() <= 1e-12) {
+          continue;
+        }
+        if (point_in_triangle(p, a, b, c)) {
+          contains_other = true;
+          break;
+        }
+      }
+
+      if (!contains_other) {
+        triangles.push_back({i_prev, i_curr, i_next});
+        remaining.erase(remaining.begin() + static_cast<std::ptrdiff_t>(k));
+        ear_found = true;
+        break;
+      }
+    }
+
+    if (!ear_found) {
+      // Invalid footprint: fall back to wireframe instead of rendering a broken mesh
+      return false;
+    }
+  }
+  if (remaining.size() == 3) {
+    if (cross2d(poly[remaining[0]], poly[remaining[1]], poly[remaining[2]]) <= 1e-9) {
+      return false;
+    }
+    triangles.push_back({remaining[0], remaining[1], remaining[2]});
+  }
+
+  const double top_z = shape.dimensions.z * 0.5;
+  const double bottom_z = -shape.dimensions.z * 0.5;
+
+  auto shaded = [&base_color](const float factor) {
+    std_msgs::msg::ColorRGBA c = base_color;
+    c.r = std::min(1.0F, c.r * factor);
+    c.g = std::min(1.0F, c.g * factor);
+    c.b = std::min(1.0F, c.b * factor);
+    return c;
+  };
+  const auto top_color = shaded(1.00F);
+  const auto bottom_color = shaded(0.76F);
+  const auto side_color = shaded(0.88F);
+
+  const size_t total_vertices = triangles.size() * 6 + poly.size() * 6;
+  points.reserve(total_vertices);
+  colors.reserve(total_vertices);
+
+  auto push_vertex = [&points, &colors](
+                       const double x, const double y, const double z,
+                       const std_msgs::msg::ColorRGBA & color) {
+    geometry_msgs::msg::Point point;
+    point.x = x;
+    point.y = y;
+    point.z = z;
+    points.push_back(point);
+    colors.push_back(color);
+  };
+
+  for (const auto & tri : triangles) {
+    const auto & p0 = poly[tri[0]];
+    const auto & p1 = poly[tri[1]];
+    const auto & p2 = poly[tri[2]];
+
+    // Top face triangle (+Z normal, CCW)
+    push_vertex(p0.x(), p0.y(), top_z, top_color);
+    push_vertex(p1.x(), p1.y(), top_z, top_color);
+    push_vertex(p2.x(), p2.y(), top_z, top_color);
+
+    // Bottom face triangle (-Z normal, CW from top)
+    push_vertex(p0.x(), p0.y(), bottom_z, bottom_color);
+    push_vertex(p2.x(), p2.y(), bottom_z, bottom_color);
+    push_vertex(p1.x(), p1.y(), bottom_z, bottom_color);
+  }
+
+  // Side walls iterate `poly`, which is already normalized to CCW so normals always point outward
+  for (size_t i = 0; i < poly.size(); ++i) {
+    const auto & curr = poly[i];
+    const auto & next = poly[(i + 1) % poly.size()];
+
+    // Side quad (two triangles, outward normal)
+    push_vertex(curr.x(), curr.y(), bottom_z, side_color);
+    push_vertex(next.x(), next.y(), bottom_z, side_color);
+    push_vertex(next.x(), next.y(), top_z, side_color);
+
+    push_vertex(curr.x(), curr.y(), bottom_z, side_color);
+    push_vertex(next.x(), next.y(), top_z, side_color);
+    push_vertex(curr.x(), curr.y(), top_z, side_color);
+  }
+
+  return true;
 }
 
 void calc_2d_polygon_bottom_line_list(

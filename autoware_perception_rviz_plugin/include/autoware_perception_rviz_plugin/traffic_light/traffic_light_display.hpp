@@ -96,6 +96,7 @@ private Q_SLOTS:
 
 private:  // NOLINT
   // Display methods
+  void clearDisplayObjects();
   void hideAllDisplays();
   void updateTrafficLightText(const TrafficLightInfo & info, const std::string & state_text);
   void updateTrafficLightBulbs(
@@ -116,6 +117,8 @@ private:  // NOLINT
   std::unique_ptr<rviz_common::properties::FloatProperty> font_size_property_;
   std::unique_ptr<rviz_common::properties::ColorProperty> text_color_property_;
   std::unique_ptr<rviz_common::properties::FloatProperty> bulb_radius_property_;
+  std::unique_ptr<rviz_common::properties::BoolProperty> emissive_glow_property_;
+  bool last_emissive_glow_{false};
 
   // Subscribers
   rclcpp::Subscription<autoware_map_msgs::msg::LaneletMapBin>::SharedPtr lanelet_map_sub_;
@@ -135,6 +138,7 @@ private:  // NOLINT
   // Data storage
   lanelet::LaneletMapPtr lanelet_map_;
   std_msgs::msg::Header lanelet_map_header_;
+  bool lanelet_map_dirty_{false};
 
   autoware_perception_msgs::msg::TrafficLightGroupArray::ConstSharedPtr traffic_light_groups_;
   rclcpp::Time last_traffic_light_received_time_;

@@ -182,6 +182,9 @@ void SignalDisplay::update(float /* wall_dt */, float /* ros_dt */)
   if (!overlay_) {
     return;
   }
+  if (isEnabled() && !overlay_->isVisible()) {
+    overlay_->show();
+  }
   rviz_2d_overlay_plugins::ScopedPixelBuffer buffer = overlay_->getBuffer();
   QImage hud = buffer.getQImage(*overlay_);
   hud.fill(Qt::transparent);
@@ -204,8 +207,10 @@ void SignalDisplay::onDisable()
   gear_sub_.reset();
   steering_sub_.reset();
   speed_sub_.reset();
+  speed_limit_sub_.reset();
   turn_signals_sub_.reset();
   hazard_lights_sub_.reset();
+  traffic_sub_.reset();
 
   if (overlay_) {
     overlay_->hide();
@@ -219,6 +224,7 @@ void SignalDisplay::updateTrafficLightData(
 
   if (traffic_display_) {
     traffic_display_->updateTrafficLightData(msg);
+    queueRender();
   }
 }
 
@@ -372,7 +378,14 @@ void SignalDisplay::drawVerticalRoundedRectangle(QPainter & painter, const QRect
 void SignalDisplay::reset()
 {
   rviz_common::Display::reset();
-  overlay_->hide();
+  if (overlay_) {
+    if (isEnabled()) {
+      overlay_->show();
+      setupRosSubscriptions();
+    } else {
+      overlay_->hide();
+    }
+  }
 }
 
 void SignalDisplay::updateOverlaySize()
