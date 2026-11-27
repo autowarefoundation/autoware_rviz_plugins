@@ -2,6 +2,31 @@
 Changelog for package autoware_perception_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.7.0 (2026-11-27)
+------------------
+* feat: cool hologram theme (`#57 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/57>`_)
+  * feat: add hologram 3D bounding box, trajectory ribbon, custom vector map display, and cool mode toggle tool
+  Co-authored-by: Cursor <cursoragent@cursor.com>
+  * feat(autoware_perception_rviz_plugin): add Hologram tapered ribbon style for predicted paths
+  * fix(map): hide bicycle lane arrows, soften blue pavement fill, and deduplicate road_borders against lane bounds
+  * feat(autoware_planning_rviz_plugin): add MissionRouteGoal hologram circle display
+  * style(pre-commit): autofix
+  * refactor: address review comments (remove theme toggle tool, support concave polygons, simplify hologram path, preserve defaults)
+  * style(pre-commit): autofix
+  * fix: fix polygon mesh shading/winding/fallback, preserve Fill polygon outline, and reset cached path
+  * style(pre-commit): autofix
+  * style: add missing <utility> and <memory> headers for cpplint
+  ---------
+  Co-authored-by: Cursor <cursoragent@cursor.com>
+  Co-authored-by: pre-commit-ci[bot] <66853113+pre-commit-ci[bot]@users.noreply.github.com>
+* chore: sync files (`#18 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/18>`_)
+  * chore: sync files
+  * style(pre-commit): autofix
+  ---------
+  Co-authored-by: github-actions <github-actions@github.com>
+  Co-authored-by: pre-commit-ci[bot] <66853113+pre-commit-ci[bot]@users.noreply.github.com>
+* Contributors: awf-autoware-bot[bot], kotaro-hihara
+
 0.6.0 (2026-06-30)
 ------------------
 * feat(perception): add predicted path footprint visualization and reorganize display properties (`#45 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/45>`_)

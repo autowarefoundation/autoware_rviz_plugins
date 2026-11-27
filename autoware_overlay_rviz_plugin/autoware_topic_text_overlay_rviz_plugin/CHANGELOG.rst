@@ -2,6 +2,16 @@
 Changelog for package autoware_topic_text_overlay_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
+0.7.0 (2026-11-27)
+------------------
+* chore: sync files (`#18 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/18>`_)
+  * chore: sync files
+  * style(pre-commit): autofix
+  ---------
+  Co-authored-by: github-actions <github-actions@github.com>
+  Co-authored-by: pre-commit-ci[bot] <66853113+pre-commit-ci[bot]@users.noreply.github.com>
+* Contributors: awf-autoware-bot[bot]
+
 0.6.0 (2026-06-30)
 ------------------
 
