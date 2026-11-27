@@ -259,6 +259,7 @@ public:
 
     footprint_manual_object_->clear();
     point_manual_object_->clear();
+    last_msg_ptr_.reset();
   }
 
 protected:

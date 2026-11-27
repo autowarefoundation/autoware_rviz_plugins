@@ -332,7 +332,9 @@ protected:
         auto fill_marker = detail::get_shape_marker_ptr(
           shape_msg, centroid, orientation, fill_color, line_width, is_orientation_available,
           detail::ObjectFillType::HologramFill, false, false);
-        if (fill_marker && !fill_marker->points.empty()) {
+        if (
+          fill_marker && fill_marker->type == visualization_msgs::msg::Marker::TRIANGLE_LIST &&
+          !fill_marker->points.empty()) {
           fill_marker->ns = std::string("shape");
           result.push_back(fill_marker);
         }
