@@ -37,6 +37,7 @@
 #include <cmath>
 #include <iomanip>
 #include <limits>
+#include <memory>
 #include <sstream>
 #include <string>
 #include <utility>
