@@ -2,8 +2,8 @@
 Changelog for package autoware_planning_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.7.0 (2026-11-27)
+------------------
 * feat: cool hologram theme (`#57 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/57>`_)
   * feat: add hologram 3D bounding box, trajectory ribbon, custom vector map display, and cool mode toggle tool
   Co-authored-by: Cursor <cursoragent@cursor.com>

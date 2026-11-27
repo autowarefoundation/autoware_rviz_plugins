@@ -2,8 +2,8 @@
 Changelog for package tier4_datetime_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.7.0 (2026-11-27)
+------------------
 * feat: move autoware_polar_grid and tier4_datetime_rviz_plugin from Autoware Universe (`#48 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/48>`_)
   * feat: move autoware_polar_grid and tier4_datetime_rviz_plugin from Autoware Universe
   Copy the two packages from autoware_universe main at

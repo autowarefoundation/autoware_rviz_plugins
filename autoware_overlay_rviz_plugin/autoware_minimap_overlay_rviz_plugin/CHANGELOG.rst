@@ -2,8 +2,8 @@
 Changelog for package autoware_minimap_overlay_rviz_plugin
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-Forthcoming
------------
+0.7.0 (2026-11-27)
+------------------
 * feat(autoware_minimap_overlay_rviz_plugin): add the minimap overlay plugin (`#49 <https://github.com/autowarefoundation/autoware_rviz_plugins/issues/49>`_)
   * feat: new minimap overlay
   * move to visualization
