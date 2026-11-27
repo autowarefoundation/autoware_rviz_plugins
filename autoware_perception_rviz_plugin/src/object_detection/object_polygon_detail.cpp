@@ -784,8 +784,9 @@ visualization_msgs::msg::Marker::SharedPtr get_shape_marker_ptr(
     if (fill_type == ObjectFillType::HologramFill && shape_msg.footprint.points.size() >= 3) {
       std_msgs::msg::ColorRGBA capped_color = color_rgba;
       capped_color.a = std::min(color_rgba.a, max_fill_alpha);
-      if (calc_polygon_triangle_list(
-            shape_msg, capped_color, marker_ptr->points, marker_ptr->colors)) {
+      if (
+        calc_polygon_triangle_list(
+          shape_msg, capped_color, marker_ptr->points, marker_ptr->colors)) {
         marker_ptr->type = visualization_msgs::msg::Marker::TRIANGLE_LIST;
         marker_ptr->scale.x = 1.0;
         marker_ptr->scale.y = 1.0;
